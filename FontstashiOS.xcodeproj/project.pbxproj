@@ -1,0 +1,435 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		98603FF419E435AC00912F0C /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 98603FF319E435AC00912F0C /* main.m */; };
+		98603FF719E435AC00912F0C /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 98603FF619E435AC00912F0C /* AppDelegate.m */; };
+		98603FFA19E435AC00912F0C /* MasterViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 98603FF919E435AC00912F0C /* MasterViewController.m */; };
+		98603FFD19E435AC00912F0C /* DetailViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 98603FFC19E435AC00912F0C /* DetailViewController.m */; };
+		9860400019E435AC00912F0C /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 98603FFE19E435AC00912F0C /* Main.storyboard */; };
+		9860400219E435AC00912F0C /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9860400119E435AC00912F0C /* Images.xcassets */; };
+		9860400519E435AC00912F0C /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 9860400319E435AC00912F0C /* LaunchScreen.xib */; };
+		9860401119E435AC00912F0C /* FontstashiOSTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 9860401019E435AC00912F0C /* FontstashiOSTests.m */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		9860400B19E435AC00912F0C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 98603FE619E435AC00912F0C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 98603FED19E435AC00912F0C;
+			remoteInfo = FontstashiOS;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		98603FEE19E435AC00912F0C /* FontstashiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FontstashiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		98603FF219E435AC00912F0C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		98603FF319E435AC00912F0C /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		98603FF519E435AC00912F0C /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		98603FF619E435AC00912F0C /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		98603FF819E435AC00912F0C /* MasterViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MasterViewController.h; sourceTree = "<group>"; };
+		98603FF919E435AC00912F0C /* MasterViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MasterViewController.m; sourceTree = "<group>"; };
+		98603FFB19E435AC00912F0C /* DetailViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DetailViewController.h; sourceTree = "<group>"; };
+		98603FFC19E435AC00912F0C /* DetailViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DetailViewController.m; sourceTree = "<group>"; };
+		98603FFF19E435AC00912F0C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		9860400119E435AC00912F0C /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
+		9860400419E435AC00912F0C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/LaunchScreen.xib; sourceTree = "<group>"; };
+		9860400A19E435AC00912F0C /* FontstashiOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FontstashiOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9860400F19E435AC00912F0C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		9860401019E435AC00912F0C /* FontstashiOSTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FontstashiOSTests.m; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		98603FEB19E435AC00912F0C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9860400719E435AC00912F0C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		98603FE519E435AC00912F0C = {
+			isa = PBXGroup;
+			children = (
+				98603FF019E435AC00912F0C /* FontstashiOS */,
+				9860400D19E435AC00912F0C /* FontstashiOSTests */,
+				98603FEF19E435AC00912F0C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		98603FEF19E435AC00912F0C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				98603FEE19E435AC00912F0C /* FontstashiOS.app */,
+				9860400A19E435AC00912F0C /* FontstashiOSTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		98603FF019E435AC00912F0C /* FontstashiOS */ = {
+			isa = PBXGroup;
+			children = (
+				98603FF519E435AC00912F0C /* AppDelegate.h */,
+				98603FF619E435AC00912F0C /* AppDelegate.m */,
+				98603FF819E435AC00912F0C /* MasterViewController.h */,
+				98603FF919E435AC00912F0C /* MasterViewController.m */,
+				98603FFB19E435AC00912F0C /* DetailViewController.h */,
+				98603FFC19E435AC00912F0C /* DetailViewController.m */,
+				98603FFE19E435AC00912F0C /* Main.storyboard */,
+				9860400119E435AC00912F0C /* Images.xcassets */,
+				9860400319E435AC00912F0C /* LaunchScreen.xib */,
+				98603FF119E435AC00912F0C /* Supporting Files */,
+			);
+			path = FontstashiOS;
+			sourceTree = "<group>";
+		};
+		98603FF119E435AC00912F0C /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				98603FF219E435AC00912F0C /* Info.plist */,
+				98603FF319E435AC00912F0C /* main.m */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		9860400D19E435AC00912F0C /* FontstashiOSTests */ = {
+			isa = PBXGroup;
+			children = (
+				9860401019E435AC00912F0C /* FontstashiOSTests.m */,
+				9860400E19E435AC00912F0C /* Supporting Files */,
+			);
+			path = FontstashiOSTests;
+			sourceTree = "<group>";
+		};
+		9860400E19E435AC00912F0C /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				9860400F19E435AC00912F0C /* Info.plist */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		98603FED19E435AC00912F0C /* FontstashiOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9860401419E435AC00912F0C /* Build configuration list for PBXNativeTarget "FontstashiOS" */;
+			buildPhases = (
+				98603FEA19E435AC00912F0C /* Sources */,
+				98603FEB19E435AC00912F0C /* Frameworks */,
+				98603FEC19E435AC00912F0C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FontstashiOS;
+			productName = FontstashiOS;
+			productReference = 98603FEE19E435AC00912F0C /* FontstashiOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9860400919E435AC00912F0C /* FontstashiOSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9860401719E435AC00912F0C /* Build configuration list for PBXNativeTarget "FontstashiOSTests" */;
+			buildPhases = (
+				9860400619E435AC00912F0C /* Sources */,
+				9860400719E435AC00912F0C /* Frameworks */,
+				9860400819E435AC00912F0C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9860400C19E435AC00912F0C /* PBXTargetDependency */,
+			);
+			name = FontstashiOSTests;
+			productName = FontstashiOSTests;
+			productReference = 9860400A19E435AC00912F0C /* FontstashiOSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		98603FE619E435AC00912F0C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0600;
+				ORGANIZATIONNAME = "Karim Naaji";
+				TargetAttributes = {
+					98603FED19E435AC00912F0C = {
+						CreatedOnToolsVersion = 6.0.1;
+					};
+					9860400919E435AC00912F0C = {
+						CreatedOnToolsVersion = 6.0.1;
+						TestTargetID = 98603FED19E435AC00912F0C;
+					};
+				};
+			};
+			buildConfigurationList = 98603FE919E435AC00912F0C /* Build configuration list for PBXProject "FontstashiOS" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 98603FE519E435AC00912F0C;
+			productRefGroup = 98603FEF19E435AC00912F0C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				98603FED19E435AC00912F0C /* FontstashiOS */,
+				9860400919E435AC00912F0C /* FontstashiOSTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		98603FEC19E435AC00912F0C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9860400019E435AC00912F0C /* Main.storyboard in Resources */,
+				9860400519E435AC00912F0C /* LaunchScreen.xib in Resources */,
+				9860400219E435AC00912F0C /* Images.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9860400819E435AC00912F0C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		98603FEA19E435AC00912F0C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				98603FF719E435AC00912F0C /* AppDelegate.m in Sources */,
+				98603FFA19E435AC00912F0C /* MasterViewController.m in Sources */,
+				98603FF419E435AC00912F0C /* main.m in Sources */,
+				98603FFD19E435AC00912F0C /* DetailViewController.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9860400619E435AC00912F0C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9860401119E435AC00912F0C /* FontstashiOSTests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		9860400C19E435AC00912F0C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 98603FED19E435AC00912F0C /* FontstashiOS */;
+			targetProxy = 9860400B19E435AC00912F0C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		98603FFE19E435AC00912F0C /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				98603FFF19E435AC00912F0C /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		9860400319E435AC00912F0C /* LaunchScreen.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				9860400419E435AC00912F0C /* Base */,
+			);
+			name = LaunchScreen.xib;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		9860401219E435AC00912F0C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		9860401319E435AC00912F0C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		9860401519E435AC00912F0C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = FontstashiOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9860401619E435AC00912F0C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = FontstashiOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		9860401819E435AC00912F0C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(SDKROOT)/Developer/Library/Frameworks",
+					"$(inherited)",
+				);
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				INFOPLIST_FILE = FontstashiOSTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FontstashiOS.app/FontstashiOS";
+			};
+			name = Debug;
+		};
+		9860401919E435AC00912F0C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(SDKROOT)/Developer/Library/Frameworks",
+					"$(inherited)",
+				);
+				INFOPLIST_FILE = FontstashiOSTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FontstashiOS.app/FontstashiOS";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		98603FE919E435AC00912F0C /* Build configuration list for PBXProject "FontstashiOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9860401219E435AC00912F0C /* Debug */,
+				9860401319E435AC00912F0C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9860401419E435AC00912F0C /* Build configuration list for PBXNativeTarget "FontstashiOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9860401519E435AC00912F0C /* Debug */,
+				9860401619E435AC00912F0C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+		9860401719E435AC00912F0C /* Build configuration list for PBXNativeTarget "FontstashiOSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9860401819E435AC00912F0C /* Debug */,
+				9860401919E435AC00912F0C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 98603FE619E435AC00912F0C /* Project object */;
+}
