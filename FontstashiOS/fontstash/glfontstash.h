@@ -22,6 +22,7 @@
 #include "type_ptr.hpp"
 #include "matrix_transform.hpp"
 #include <map>
+#include <stack>
 
 typedef unsigned int fsuint;
 
@@ -35,6 +36,9 @@ void glfonsRotate(FONScontext* ctx, float angle);
 void glfonsTranslate(FONScontext* ctx, float x, float y);
 void glfonsDrawText(FONScontext* ctx, fsuint* id);
 void glfonsSetColor(FONScontext* ctx, unsigned int color);
+
+void glfonsPushMatrix(FONScontext* ctx);
+void glfonsPopMatrix(FONScontext* ctx);
 
 unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
 
@@ -61,15 +65,16 @@ struct GLFONScontext {
     GLuint colorAttrib;
     
     std::map<fsuint, GLFONSvbo*>* vbos;
+    std::stack<glm::mat4> matrixStack;
     glm::vec2 anchorPoint;
     glm::mat4 projectionMatrix;
+    
+    glm::mat4 rotation;
+    glm::mat4 scale;
+    glm::mat4 translation;
 };
 
 typedef struct GLFONScontext GLFONScontext;
-
-// hard coded size
-const double contextHeight = 568*2;
-const double contextWidth = 320*2;
 
 const GLchar* vertexShaderSrc =
     "#ifdef GL_ES\n"
@@ -78,11 +83,11 @@ const GLchar* vertexShaderSrc =
     "attribute vec4 position;\n"
     "attribute vec2 texCoord;\n"
     "attribute vec4 color;\n"
-    "uniform mat4 projection;\n"
+    "uniform mat4 mvp;\n"
     "varying vec2 fUv;\n"
     "varying vec4 fColor;\n"
     "void main() {\n"
-    "  gl_Position = projection * position;\n"
+    "  gl_Position = mvp * position;\n"
     "  fUv = texCoord;\n"
     "  fColor = color;\n"
     "}\n";
@@ -158,6 +163,10 @@ static int glfons__renderCreate(void* userPtr, int width, int height)
         glDeleteTextures(1, &gl->tex);
         gl->tex = 0;
     }
+    gl->idct = 0;
+    gl->anchorPoint = glm::vec2(0.5);
+    gl->vbos = new std::map<fsuint, GLFONSvbo*>();
+    
     glGenTextures(1, &gl->tex);
     if (!gl->tex) return 0;
     gl->width = width;
@@ -172,8 +181,14 @@ static int glfons__renderCreate(void* userPtr, int width, int height)
     gl->texCoordAttrib = glGetAttribLocation(gl->shaderProgram, "texCoord");
     gl->colorAttrib = glGetAttribLocation(gl->shaderProgram, "color");
     
-    // WIP : screen width & height hard coded
-    gl->projectionMatrix = glm::ortho(0.0, contextWidth, contextHeight, 0.0, -1.0, 1.0);
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    gl->projectionMatrix = glm::ortho(0.0, (double)viewport[2], (double)viewport[3], 0.0, -1.0, 1.0);
+    gl->translation = glm::mat4(1.0);
+    gl->rotation = glm::mat4(1.0);
+    gl->scale = glm::mat4(1.0);
+    gl->matrixStack.push(glm::mat4(1.0));
+    
     return 1;
 }
 
@@ -238,10 +253,6 @@ FONScontext* glfonsCreate(int width, int height, int flags)
     params.renderDelete = glfons__renderDelete;
     params.userPtr = gl;
     
-    gl->idct = 0;
-    gl->anchorPoint = glm::vec2(0.5);
-    gl->vbos = new std::map<fsuint, GLFONSvbo*>();
-    
     return fonsCreateInternal(&params);
     
 error:
@@ -251,7 +262,6 @@ error:
 
 void glfonsDelete(FONScontext* ctx)
 {
-
     fonsDeleteInternal(ctx);
 }
 
@@ -263,16 +273,12 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
 void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)
 {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    
-    if(!glctx)
-        return;
-    
     GLFONSvbo* vboBufferDesc = new GLFONSvbo;
     
     *id = ++glctx->idct;
     
     // WIP : should be at (0, 0)
-    fonsDrawText(ctx, 130, 130, s, NULL, 0);
+    fonsDrawText(ctx, 0, 50, s, NULL, 0);
     
     glGenBuffers(3, vboBufferDesc->buffers);
     
@@ -287,8 +293,6 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
-    printf("%d\n", ctx->nverts);
-    
     vboBufferDesc->nverts = ctx->nverts;
 
     ctx->nverts = 0;
@@ -299,9 +303,6 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)
 void glfonsUnbufferText(FONScontext* ctx, fsuint* id)
 {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    
-    if(!glctx)
-        return;
     
     // TODO : should test if it already exists before accessing it
     GLFONSvbo* vboInfo = glctx->vbos->at(*id);
@@ -316,21 +317,20 @@ void glfonsUnbufferText(FONScontext* ctx, fsuint* id)
 void glfonsAnchorPoint(FONScontext* ctx, float x, float y)
 {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    
-    if(!glctx)
-        return;
-    
     glctx->anchorPoint = glm::vec2(x, y);
 }
 
 void glfonsRotate(FONScontext* ctx, float angle)
 {
-    
+    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
+    // TODO : translate by anchor point
+    glctx->rotation = glm::rotate(glm::mat4(1.0), angle, glm::vec3(glctx->anchorPoint, 0.0));
 }
 
 void glfonsTranslate(FONScontext* ctx, float x, float y)
 {
-    
+    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
+    glctx->translation = glm::translate(glm::mat4(1.0), glm::vec3(x, y, 0.0));
 }
 
 void glfonsDrawText(FONScontext* ctx, fsuint* id)
@@ -344,13 +344,17 @@ void glfonsDrawText(FONScontext* ctx, fsuint* id)
     GLFONSvbo* vboDesc = glctx->vbos->at(*id);
     
     if(vboDesc != NULL) {
+        glm::mat4 model = glctx->matrixStack.top();
+        glm::mat4 view = glm::mat4(1.0); // TODO : maybe use this
+        glm::mat4 mvp = glctx->projectionMatrix * view * model;
+        
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, glctx->tex);
         glEnable(GL_TEXTURE_2D);
     
         glUseProgram(glctx->shaderProgram);
         glUniform1i(glGetUniformLocation(glctx->shaderProgram, "tex"), 0);
-        glUniformMatrix4fv(glGetUniformLocation(glctx->shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(glctx->projectionMatrix));
+        glUniformMatrix4fv(glGetUniformLocation(glctx->shaderProgram, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
     
         glBindBuffer(GL_ARRAY_BUFFER, vboDesc->buffers[0]);
         glVertexAttribPointer(glctx->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
@@ -380,5 +384,20 @@ void glfonsSetColor(FONScontext* ctx, unsigned int color)
 {
     
 }
+
+void glfonsPushMatrix(FONScontext* ctx)
+{
+    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
+    glm::mat4 top = glctx->matrixStack.top();
+    glm::mat4 transform = glctx->translation * glctx->rotation * glctx->scale;
+    glctx->matrixStack.push(transform * top);
+}
+
+void glfonsPopMatrix(FONScontext* ctx)
+{
+    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
+    glctx->matrixStack.pop();
+}
+
 
 #endif

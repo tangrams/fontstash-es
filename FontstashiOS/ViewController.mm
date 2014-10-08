@@ -60,15 +60,17 @@
         }
         self.context = nil;
     }
-
-    // Dispose of any resources that can be recreated.
 }
 
 - (void)setupGL
 {
     [EAGLContext setCurrentContext:self.context];
     
-    glClearColor(0.3f, 0.3f, 0.32f, 1.0f);
+    int width = self.view.bounds.size.width;
+    int height = self.view.bounds.size.height;
+    
+    glViewport(0, 0, width, height);
+    glClearColor(0.3f, 0.3f, 0.39f, 1.0f);
     
     fs = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT);
     if (fs == NULL) {
@@ -85,13 +87,13 @@
     
     unsigned int brown = glfonsRGBA(192,128,0,128);
     
-    fonsSetSize(fs, 124.0f);
+    fonsSetSize(fs, 40.0f);
     fonsSetFont(fs, fontNormal);
     fonsSetColor(fs, brown);
     
     glfonsBufferText(fs, "Fontstash", &fontStashId);
     
-    fonsSetSize(fs, 120.0f);
+    fonsSetSize(fs, 40.0f);
     fonsSetFont(fs, fontNormal);
     fonsSetColor(fs, brown);
     
@@ -101,6 +103,8 @@
 - (void)tearDownGL
 {
     [EAGLContext setCurrentContext:self.context];
+    
+    glfonsDelete(fs);
 }
 
 #pragma mark - GLKView and GLKViewController delegate methods
@@ -112,10 +116,6 @@
 
 - (void)glkView:(GLKView *)view drawInRect:(CGRect)rect
 {
-    int width = self.view.bounds.size.width;
-    int height = self.view.bounds.size.height;
-    
-    glViewport(0, 0, width, height);
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -123,7 +123,10 @@
     glDisable(GL_DEPTH_TEST);
     
     glfonsDrawText(fs, &fontStashId2);
+    glfonsPushMatrix(fs);
+    glfonsTranslate(fs, 0.0, 100.0);
     glfonsDrawText(fs, &fontStashId);
+    glfonsPopMatrix(fs);
 }
 
 @end
