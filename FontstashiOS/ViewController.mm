@@ -90,6 +90,12 @@
     fonsSetColor(fs, brown);
     
     glfonsBufferText(fs, "Fontstash", &fontStashId);
+    
+    fonsSetSize(fs, 120.0f);
+    fonsSetFont(fs, fontNormal);
+    fonsSetColor(fs, brown);
+    
+    glfonsBufferText(fs, "A1234", &fontStashId2);
 }
 
 - (void)tearDownGL
@@ -116,6 +122,7 @@
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
     
+    glfonsDrawText(fs, &fontStashId2);
     glfonsDrawText(fs, &fontStashId);
 }
 

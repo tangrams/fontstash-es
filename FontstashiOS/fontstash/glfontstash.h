@@ -272,7 +272,7 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)
     *id = ++glctx->idct;
     
     // WIP : should be at (0, 0)
-    fonsDrawText(ctx, 130, 130, s, NULL);
+    fonsDrawText(ctx, 130, 130, s, NULL, 0);
     
     glGenBuffers(3, vboBufferDesc->buffers);
     
@@ -287,7 +287,11 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
+    printf("%d\n", ctx->nverts);
+    
     vboBufferDesc->nverts = ctx->nverts;
+
+    ctx->nverts = 0;
 
     glctx->vbos->insert(std::pair<fsuint, GLFONSvbo*>(*id, vboBufferDesc));
 }

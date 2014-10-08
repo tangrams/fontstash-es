@@ -10,12 +10,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "FontstashiOS/fontstash/fontstash.h"
-            timestampString = "434401617.453292"
+            timestampString = "434486812.516998"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1224"
-            endingLineNumber = "1224"
-            landmarkName = "fonsDrawText(FONScontext* stash, float x, float y, const char* str, const char* end)"
+            startingLineNumber = "1226"
+            endingLineNumber = "1226"
+            landmarkName = "fonsDrawText(FONScontext* stash, float x, float y, const char* str, const char* end, const char clear)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -74,12 +74,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "FontstashiOS/fontstash/fontstash.h"
-            timestampString = "434403798.222289"
+            timestampString = "434486812.516998"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1279"
-            endingLineNumber = "1279"
-            landmarkName = "fonsDrawText(FONScontext* stash, float x, float y, const char* str, const char* end)"
+            startingLineNumber = "1281"
+            endingLineNumber = "1281"
+            landmarkName = "fonsDrawText(FONScontext* stash, float x, float y, const char* str, const char* end, const char clear)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -95,7 +95,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "1168"
             endingLineNumber = "1168"
-            landmarkName = "fons__flush(FONScontext* stash)"
+            landmarkName = "fons__flush(FONScontext* stash, const char clear)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -106,12 +106,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "FontstashiOS/fontstash/fontstash.h"
-            timestampString = "434404017.792908"
+            timestampString = "434486812.516998"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1180"
-            endingLineNumber = "1180"
-            landmarkName = "fons__flush(FONScontext* stash)"
+            startingLineNumber = "1181"
+            endingLineNumber = "1181"
+            landmarkName = "fons__flush(FONScontext* stash, const char clear)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -122,12 +122,12 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "FontstashiOS/fontstash/fontstash.h"
-            timestampString = "434404019.121013"
+            timestampString = "434486812.516998"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "1179"
             endingLineNumber = "1179"
-            landmarkName = "fons__flush(FONScontext* stash)"
+            landmarkName = "fons__flush(FONScontext* stash, const char clear)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -143,7 +143,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "1166"
             endingLineNumber = "1166"
-            landmarkName = "fons__flush(FONScontext* stash)"
+            landmarkName = "fons__flush(FONScontext* stash, const char clear)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -154,7 +154,23 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "FontstashiOS/fontstash/glfontstash.h"
-            timestampString = "434484960.03029"
+            timestampString = "434485693.748132"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "266"
+            endingLineNumber = "266"
+            landmarkName = "glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "FontstashiOS/fontstash/glfontstash.h"
+            timestampString = "434485693.748132"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "265"
@@ -170,27 +186,11 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "FontstashiOS/fontstash/glfontstash.h"
-            timestampString = "434484960.03029"
+            timestampString = "434485693.748132"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "264"
-            endingLineNumber = "264"
-            landmarkName = "glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "FontstashiOS/fontstash/glfontstash.h"
-            timestampString = "434484960.03029"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "269"
-            endingLineNumber = "269"
+            startingLineNumber = "270"
+            endingLineNumber = "270"
             landmarkName = "glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)"
             landmarkType = "7">
          </BreakpointContent>
@@ -218,13 +218,29 @@
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "FontstashiOS/ViewController.mm"
-            timestampString = "434485114.386782"
+            timestampString = "434486812.516998"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "119"
-            endingLineNumber = "119"
+            startingLineNumber = "126"
+            endingLineNumber = "126"
             landmarkName = "-glkView:drawInRect:"
             landmarkType = "5">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "FontstashiOS/fontstash/glfontstash.h"
+            timestampString = "434485769.317128"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "196"
+            endingLineNumber = "196"
+            landmarkName = "glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* data)"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

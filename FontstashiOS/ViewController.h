@@ -23,5 +23,6 @@
     FONScontext* fs;
     int fontNormal;
     fsuint fontStashId;
+    fsuint fontStashId2;
 }
 @end
