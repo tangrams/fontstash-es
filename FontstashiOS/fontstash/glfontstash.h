@@ -34,7 +34,7 @@ void glfonsUnbufferText(FONScontext* ctx, fsuint* id);
 void glfonsAnchorPoint(FONScontext* ctx, float x, float y);
 void glfonsRotate(FONScontext* ctx, float angle);
 void glfonsTranslate(FONScontext* ctx, float x, float y);
-void glfonsDrawText(FONScontext* ctx, fsuint* id);
+void glfonsDrawText(FONScontext* ctx, fsuint id);
 void glfonsSetColor(FONScontext* ctx, unsigned int color);
 
 void glfonsPushMatrix(FONScontext* ctx);
@@ -104,6 +104,18 @@ const GLchar* fragShaderSrc =
     "  vec3 invColor = 1.0 - color.rgb;\n"
     "  gl_FragColor = vec4(invColor * fColor.rgb, fColor.a * color.a);\n"
     "}\n";
+
+void resetMatrices(GLFONScontext* gl)
+{
+    gl->translation = glm::mat4(1.0);
+    gl->rotation = glm::mat4(1.0);
+    gl->scale = glm::mat4(1.0);
+}
+
+glm::mat4 currentModel(GLFONScontext* gl)
+{
+    return gl->translation * gl->rotation * gl->scale * gl->matrixStack.top();
+}
 
 static void printShaderInfoLog(GLuint shader)
 {
@@ -184,10 +196,9 @@ static int glfons__renderCreate(void* userPtr, int width, int height)
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     gl->projectionMatrix = glm::ortho(0.0, (double)viewport[2], (double)viewport[3], 0.0, -1.0, 1.0);
-    gl->translation = glm::mat4(1.0);
-    gl->rotation = glm::mat4(1.0);
-    gl->scale = glm::mat4(1.0);
     gl->matrixStack.push(glm::mat4(1.0));
+    
+    resetMatrices(gl);
     
     return 1;
 }
@@ -235,10 +246,8 @@ static void glfons__renderDelete(void* userPtr)
 FONScontext* glfonsCreate(int width, int height, int flags)
 {
     FONSparams params;
-    GLFONScontext* gl;
-    
-    // TODO : use c++ style
-    gl = (GLFONScontext*)malloc(sizeof(GLFONScontext));
+    GLFONScontext* gl = new GLFONScontext;
+
     if (gl == NULL) goto error;
     memset(gl, 0, sizeof(GLFONScontext));
     
@@ -277,8 +286,7 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)
     
     *id = ++glctx->idct;
     
-    // WIP : should be at (0, 0)
-    fonsDrawText(ctx, 0, 50, s, NULL, 0);
+    fonsDrawText(ctx, 0, 0, s, NULL, 0);
     
     glGenBuffers(3, vboBufferDesc->buffers);
     
@@ -324,16 +332,18 @@ void glfonsRotate(FONScontext* ctx, float angle)
 {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
     // TODO : translate by anchor point
-    glctx->rotation = glm::rotate(glm::mat4(1.0), angle, glm::vec3(glctx->anchorPoint, 0.0));
+    glm::vec3 raxis = glm::vec3(0.0, 0.0, 1.0);
+    glm::mat4 imodel = glm::inverse(currentModel(glctx));
+    glctx->rotation = glm::rotate(glctx->rotation, angle, raxis); // * itranslation;
 }
 
 void glfonsTranslate(FONScontext* ctx, float x, float y)
 {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    glctx->translation = glm::translate(glm::mat4(1.0), glm::vec3(x, y, 0.0));
+    glctx->translation = glm::translate(glctx->translation, glm::vec3(x, y, 0.0));
 }
 
-void glfonsDrawText(FONScontext* ctx, fsuint* id)
+void glfonsDrawText(FONScontext* ctx, fsuint id)
 {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
     
@@ -341,12 +351,11 @@ void glfonsDrawText(FONScontext* ctx, fsuint* id)
         return;
     
     // TODO : should test if it already exists before accessing it
-    GLFONSvbo* vboDesc = glctx->vbos->at(*id);
+    GLFONSvbo* vboDesc = glctx->vbos->at(id);
     
     if(vboDesc != NULL) {
-        glm::mat4 model = glctx->matrixStack.top();
         glm::mat4 view = glm::mat4(1.0); // TODO : maybe use this
-        glm::mat4 mvp = glctx->projectionMatrix * view * model;
+        glm::mat4 mvp = glctx->projectionMatrix * view * currentModel(glctx);
         
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, glctx->tex);
@@ -382,7 +391,7 @@ void glfonsDrawText(FONScontext* ctx, fsuint* id)
 
 void glfonsSetColor(FONScontext* ctx, unsigned int color)
 {
-    
+    // TODO : maybe use a uniform instead of the buffer?
 }
 
 void glfonsPushMatrix(FONScontext* ctx)
@@ -391,12 +400,21 @@ void glfonsPushMatrix(FONScontext* ctx)
     glm::mat4 top = glctx->matrixStack.top();
     glm::mat4 transform = glctx->translation * glctx->rotation * glctx->scale;
     glctx->matrixStack.push(transform * top);
+    
+    // new matrices context
+    resetMatrices(glctx);
 }
 
 void glfonsPopMatrix(FONScontext* ctx)
 {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    glctx->matrixStack.pop();
+    
+    if(glctx->matrixStack.size() > 0) {
+        glctx->matrixStack.pop();
+    
+        // TODO : fix this, should, retrieve old state
+        resetMatrices(glctx);
+    }
 }
 
 

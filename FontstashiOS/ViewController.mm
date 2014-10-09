@@ -122,10 +122,42 @@
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
     
-    glfonsDrawText(fs, &fontStashId2);
     glfonsPushMatrix(fs);
-    glfonsTranslate(fs, 0.0, 100.0);
-    glfonsDrawText(fs, &fontStashId);
+        glfonsTranslate(fs, 100.0, 100.0);
+        glfonsDrawText(fs, fontStashId2);
+        glfonsPushMatrix(fs);
+            glfonsTranslate(fs, 0.0, 100.0);
+            glfonsDrawText(fs, fontStashId2);
+            glfonsPushMatrix(fs);
+                glfonsTranslate(fs, 0.0, -150.0);
+                glfonsDrawText(fs, fontStashId2);
+            glfonsPopMatrix(fs);
+        glfonsPopMatrix(fs);
+    glfonsPopMatrix(fs);
+    
+    glfonsPushMatrix(fs);
+    glfonsTranslate(fs, 100.0, 300.0);
+    glfonsDrawText(fs, fontStashId);
+    glfonsRotate(fs, 20.0);
+    glfonsDrawText(fs, fontStashId);
+    for(int i = 0; i < 4; ++i) {
+        glfonsTranslate(fs, 20.0, 0.0);
+        glfonsRotate(fs, 20.0);
+        glfonsDrawText(fs, fontStashId);
+    }
+    glfonsPopMatrix(fs);
+    
+    glfonsPushMatrix(fs);
+        glfonsTranslate(fs, 0.0, 300.0);
+        glfonsDrawText(fs, fontStashId);
+        glfonsPushMatrix(fs);
+            glfonsTranslate(fs, 0.0, 10.0);
+            glfonsDrawText(fs, fontStashId);
+        glfonsPopMatrix(fs);
+    
+        // TODO : fix this
+        glfonsTranslate(fs, 0.0, 10.0);
+        glfonsDrawText(fs, fontStashId);
     glfonsPopMatrix(fs);
 }
 
