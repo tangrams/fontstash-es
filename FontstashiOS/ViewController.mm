@@ -85,17 +85,15 @@
         printf("Could not add font normal.\n");
     }
     
-    unsigned int brown = glfonsRGBA(192,128,0,128);
-    
     fonsSetSize(fs, 40.0f);
     fonsSetFont(fs, fontNormal);
-    fonsSetColor(fs, brown);
+    //fonsSetColor(fs, brown);
     
     glfonsBufferText(fs, "Fontstash", &fontStashId);
     
     fonsSetSize(fs, 40.0f);
     fonsSetFont(fs, fontNormal);
-    fonsSetColor(fs, brown);
+    //fonsSetColor(fs, brown); 
     
     glfonsBufferText(fs, "A1234", &fontStashId2);
 }
@@ -122,6 +120,12 @@
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
     
+    static float x;
+    x += .1f;
+    float xcol = (sin(x) + 1.0) * 0.5;
+    
+    glfonsSetColor(fs, 255, 255, 255, 150);
+    
     glfonsPushMatrix(fs);
         glfonsTranslate(fs, 100.0, 100.0);
         glfonsDrawText(fs, fontStashId2);
@@ -130,22 +134,26 @@
             glfonsDrawText(fs, fontStashId2);
             glfonsPushMatrix(fs);
                 glfonsTranslate(fs, 0.0, -150.0);
+                glfonsSetColor(fs, 120, xcol * 255, xcol * 255, 100);
                 glfonsDrawText(fs, fontStashId2);
             glfonsPopMatrix(fs);
         glfonsPopMatrix(fs);
     glfonsPopMatrix(fs);
+
+    glfonsSetColor(fs, 120, 120, 100, 30);
     
     glfonsPushMatrix(fs);
-    glfonsTranslate(fs, 100.0, 300.0);
-    glfonsDrawText(fs, fontStashId);
-    glfonsRotate(fs, 20.0);
-    glfonsDrawText(fs, fontStashId);
-    for(int i = 0; i < 4; ++i) {
-        glfonsTranslate(fs, 20.0, 0.0);
-        glfonsRotate(fs, 20.0);
+        glfonsTranslate(fs, 100.0, 300.0);
         glfonsDrawText(fs, fontStashId);
-    }
+        for(int i = 0; i < 4; ++i) {
+            glfonsSetColor(fs, 120, 120, 100, (i + 1) * 50);
+            glfonsTranslate(fs, 20.0, 0.0);
+            glfonsRotate(fs, 20.0);
+            glfonsDrawText(fs, fontStashId);
+        }
     glfonsPopMatrix(fs);
+    
+    glfonsSetColor(fs, 120, 120, 180, 200);
     
     glfonsPushMatrix(fs);
         glfonsTranslate(fs, 0.0, 300.0);
