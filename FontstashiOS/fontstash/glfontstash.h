@@ -25,6 +25,7 @@
 #include <stack>
 
 typedef unsigned int fsuint;
+typedef unsigned int fsenum;
 
 FONScontext* glfonsCreate(int width, int height, int flags);
 void glfonsDelete(FONScontext* ctx);
@@ -40,13 +41,16 @@ void glfonsSetColor(FONScontext* ctx, unsigned int r, unsigned int g, unsigned i
 void glfonsPushMatrix(FONScontext* ctx);
 void glfonsPopMatrix(FONScontext* ctx);
 
+// TODO : use a set of pixel shaders to change the font rendering style
+void glfonsSetShadingStyle(fsenum style);
+
 unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
 
 #endif
 
 #ifdef GLFONTSTASH_IMPLEMENTATION
 
-#define BUFFER_SIZE 3
+#define BUFFER_SIZE 2
 
 struct GLFONSvbo {
     int nverts;
@@ -86,14 +90,11 @@ const GLchar* vertexShaderSrc =
     "#endif\n"
     "attribute vec4 position;\n"
     "attribute vec2 texCoord;\n"
-    "attribute vec4 color;\n"
     "uniform mat4 mvp;\n"
     "varying vec2 fUv;\n"
-    "varying vec4 fColor;\n"
     "void main() {\n"
     "  gl_Position = mvp * position;\n"
     "  fUv = texCoord;\n"
-    "  fColor = color;\n"
     "}\n";
 
 const GLchar* fragShaderSrc =
@@ -217,10 +218,12 @@ static int glfons__renderResize(void* userPtr, int width, int height)
 static void glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* data)
 {
     GLFONScontext* gl = (GLFONScontext*)userPtr;
+    if (gl->tex == 0) return;
+    
     int w = rect[2] - rect[0];
     int h = rect[3] - rect[1];
     
-    if (gl->tex == 0) return;
+    // TODO : store the bounding box
 
     // TODO : update smaller part of texture 
     glBindTexture(GL_TEXTURE_2D, gl->tex);
@@ -229,7 +232,7 @@ static void glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* 
 
 static void glfons__renderDraw(void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts)
 {
-
+    // called by fontstash, but has nothing to do
 }
 
 static void glfons__renderDelete(void* userPtr)
@@ -297,6 +300,7 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)
     
     vboBufferDesc->nverts = ctx->nverts;
 
+    // reset fontstash state
     ctx->nverts = 0;
 
     glctx->vbos->insert(std::pair<fsuint, GLFONSvbo*>(*id, vboBufferDesc));
@@ -329,7 +333,10 @@ void glfonsRotate(FONScontext* ctx, float angle)
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
     // TODO : translate by anchor point
     glm::vec3 raxis = glm::vec3(0.0, 0.0, 1.0);
-    glctx->rotation = glm::rotate(glctx->rotation, angle, raxis);
+    
+    glctx->rotation = glctx->matrixStack.top()
+        * glm::rotate(glctx->rotation, angle, raxis)
+        * glm::inverse(glctx->matrixStack.top());
 }
 
 void glfonsTranslate(FONScontext* ctx, float x, float y)

@@ -70,7 +70,7 @@
     int height = self.view.bounds.size.height;
     
     glViewport(0, 0, width, height);
-    glClearColor(0.3f, 0.3f, 0.39f, 1.0f);
+    glClearColor(0.15f, 0.15f, 0.18f, 1.0f);
     
     fs = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT);
     if (fs == NULL) {
@@ -85,17 +85,15 @@
         printf("Could not add font normal.\n");
     }
     
-    fonsSetSize(fs, 40.0f);
+    fonsSetSize(fs, 48.0f);
     fonsSetFont(fs, fontNormal);
-    //fonsSetColor(fs, brown);
     
-    glfonsBufferText(fs, "Fontstash", &fontStashId);
+    glfonsBufferText(fs, "Fontstash", &text1);
     
-    fonsSetSize(fs, 40.0f);
+    fonsSetSize(fs, 48.0f);
     fonsSetFont(fs, fontNormal);
-    //fonsSetColor(fs, brown); 
     
-    glfonsBufferText(fs, "A1234", &fontStashId2);
+    glfonsBufferText(fs, "A1234 &$é", &text2);
 }
 
 - (void)tearDownGL
@@ -121,22 +119,25 @@
     glDisable(GL_DEPTH_TEST);
     
     static float x;
-    x += .1f;
-    float xcol = (sin(x) + 1.0) * 0.5;
+    x += .05f;
+    float xnorm = (sin(x) + 1.0) * 0.5;
     
     glfonsSetColor(fs, 255, 255, 255, 150);
     
     glfonsPushMatrix(fs);
         glfonsTranslate(fs, 100.0, 100.0);
-        glfonsDrawText(fs, fontStashId2);
+        glfonsDrawText(fs, text2);
+    
         glfonsPushMatrix(fs);
-            glfonsTranslate(fs, 0.0, 100.0);
-            glfonsDrawText(fs, fontStashId2);
+            glfonsTranslate(fs, 0.0, 100.0 + xnorm * 10);
+            glfonsDrawText(fs, text2);
+    
             glfonsPushMatrix(fs);
                 glfonsTranslate(fs, 0.0, -150.0);
-                glfonsSetColor(fs, 120, xcol * 255, xcol * 255, 100);
-                glfonsDrawText(fs, fontStashId2);
+                glfonsSetColor(fs, 130, 80, 95, xnorm * 255);
+                glfonsDrawText(fs, text2);
             glfonsPopMatrix(fs);
+    
         glfonsPopMatrix(fs);
     glfonsPopMatrix(fs);
 
@@ -144,28 +145,36 @@
     
     glfonsPushMatrix(fs);
         glfonsTranslate(fs, 100.0, 300.0);
-        glfonsDrawText(fs, fontStashId);
+        glfonsDrawText(fs, text1);
+    
         for(int i = 0; i < 4; ++i) {
             glfonsSetColor(fs, 120, 120, 100, (i + 1) * 50);
             glfonsTranslate(fs, 20.0, 0.0);
             glfonsRotate(fs, 20.0);
-            glfonsDrawText(fs, fontStashId);
+            glfonsDrawText(fs, text1);
         }
     glfonsPopMatrix(fs);
     
-    glfonsSetColor(fs, 120, 120, 180, 200);
+    glfonsSetColor(fs, 120, 140, 140, 200);
     
     glfonsPushMatrix(fs);
-        glfonsTranslate(fs, 0.0, 300.0);
-        glfonsDrawText(fs, fontStashId);
+        glfonsTranslate(fs, 80.0, 300.0);
+        glfonsDrawText(fs, text1);
+    
         glfonsPushMatrix(fs);
+            glfonsRotate(fs, xnorm * 360);
             glfonsTranslate(fs, 0.0, 10.0);
-            glfonsDrawText(fs, fontStashId);
+            glfonsDrawText(fs, text1);
+    
+            glfonsPushMatrix(fs);
+                glfonsTranslate(fs, 0.0, 10.0);
+                glfonsDrawText(fs, text1);
+            glfonsPopMatrix(fs);
         glfonsPopMatrix(fs);
     
-        // TODO : fix this
+        // TODO : fix this (last transforms are missing)
         glfonsTranslate(fs, 0.0, 10.0);
-        glfonsDrawText(fs, fontStashId);
+        glfonsDrawText(fs, text1);
     glfonsPopMatrix(fs);
 }
 

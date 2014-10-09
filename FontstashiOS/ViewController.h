@@ -22,7 +22,7 @@
 @interface ViewController : GLKViewController {
     FONScontext* fs;
     int fontNormal;
-    fsuint fontStashId;
-    fsuint fontStashId2;
+    fsuint text1;
+    fsuint text2;
 }
 @end
