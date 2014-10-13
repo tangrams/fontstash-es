@@ -76,7 +76,7 @@
     if (fs == NULL) {
         printf("Could not create stash.\n");
     }
-    
+
     char * resourcePath = (char*)[[[NSBundle mainBundle] pathForResource:@"DroidSerif-Regular" ofType:@"ttf"] UTF8String];
     
     fontNormal = fonsAddFont(fs, "sans", resourcePath);
@@ -85,13 +85,17 @@
         printf("Could not add font normal.\n");
     }
     
+    resourcePath = (char*)[[[NSBundle mainBundle] pathForResource:@"DroidSerif-Italic" ofType:@"ttf"] UTF8String];
+    
+    fontItalic = fonsAddFont(fs, "sans-italic", resourcePath);
+    
     fonsSetSize(fs, 48.0f);
     fonsSetFont(fs, fontNormal);
     
     glfonsBufferText(fs, "Fontstash", &text1);
     
     fonsSetSize(fs, 48.0f);
-    fonsSetFont(fs, fontNormal);
+    fonsSetFont(fs, fontItalic);
     
     glfonsBufferText(fs, "A1234 &$é", &text2);
 }
@@ -122,7 +126,7 @@
     x += .05f;
     float xnorm = (sin(x) + 1.0) * 0.5;
     
-    glfonsSetColor(fs, 255, 255, 255, 150);
+    glfonsSetColor(fs, 255, 255, 255, 255);
     
     glfonsPushMatrix(fs);
         glfonsTranslate(fs, 100.0, 100.0);

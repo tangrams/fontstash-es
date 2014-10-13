@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		981C581E19E71345007150F7 /* DroidSansJapanese.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 981C581B19E71345007150F7 /* DroidSansJapanese.ttf */; };
+		981C581F19E71345007150F7 /* DroidSerif-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 981C581C19E71345007150F7 /* DroidSerif-Bold.ttf */; };
+		981C582019E71345007150F7 /* DroidSerif-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 981C581D19E71345007150F7 /* DroidSerif-Italic.ttf */; };
 		98603FF419E435AC00912F0C /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 98603FF319E435AC00912F0C /* main.m */; };
 		98603FF719E435AC00912F0C /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 98603FF619E435AC00912F0C /* AppDelegate.m */; };
 		9860400219E435AC00912F0C /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9860400119E435AC00912F0C /* Images.xcassets */; };
@@ -20,6 +23,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		981C581B19E71345007150F7 /* DroidSansJapanese.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = DroidSansJapanese.ttf; sourceTree = "<group>"; };
+		981C581C19E71345007150F7 /* DroidSerif-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DroidSerif-Bold.ttf"; sourceTree = "<group>"; };
+		981C581D19E71345007150F7 /* DroidSerif-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DroidSerif-Italic.ttf"; sourceTree = "<group>"; };
 		98603FEE19E435AC00912F0C /* FontstashiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FontstashiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		98603FF219E435AC00912F0C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		98603FF319E435AC00912F0C /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
@@ -368,6 +374,9 @@
 		9860418B19E436DD00912F0C /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				981C581B19E71345007150F7 /* DroidSansJapanese.ttf */,
+				981C581C19E71345007150F7 /* DroidSerif-Bold.ttf */,
+				981C581D19E71345007150F7 /* DroidSerif-Italic.ttf */,
 				9860418C19E436DD00912F0C /* DroidSerif-Regular.ttf */,
 			);
 			name = Resources;
@@ -740,6 +749,9 @@
 				9860401C19E4360E00912F0C /* Main_iPhone.storyboard in Resources */,
 				9860400219E435AC00912F0C /* Images.xcassets in Resources */,
 				9860418D19E436DD00912F0C /* DroidSerif-Regular.ttf in Resources */,
+				981C581F19E71345007150F7 /* DroidSerif-Bold.ttf in Resources */,
+				981C581E19E71345007150F7 /* DroidSansJapanese.ttf in Resources */,
+				981C582019E71345007150F7 /* DroidSerif-Italic.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

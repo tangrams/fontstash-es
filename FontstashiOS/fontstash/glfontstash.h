@@ -21,11 +21,77 @@
 #include "glm.hpp"
 #include "type_ptr.hpp"
 #include "matrix_transform.hpp"
+
+#include <iostream>
+#define FONTSTASH_IMPLEMENTATION
+#import "fontstash.h"
+
 #include <map>
 #include <stack>
 
 typedef unsigned int fsuint;
 typedef unsigned int fsenum;
+
+
+#define BUFFER_SIZE 2
+
+struct GLFONSvbo {
+    int nverts;
+    GLuint buffers[BUFFER_SIZE];
+    glm::vec2 bbox[2];
+};
+
+typedef struct GLFONSvbo GLFONSvbo;
+
+struct GLFONScontext {
+    GLuint tex;
+    int width, height;
+    // the id counter
+    fsuint idct;
+    
+    GLuint shaderProgram;
+    GLuint posAttrib;
+    GLuint texCoordAttrib;
+    GLuint colorAttrib;
+    
+    std::map<fsuint, GLFONSvbo*>* vbos;
+    std::stack<glm::mat4> matrixStack;
+    glm::mat4 projectionMatrix;
+    
+    glm::vec4 color;
+    
+    glm::mat4 rotation;
+    glm::mat4 scale;
+    glm::mat4 translation;
+};
+
+typedef struct GLFONScontext GLFONScontext;
+
+const GLchar* vertexShaderSrc =
+"#ifdef GL_ES\n"
+"precision mediump float;\n"
+"#endif\n"
+"attribute vec4 position;\n"
+"attribute vec2 texCoord;\n"
+"uniform mat4 mvp;\n"
+"varying vec2 fUv;\n"
+"void main() {\n"
+"  gl_Position = mvp * position;\n"
+"  fUv = texCoord;\n"
+"}\n";
+
+const GLchar* fragShaderSrc =
+"#ifdef GL_ES\n"
+"precision mediump float;\n"
+"#endif\n"
+"uniform sampler2D tex;\n"
+"uniform vec4 color;\n"
+"varying vec2 fUv;\n"
+"void main(void) {\n"
+"  vec4 texColor = texture2D(tex, fUv);\n"
+"  vec3 invColor = 1.0 - texColor.rgb;\n"
+"  gl_FragColor = vec4(invColor * color.rgb, color.a * texColor.a);\n"
+"}\n";
 
 FONScontext* glfonsCreate(int width, int height, int flags);
 void glfonsDelete(FONScontext* ctx);
@@ -49,66 +115,6 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
 #endif
 
 #ifdef GLFONTSTASH_IMPLEMENTATION
-
-#define BUFFER_SIZE 2
-
-struct GLFONSvbo {
-    int nverts;
-    GLuint buffers[BUFFER_SIZE];
-};
-
-typedef struct GLFONSvbo GLFONSvbo;
-
-struct GLFONScontext {
-    GLuint tex;
-    int width, height;
-    // the id counter
-    fsuint idct;
-    
-    GLuint shaderProgram;
-    GLuint posAttrib;
-    GLuint texCoordAttrib;
-    GLuint colorAttrib;
-    
-    std::map<fsuint, GLFONSvbo*>* vbos;
-    std::stack<glm::mat4> matrixStack;
-    glm::vec2 anchorPoint;
-    glm::mat4 projectionMatrix;
-    
-    glm::vec4 color;
-    
-    glm::mat4 rotation;
-    glm::mat4 scale;
-    glm::mat4 translation;
-};
-
-typedef struct GLFONScontext GLFONScontext;
-
-const GLchar* vertexShaderSrc =
-    "#ifdef GL_ES\n"
-    "precision mediump float;\n"
-    "#endif\n"
-    "attribute vec4 position;\n"
-    "attribute vec2 texCoord;\n"
-    "uniform mat4 mvp;\n"
-    "varying vec2 fUv;\n"
-    "void main() {\n"
-    "  gl_Position = mvp * position;\n"
-    "  fUv = texCoord;\n"
-    "}\n";
-
-const GLchar* fragShaderSrc =
-    "#ifdef GL_ES\n"
-    "precision mediump float;\n"
-    "#endif\n"
-    "uniform sampler2D tex;\n"
-    "uniform vec4 color;\n"
-    "varying vec2 fUv;\n"
-    "void main(void) {\n"
-    "  vec4 texColor = texture2D(tex, fUv);\n"
-    "  vec3 invColor = 1.0 - texColor.rgb;\n"
-    "  gl_FragColor = vec4(invColor * color.rgb, color.a * texColor.a);\n"
-    "}\n";
 
 void resetMatrices(GLFONScontext* gl)
 {
@@ -181,7 +187,6 @@ static int glfons__renderCreate(void* userPtr, int width, int height)
         gl->tex = 0;
     }
     gl->idct = 0;
-    gl->anchorPoint = glm::vec2(0.5);
     gl->vbos = new std::map<fsuint, GLFONSvbo*>();
     
     glGenTextures(1, &gl->tex);
@@ -200,7 +205,7 @@ static int glfons__renderCreate(void* userPtr, int width, int height)
     
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
-    gl->projectionMatrix = glm::ortho(0.0, (double)viewport[2], (double)viewport[3], 0.0, -1.0, 1.0);
+    gl->projectionMatrix = glm::ortho(0.0, (double)viewport[2] * 2, (double)viewport[3] * 2, 0.0, -1.0, 1.0);
     gl->matrixStack.push(glm::mat4(1.0));
     gl->color = glm::vec4(1.0);
     
@@ -288,6 +293,19 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)
     
     fonsDrawText(ctx, 0, 0, s, NULL, 0);
     
+    float inf = -std::numeric_limits<float>::infinity();
+    float x0 = -inf, x1 = inf, y0 = -inf, y1 = inf;
+    for(int i = 0; i < ctx->nverts; i += 2) {
+        x0 = ctx->verts[i] < x0 ? ctx->verts[i] : x0;
+        x1 = ctx->verts[i] > x1 ? ctx->verts[i] : x1;
+        y0 = ctx->verts[i+1] < y0 ? ctx->verts[i+1] : y0;
+        y1 = ctx->verts[i+1] > y1 ? ctx->verts[i+1] : y1;
+    }
+    
+    vboBufferDesc->bbox[0] = glm::vec2(x0, y0);
+    vboBufferDesc->bbox[1] = glm::vec2(x1, y1);
+    //vboBufferDesc->anchorPoint = glm::vec2(0.5);
+    
     glGenBuffers(BUFFER_SIZE, vboBufferDesc->buffers);
     
     glBindBuffer(GL_ARRAY_BUFFER, vboBufferDesc->buffers[0]);
@@ -322,10 +340,14 @@ void glfonsUnbufferText(FONScontext* ctx, fsuint id)
     }
 }
 
-void glfonsAnchorPoint(FONScontext* ctx, float x, float y)
+void glfonsAnchorPoint(FONScontext* ctx, fsuint id, float x, float y)
 {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    glctx->anchorPoint = glm::vec2(x, y);
+    
+    if(glctx->vbos->find(id) != glctx->vbos->end()) {
+        GLFONSvbo* vboDesc = glctx->vbos->at(id);
+        //vboDesc->anchorPoint = glm::vec2(x, y);
+    }
 }
 
 void glfonsRotate(FONScontext* ctx, float angle)

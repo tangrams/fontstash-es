@@ -14,14 +14,14 @@
 
 #import <stdio.h>
 #import <string.h>
-#define FONTSTASH_IMPLEMENTATION
-#import "fontstash.h"
+
 #define GLFONTSTASH_IMPLEMENTATION
 #import "glfontstash.h"
 
 @interface ViewController : GLKViewController {
     FONScontext* fs;
     int fontNormal;
+    int fontItalic;
     fsuint text1;
     fsuint text2;
 }
