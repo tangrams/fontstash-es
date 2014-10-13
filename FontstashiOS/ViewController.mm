@@ -94,7 +94,7 @@
     
     glfonsBufferText(fs, "Fontstash", &text1);
     
-    fonsSetSize(fs, 48.0f);
+    fonsSetSize(fs, 100.0f);
     fonsSetFont(fs, fontItalic);
     
     glfonsBufferText(fs, "A1234 &$é", &text2);
@@ -137,7 +137,7 @@
             glfonsDrawText(fs, text2);
     
             glfonsPushMatrix(fs);
-                glfonsTranslate(fs, 0.0, -150.0);
+                glfonsTranslate(fs, 0.0, 150.0);
                 glfonsSetColor(fs, 130, 80, 95, xnorm * 255);
                 glfonsDrawText(fs, text2);
             glfonsPopMatrix(fs);
@@ -148,6 +148,7 @@
     glfonsSetColor(fs, 120, 120, 100, 30);
     
     glfonsPushMatrix(fs);
+        glfonsScale(fs, 4.0 * xnorm + 1.0, 4.0 * xnorm + 1.0);
         glfonsTranslate(fs, 100.0, 300.0);
         glfonsDrawText(fs, text1);
     

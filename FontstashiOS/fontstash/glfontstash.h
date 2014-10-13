@@ -23,15 +23,13 @@
 #include "matrix_transform.hpp"
 
 #include <iostream>
-#define FONTSTASH_IMPLEMENTATION
-#import "fontstash.h"
+#include "fontstash.h"
 
 #include <map>
 #include <stack>
 
 typedef unsigned int fsuint;
 typedef unsigned int fsenum;
-
 
 #define BUFFER_SIZE 2
 
@@ -67,7 +65,7 @@ struct GLFONScontext {
 
 typedef struct GLFONScontext GLFONScontext;
 
-const GLchar* vertexShaderSrc =
+static const GLchar* vertexShaderSrc =
 "#ifdef GL_ES\n"
 "precision mediump float;\n"
 "#endif\n"
@@ -80,7 +78,7 @@ const GLchar* vertexShaderSrc =
 "  fUv = texCoord;\n"
 "}\n";
 
-const GLchar* fragShaderSrc =
+static const GLchar* fragShaderSrc =
 "#ifdef GL_ES\n"
 "precision mediump float;\n"
 "#endif\n"
@@ -115,6 +113,9 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
 #endif
 
 #ifdef GLFONTSTASH_IMPLEMENTATION
+
+#define FONTSTASH_IMPLEMENTATION
+#include "fontstash.h"
 
 void resetMatrices(GLFONScontext* gl)
 {
@@ -365,6 +366,11 @@ void glfonsTranslate(FONScontext* ctx, float x, float y)
 {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
     glctx->translation = glm::translate(glctx->translation, glm::vec3(x, y, 0.0));
+}
+
+void glfonsScale(FONScontext* ctx, float x, float y) {
+    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
+    glctx->scale = glm::scale(glctx->scale, glm::vec3(x, y, 0.0));
 }
 
 void glfonsDrawText(FONScontext* ctx, fsuint id)
