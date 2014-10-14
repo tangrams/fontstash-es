@@ -129,11 +129,22 @@
     glfonsSetColor(fs, 255, 255, 255, 255);
     
     glfonsPushMatrix(fs);
+    glfonsTranslate(fs, 300.0, 600.0);
+    glfonsScale(fs, 1, -0.5);
+    glfonsDrawText(fs, text2);
+    glfonsPopMatrix(fs);
+    
+    glfonsPushMatrix(fs);
+    glfonsTranslate(fs, 300.0, 600.0);
+    glfonsDrawText(fs, text2);
+    glfonsPopMatrix(fs);
+    
+    glfonsPushMatrix(fs);
         glfonsTranslate(fs, 100.0, 100.0);
         glfonsDrawText(fs, text2);
     
         glfonsPushMatrix(fs);
-            glfonsTranslate(fs, 0.0, 100.0 + xnorm * 10);
+            glfonsTranslate(fs, 0.0, 800.0 + xnorm * 40);
             glfonsDrawText(fs, text2);
     
             glfonsPushMatrix(fs);
@@ -180,6 +191,12 @@
         // TODO : fix this (last transforms are missing)
         glfonsTranslate(fs, 0.0, 10.0);
         glfonsDrawText(fs, text1);
+    glfonsPopMatrix(fs);
+    
+    /* part buffer drawing */
+    glfonsPushMatrix(fs);
+        glfonsTranslate(fs, 50, 500);
+        glfonsDrawText(fs, text1, 3, 5); // drawing from letter indiced by 3 to letter indice by 5
     glfonsPopMatrix(fs);
 }
 

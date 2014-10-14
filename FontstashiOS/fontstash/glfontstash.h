@@ -31,7 +31,8 @@
 typedef unsigned int fsuint;
 typedef unsigned int fsenum;
 
-#define BUFFER_SIZE 2
+#define BUFFER_SIZE     2
+#define N_GLYPH_VERTS   6
 
 struct GLFONSvbo {
     int nverts;
@@ -100,7 +101,9 @@ void glfonsAnchorPoint(FONScontext* ctx, float x, float y);
 void glfonsRotate(FONScontext* ctx, float angle);
 void glfonsTranslate(FONScontext* ctx, float x, float y);
 void glfonsDrawText(FONScontext* ctx, fsuint id);
+void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int to);
 void glfonsSetColor(FONScontext* ctx, unsigned int r, unsigned int g, unsigned int b, unsigned int a);
+void glfonsScale(FONScontext* ctx, float x, float y);
 
 void glfonsPushMatrix(FONScontext* ctx);
 void glfonsPopMatrix(FONScontext* ctx);
@@ -370,15 +373,19 @@ void glfonsTranslate(FONScontext* ctx, float x, float y)
 
 void glfonsScale(FONScontext* ctx, float x, float y) {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    glctx->scale = glm::scale(glctx->scale, glm::vec3(x, y, 0.0));
+    glctx->scale = glm::scale(glctx->scale, glm::vec3(x, y, 1.0));
 }
 
-void glfonsDrawText(FONScontext* ctx, fsuint id)
+void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int to)
 {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
     
-    if(!glctx || glctx->tex == 0 || glctx->vbos->find(id) == glctx->vbos->end())
+    if(glctx->tex == 0)
         return;
+    
+    int d = (to - from) + 1;
+    int iFirst = from * N_GLYPH_VERTS;
+    int count = d * N_GLYPH_VERTS;
     
     GLFONSvbo* vboDesc = glctx->vbos->at(id);
     
@@ -390,30 +397,38 @@ void glfonsDrawText(FONScontext* ctx, fsuint id)
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, glctx->tex);
         glEnable(GL_TEXTURE_2D);
-    
+        
         glUseProgram(glctx->shaderProgram);
         glUniform1i(glGetUniformLocation(glctx->shaderProgram, "tex"), 0);
         glUniformMatrix4fv(glGetUniformLocation(glctx->shaderProgram, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
         glUniform4f(glGetUniformLocation(glctx->shaderProgram, "color"), color.r, color.g, color.b, color.a);
-    
+        
         glBindBuffer(GL_ARRAY_BUFFER, vboDesc->buffers[0]);
         glVertexAttribPointer(glctx->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
         glEnableVertexAttribArray(glctx->posAttrib);
-    
+        
         glBindBuffer(GL_ARRAY_BUFFER, vboDesc->buffers[1]);
         glVertexAttribPointer(glctx->texCoordAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
         glEnableVertexAttribArray(glctx->texCoordAttrib);
-    
-        glDrawArrays(GL_TRIANGLES, 0, vboDesc->nverts);
-    
+        
+        glDrawArrays(GL_TRIANGLES, iFirst, count);
+        
         glDisableVertexAttribArray(glctx->posAttrib);
         glDisableVertexAttribArray(glctx->texCoordAttrib);
         glDisableVertexAttribArray(glctx->colorAttrib);
-    
+        
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glUseProgram(0);
         glDisable(GL_TEXTURE_2D);
     }
+}
+
+void glfonsDrawText(FONScontext* ctx, fsuint id)
+{
+    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
+    GLFONSvbo* vboDesc = glctx->vbos->at(id);
+    unsigned int last = (vboDesc->nverts / N_GLYPH_VERTS) - 1;
+    glfonsDrawText(ctx, id, 0, last);
 }
 
 void glfonsSetColor(FONScontext* ctx, unsigned int r, unsigned int g, unsigned int b, unsigned int a)
