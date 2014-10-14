@@ -37,7 +37,6 @@ typedef unsigned int fsenum;
 struct GLFONSvbo {
     int nverts;
     GLuint buffers[BUFFER_SIZE];
-    glm::vec2 bbox[2];
 };
 
 typedef struct GLFONSvbo GLFONSvbo;
@@ -54,6 +53,7 @@ struct GLFONScontext {
     GLuint colorAttrib;
     
     std::map<fsuint, GLFONSvbo*>* vbos;
+    std::map<fsuint, glm::vec2*> bboxs;
     std::stack<glm::mat4> matrixStack;
     glm::mat4 projectionMatrix;
     
@@ -231,8 +231,6 @@ static void glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* 
     
     int w = rect[2] - rect[0];
     int h = rect[3] - rect[1];
-    
-    // TODO : store the bounding box
 
     // TODO : update smaller part of texture 
     glBindTexture(GL_TEXTURE_2D, gl->tex);
@@ -297,8 +295,8 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)
     
     fonsDrawText(ctx, 0, 0, s, NULL, 0);
     
-    float inf = -std::numeric_limits<float>::infinity();
-    float x0 = -inf, x1 = inf, y0 = -inf, y1 = inf;
+    float inf = std::numeric_limits<float>::infinity();
+    float x0 = inf, x1 = -inf, y0 = inf, y1 = -inf;
     for(int i = 0; i < ctx->nverts; i += 2) {
         x0 = ctx->verts[i] < x0 ? ctx->verts[i] : x0;
         x1 = ctx->verts[i] > x1 ? ctx->verts[i] : x1;
@@ -306,8 +304,11 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)
         y1 = ctx->verts[i+1] > y1 ? ctx->verts[i+1] : y1;
     }
     
-    vboBufferDesc->bbox[0] = glm::vec2(x0, y0);
-    vboBufferDesc->bbox[1] = glm::vec2(x1, y1);
+    glm::vec2 bbox[2];
+    bbox[0] = glm::vec2(x0, y0);
+    bbox[1] = glm::vec2(x1, y1);
+    glctx->bboxs.insert(std::pair<fsuint, glm::vec2*>(*id, bbox));
+    
     //vboBufferDesc->anchorPoint = glm::vec2(0.5);
     
     glGenBuffers(BUFFER_SIZE, vboBufferDesc->buffers);
