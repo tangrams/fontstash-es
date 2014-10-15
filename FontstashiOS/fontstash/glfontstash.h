@@ -54,6 +54,8 @@ struct GLFONScontext {
     
     std::map<fsuint, GLFONSvbo*>* vbos;
     std::map<fsuint, glm::vec2*> bboxs;
+    std::map<fsuint, float*> glyphsXOffset;
+    
     std::stack<glm::mat4> matrixStack;
     glm::mat4 projectionMatrix;
     
@@ -101,9 +103,12 @@ void glfonsDrawText(FONScontext* ctx, fsuint id);
 void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int to);
 void glfonsSetColor(FONScontext* ctx, unsigned int r, unsigned int g, unsigned int b, unsigned int a);
 void glfonsScale(FONScontext* ctx, float x, float y);
+void glfonsUpdateViewport(FONScontext* ctx);
 
 void glfonsPushMatrix(FONScontext* ctx);
 void glfonsPopMatrix(FONScontext* ctx);
+
+float glfonsGetGlyphOffset(FONScontext* ctx, fsuint id, int i);
 
 // TODO : use a set of pixel shaders to change the font rendering style
 void glfonsSetShadingStyle(fsenum style);
@@ -216,8 +221,8 @@ static void glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* 
     
     int w = rect[2] - rect[0];
     int h = rect[3] - rect[1];
-
-    // TODO : update smaller part of texture 
+    
+    // TODO : update smaller part of texture
     glBindTexture(GL_TEXTURE_2D, gl->tex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, gl->width, gl->height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, data);
 }
@@ -239,15 +244,27 @@ static void glfons__renderDelete(void* userPtr)
             delete elmt.second;
         }
     }
+    for(auto& elmt : gl->glyphsXOffset) {
+        if(elmt.second != NULL) {
+            delete[] elmt.second;
+        }
+    }
     delete gl->vbos;
     delete gl;
+}
+
+void glfonsUpdateViewport(FONScontext* ctx) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    gl->projectionMatrix = glm::ortho(0.0, (double)viewport[2], (double)viewport[3], 0.0, -1.0, 1.0);
 }
 
 FONScontext* glfonsCreate(int width, int height, int flags)
 {
     FONSparams params;
     GLFONScontext* gl = new GLFONScontext;
-
+    
     params.width = width;
     params.height = height;
     params.flags = (unsigned char)flags;
@@ -280,9 +297,18 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)
     
     fonsDrawText(ctx, 0, 0, s, NULL, 0);
     
+    float* glyphsXOffset = new float[ctx->nverts / N_GLYPH_VERTS];
+    
+    int j = 0;
+    for(int i = 0; i < ctx->nverts * 2; i += N_GLYPH_VERTS * 2) {
+        glyphsXOffset[j++] = ctx->verts[i];
+    }
+    
+    glctx->glyphsXOffset.insert(std::pair<fsuint, float*>(*id, glyphsXOffset));
+    
     float inf = std::numeric_limits<float>::infinity();
     float x0 = inf, x1 = -inf, y0 = inf, y1 = -inf;
-    for(int i = 0; i < ctx->nverts; i += 2) {
+    for(int i = 0; i < ctx->nverts * 2; i += 2) {
         x0 = ctx->verts[i] < x0 ? ctx->verts[i] : x0;
         x1 = ctx->verts[i] > x1 ? ctx->verts[i] : x1;
         y0 = ctx->verts[i+1] < y0 ? ctx->verts[i+1] : y0;
@@ -305,20 +331,20 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
     vboBufferDesc->nverts = ctx->nverts;
-
+    
     // reset fontstash state
     ctx->nverts = 0;
-
+    
     glctx->vbos->insert(std::pair<fsuint, GLFONSvbo*>(*id, vboBufferDesc));
 }
 
 void glfonsUnbufferText(FONScontext* ctx, fsuint id)
 {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-
+    
     if(glctx->vbos->find(id) != glctx->vbos->end()) {
         GLFONSvbo* vboInfo = glctx->vbos->at(id);
-    
+        
         if(vboInfo != NULL) {
             glDeleteBuffers(3, vboInfo->buffers);
             glctx->vbos->erase(id);
@@ -330,7 +356,7 @@ void glfonsUnbufferText(FONScontext* ctx, fsuint id)
 void glfonsRotate(FONScontext* ctx, float angle)
 {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    glm::vec3 raxis = glm::vec3(0.0, 0.0, 1.0);
+    glm::vec3 raxis = glm::vec3(0.0, 0.0, -1.0);
     glctx->transform = glm::rotate(glctx->transform, angle, raxis);
 }
 
@@ -422,5 +448,10 @@ void glfonsPopMatrix(FONScontext* ctx)
     }
 }
 
+float glfonsGetGlyphOffset(FONScontext* ctx, fsuint id, int i)
+{
+    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
+    return glctx->glyphsXOffset.at(id)[i];
+}
 
 #endif
