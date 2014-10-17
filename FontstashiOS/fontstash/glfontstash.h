@@ -225,10 +225,9 @@ static void glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* 
     int h = rect[3] - rect[1];
     
     glBindTexture(GL_TEXTURE_2D, gl->tex);
-    for(int y = 0; y < h; ++y) {
-        const unsigned char *row = data + ((y + rect[1]) * gl->width + rect[0]);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, rect[0], y + rect[1], w, 1, GL_ALPHA, GL_UNSIGNED_BYTE, row);
-    }
+    const unsigned char* subdata = data + rect[1] * gl->width;
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, rect[1], gl->width, h, GL_ALPHA, GL_UNSIGNED_BYTE, subdata);
+
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
