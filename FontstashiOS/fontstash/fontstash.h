@@ -38,6 +38,13 @@ enum FONSalign {
 	FONS_ALIGN_BASELINE	= 1<<6, // Default
 };
 
+enum FONSeffectType {
+    FONS_EFFECT_BLUR = 1,
+    FONS_EFFECT_GROW = 2,
+    FONS_EFFECT_DISTANCE_FIELD = 3,
+    FONS_EFFECT_DISTANCE_FIELD_FAST = 4,
+};
+
 enum FONSerrorCode {
 	// Font atlas is full.
 	FONS_ATLAS_FULL = 1,
@@ -71,6 +78,7 @@ typedef struct FONSquad FONSquad;
 struct FONStextIter {
 	float x, y, nextx, nexty, scale, spacing;
 	unsigned int codepoint;
+    int blurType;
 	short isize, iblur;
 	struct FONSfont* font;
 	int prevGlyphIndex;
@@ -110,6 +118,7 @@ void fonsSetSize(FONScontext* s, float size);
 void fonsSetColor(FONScontext* s, unsigned int color);
 void fonsSetSpacing(FONScontext* s, float spacing);
 void fonsSetBlur(FONScontext* s, float blur);
+void fonsSetBlurType(FONScontext* s, int blurType);
 void fonsSetAlign(FONScontext* s, int align);
 void fonsSetFont(FONScontext* s, int font);
 
@@ -136,6 +145,9 @@ void fonsDrawDebug(FONScontext* s, float x, float y, const char clear);
 
 
 #ifdef FONTSTASH_IMPLEMENTATION
+
+#define SDF_IMPLEMENTATION
+#include "sdf.h"
 
 #define FONS_NOTUSED(v)  (void)sizeof(v)
 
@@ -303,7 +315,7 @@ int fons__tt_getGlyphKernAdvance(FONSttFontImpl *font, int glyph1, int glyph2)
 #endif
 
 #ifndef FONS_SCRATCH_BUF_SIZE
-#	define FONS_SCRATCH_BUF_SIZE 16000
+#	define FONS_SCRATCH_BUF_SIZE 160000
 #endif
 #ifndef FONS_HASH_LUT_SIZE
 #	define FONS_HASH_LUT_SIZE 256
@@ -350,6 +362,7 @@ struct FONSglyph
 	unsigned int codepoint;
 	int index;
 	int next;
+    int blurType;
 	short size, blur;
 	short x0,y0,x1,y1;
 	short xadv,xoff,yoff;
@@ -378,6 +391,7 @@ struct FONSstate
 	int font;
 	int align;
 	float size;
+    int blurType;
 	unsigned int color;
 	float blur;
 	float spacing;
@@ -775,6 +789,11 @@ void fonsSetAlign(FONScontext* stash, int align)
 	fons__getState(stash)->align = align;
 }
 
+void fonsSetBlurType(FONScontext* stash, int blurType)
+{
+    fons__getState(stash)->blurType = blurType;
+}
+
 void fonsSetFont(FONScontext* stash, int font)
 {
 	fons__getState(stash)->font = font;
@@ -809,6 +828,7 @@ void fonsClearState(FONScontext* stash)
 	state->color = 0xffffffff;
 	state->font = 0;
 	state->blur = 0;
+    state->blurType = FONS_EFFECT_BLUR;
 	state->spacing = 0;
 	state->align = FONS_ALIGN_LEFT | FONS_ALIGN_BASELINE;
 }
@@ -1006,7 +1026,7 @@ static void fons__blur(FONScontext* stash, unsigned char* dst, int w, int h, int
 }
 
 static FONSglyph* fons__getGlyph(FONScontext* stash, FONSfont* font, unsigned int codepoint,
-								 short isize, short iblur)
+								 short isize, short iblur, int blurType)
 {
 	int i, g, advance, lsb, x0, y0, x1, y1, gw, gh, gx, gy, x, y;
 	float scale;
@@ -1028,7 +1048,7 @@ static FONSglyph* fons__getGlyph(FONScontext* stash, FONSfont* font, unsigned in
 	h = fons__hashint(codepoint) & (FONS_HASH_LUT_SIZE-1);
 	i = font->lut[h];
 	while (i != -1) {
-		if (font->glyphs[i].codepoint == codepoint && font->glyphs[i].size == isize && font->glyphs[i].blur == iblur)
+		if (font->glyphs[i].codepoint == codepoint && font->glyphs[i].size == isize && font->glyphs[i].blur == iblur && font->glyphs[i].blurType == blurType)
 			return &font->glyphs[i];
 		i = font->glyphs[i].next;
 	}
@@ -1054,6 +1074,7 @@ static FONSglyph* fons__getGlyph(FONScontext* stash, FONSfont* font, unsigned in
 	glyph->codepoint = codepoint;
 	glyph->size = isize;
 	glyph->blur = iblur;
+    glyph->blurType = blurType;
 	glyph->index = g;
 	glyph->x0 = (short)gx;
 	glyph->y0 = (short)gy;
@@ -1097,7 +1118,58 @@ static FONSglyph* fons__getGlyph(FONScontext* stash, FONSfont* font, unsigned in
 	if (iblur > 0) {
 		stash->nscratch = 0;
 		bdst = &stash->texData[glyph->x0 + glyph->y0 * stash->params.width];
-		fons__blur(stash, bdst, gw,gh, stash->params.width, iblur);
+		
+        if (blurType == FONS_EFFECT_BLUR) {
+            fons__blur(stash, bdst, gw,gh, stash->params.width, iblur);
+        } else if (blurType == FONS_EFFECT_GROW) {
+            unsigned char* sdfTemp = (unsigned char*)fons__tmpalloc(gw * gh * sizeof(float) * 3, stash);
+            if (sdfTemp) {
+                sdfBuildDistanceFieldNoAlloc(bdst, stash->params.width, iblur, bdst, gw, gh, stash->params.width, sdfTemp);
+                fons__tmpfree(sdfTemp, stash);
+                
+                for (y = 0; y < gh; y++) {
+                    int yw = y * stash->params.width;
+                    for (x = 0; x < gw; x++) {
+                        int a = (int) bdst[x+ yw];
+                        int smoothingLimit = 255 / (iblur);
+                        if (a < smoothingLimit)
+                            a = a * 255 / smoothingLimit;
+                        else
+                            a = 255;
+                        
+                        bdst[x + yw] = a;
+                    }
+                }
+            }
+            
+        } else if (blurType == FONS_EFFECT_DISTANCE_FIELD) {
+            // The required temp array must fit width * height * sizeof(float) * 3 bytes.
+            unsigned char* sdfTemp = (unsigned char*)fons__tmpalloc(gw * gh * sizeof(float) * 3, stash);
+            if (sdfTemp) {
+                sdfBuildDistanceFieldNoAlloc(bdst, stash->params.width, iblur, bdst, gw, gh, stash->params.width, sdfTemp);
+                fons__tmpfree(sdfTemp, stash);
+            }
+            
+        } else if (blurType == FONS_EFFECT_DISTANCE_FIELD_FAST) {
+            // When using sdfCoverageToDistanceField input and output must be separate arrays. Allocate temp array for output.
+            unsigned char* sdfOut = (unsigned char*)fons__tmpalloc(gw * gh, stash);
+            if (sdfOut) {
+                sdfCoverageToDistanceField(sdfOut, gw, bdst, gw, gh, stash->params.width);
+                
+                // Copy SDF output back to the strided texture data.
+                i = 0;
+                for (y = 0; y < gh; y++) {
+                    int yw = y * stash->params.width;
+                    for (x = 0; x < gw; x++) {
+                        bdst[x + yw] = sdfOut[i];
+                        i++;
+                    }
+                }
+                fons__tmpfree(sdfOut, stash);
+            }
+        }
+        
+        stash->nscratch = 0;
 	}
 
 	stash->dirtyRect[0] = fons__mini(stash->dirtyRect[0], glyph->x0);
@@ -1261,7 +1333,7 @@ float fonsDrawText(FONScontext* stash,
 	for (; str != end; ++str) {
 		if (fons__decutf8(&utf8state, &codepoint, *(const unsigned char*)str))
 			continue;
-		glyph = fons__getGlyph(stash, font, codepoint, isize, iblur);
+		glyph = fons__getGlyph(stash, font, codepoint, isize, iblur, state->blurType);
 		if (glyph != NULL) {
 			fons__getQuad(stash, font, prevGlyphIndex, glyph, scale, state->spacing, &x, &y, &q);
 
@@ -1298,6 +1370,7 @@ int fonsTextIterInit(FONScontext* stash, FONStextIter* iter,
 
 	iter->isize = (short)(state->size*10.0f);
 	iter->iblur = (short)state->blur;
+    iter->blurType = (short)state->blurType;
 	iter->scale = fons__tt_getPixelHeightScale(&iter->font->font, (float)iter->isize/10.0f);
 
 	// Align horizontally
@@ -1344,7 +1417,7 @@ int fonsTextIterNext(FONScontext* stash, FONStextIter* iter, FONSquad* quad)
 		// Get glyph and quad
 		iter->x = iter->nextx;
 		iter->y = iter->nexty;
-		glyph = fons__getGlyph(stash, iter->font, iter->codepoint, iter->isize, iter->iblur);
+		glyph = fons__getGlyph(stash, iter->font, iter->codepoint, iter->isize, iter->iblur, iter->blurType);
 		if (glyph != NULL)
 			fons__getQuad(stash, iter->font, iter->prevGlyphIndex, glyph, iter->scale, iter->spacing, &iter->nextx, &iter->nexty, quad);
 		iter->prevGlyphIndex = glyph != NULL ? glyph->index : -1;
@@ -1416,6 +1489,7 @@ float fonsTextBounds(FONScontext* stash,
 	int prevGlyphIndex = -1;
 	short isize = (short)(state->size*10.0f);
 	short iblur = (short)state->blur;
+    int blurType = state->blurType;
 	float scale;
 	FONSfont* font;
 	float startx, advance;
@@ -1441,7 +1515,7 @@ float fonsTextBounds(FONScontext* stash,
 	for (; str != end; ++str) {
 		if (fons__decutf8(&utf8state, &codepoint, *(const unsigned char*)str))
 			continue;
-		glyph = fons__getGlyph(stash, font, codepoint, isize, iblur);
+		glyph = fons__getGlyph(stash, font, codepoint, isize, iblur, blurType);
 		if (glyph != NULL) {
 			fons__getQuad(stash, font, prevGlyphIndex, glyph, scale, state->spacing, &x, &y, &q);
 			if (q.x0 < minx) minx = q.x0;
