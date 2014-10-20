@@ -89,7 +89,12 @@
     
     fontItalic = fonsAddFont(fs, "sans-italic", resourcePath);
     
-    fonsSetSize(fs, 54.0f);
+    float size = 48.0f;
+    float blurFactor = size / 6.0f;
+    
+    fonsSetSize(fs, size);
+    fonsSetBlur(fs, blurFactor);
+    fonsSetBlurType(fs, FONS_EFFECT_DISTANCE_FIELD);
     fonsSetFont(fs, fontNormal);
     
     glfonsBufferText(fs, "Fontstash", &text1);
@@ -124,73 +129,10 @@
     
     glfonsPushMatrix(fs);
         glfonsTranslate(fs, 100.0, 300.0);
+        //glfonsScale(fs, 3.0, 3.0);
         glfonsSetColor(fs, 255, 255, 255, 150);
     
         glfonsDrawText(fs, text1);
-    
-        glfonsPushMatrix(fs);
-            glfonsTranslate(fs, 0.0, ++i * 40.0);
-            for(int i = 0; i < 9; ++i) {
-                glfonsPushMatrix(fs);
-                glfonsSetColor(fs, 255, 255, 255, (255 - 150)/9 * (9-i));
-                glfonsDrawText(fs, text1, i, i);
-                glfonsPopMatrix(fs);
-            }
-        glfonsPopMatrix(fs);
-    
-        glfonsSetColor(fs, 255, 255, 255, 150);
-    
-        glfonsPushMatrix(fs);
-            glfonsTranslate(fs, 0.0, ++i * 40.0);
-            for(int i = 0; i < 9; ++i) {
-                glfonsTranslate(fs, 0.0, sin((x + i * 3.0) * 4.0));
-                glfonsPushMatrix(fs);
-                glfonsDrawText(fs, text1, i, i);
-                glfonsPopMatrix(fs);
-            }
-        glfonsPopMatrix(fs);
-    
-        glfonsPushMatrix(fs);
-            glfonsTranslate(fs, 0.0, ++i * 40.0);
-            for(int i = 0; i < 9; ++i) {
-                glfonsPushMatrix(fs);
-                glfonsTranslate(fs, xnorm * glfonsGetGlyphOffset(fs, text1, i), 0.0);
-                glfonsDrawText(fs, text1, i, i);
-                glfonsPopMatrix(fs);
-            }
-        glfonsPopMatrix(fs);
-    
-        glfonsPushMatrix(fs);
-            glfonsTranslate(fs, 0.0, ++i * 40.0);
-            for(int i = 0; i < 9; ++i) {
-                glfonsPushMatrix(fs);
-                glfonsScale(fs, 1.0 + i * 0.2 * xnorm, 1.0 + i * 0.2 * xnorm);
-                glfonsTranslate(fs, xnorm * glfonsGetGlyphOffset(fs, text1, i), 0.0);
-                glfonsDrawText(fs, text1, i, i);
-            glfonsPopMatrix(fs);
-            }
-        glfonsPopMatrix(fs);
-    
-        glfonsPushMatrix(fs);
-            glfonsTranslate(fs, 0.0, ++i * 40.0);
-            for(int i = 0; i < 9; ++i) {
-                glfonsPushMatrix(fs);
-                glfonsTranslate(fs, xnorm * glfonsGetGlyphOffset(fs, text1, i), 0.0);
-                glfonsRotate(fs, 360 / 9 * i * xnorm);
-                glfonsDrawText(fs, text1, i, i);
-                glfonsPopMatrix(fs);
-            }
-        glfonsPopMatrix(fs);
-    
-        glfonsPushMatrix(fs);
-            glfonsTranslate(fs, 0.0, ++i * 40.0);
-            for(int i = 0; i < 9; ++i) {
-                glfonsPushMatrix(fs);
-                glfonsTranslate(fs, xnorm * -glfonsGetGlyphOffset(fs, text1, i), 0.0);
-                glfonsDrawText(fs, text1, i, i);
-                glfonsPopMatrix(fs);
-            }
-        glfonsPopMatrix(fs);
     glfonsPopMatrix(fs);
 }
 

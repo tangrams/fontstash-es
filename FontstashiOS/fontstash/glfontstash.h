@@ -73,31 +73,43 @@ struct GLFONScontext {
 
 typedef struct GLFONScontext GLFONScontext;
 
-static const GLchar* vertexShaderSrc =
-"#ifdef GL_ES\n"
-"precision mediump float;\n"
-"#endif\n"
-"attribute vec4 position;\n"
-"attribute vec2 texCoord;\n"
-"uniform mat4 mvp;\n"
-"varying vec2 fUv;\n"
-"void main() {\n"
-"  gl_Position = mvp * position;\n"
-"  fUv = texCoord;\n"
-"}\n";
+static const GLchar* vertexShaderSrc = R"END(
+#ifdef GL_ES
+precision mediump float;
+#endif
+attribute vec4 position;
+attribute vec2 texCoord;
 
-static const GLchar* fragShaderSrc =
-"#ifdef GL_ES\n"
-"precision mediump float;\n"
-"#endif\n"
-"uniform sampler2D tex;\n"
-"uniform vec4 color;\n"
-"varying vec2 fUv;\n"
-"void main(void) {\n"
-"  vec4 texColor = texture2D(tex, fUv);\n"
-"  vec3 invColor = 1.0 - texColor.rgb;\n"
-"  gl_FragColor = vec4(invColor * color.rgb, color.a * texColor.a);\n"
-"}\n";
+uniform mat4 mvp;
+varying vec2 fUv;
+
+void main() {
+    gl_Position = mvp * position;
+    fUv = texCoord;
+}
+)END";
+
+static const GLchar* fragShaderSrc = R"END(
+#ifdef GL_ES
+precision mediump float;
+#endif
+uniform sampler2D tex;
+uniform vec4 color;
+
+varying vec2 fUv;
+
+const vec4 outlineColor = vec4(0.15, 0.2, 0.3, 0.7);
+
+void main(void) {
+    float distance = texture2D(tex, fUv).a;
+    float inside = smoothstep(0.45, 0.5, distance);
+    vec4 outline = smoothstep(0.2, 0.3, distance) * outlineColor;
+    vec4 outColor = color * inside;
+    // extrude
+    outline = clamp(outline - inside, 0.0, 1.0);
+    gl_FragColor = outline + outColor;
+}
+)END";
 
 FONScontext* glfonsCreate(int width, int height, int flags);
 void glfonsDelete(FONScontext* ctx);
@@ -197,7 +209,7 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
-    gl->projectionMatrix = glm::ortho(0.0, (double)viewport[2] * 2, (double)viewport[3] * 2, 0.0, -1.0, 1.0);
+    gl->projectionMatrix = glm::ortho(0.0, (double)viewport[2], (double)viewport[3], 0.0, -1.0, 1.0);
     
     // create shader
     gl->shaderProgram = linkShaderProgram(vertexShaderSrc, fragShaderSrc);
