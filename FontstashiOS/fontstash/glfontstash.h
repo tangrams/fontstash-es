@@ -95,15 +95,14 @@ precision mediump float;
 #endif
 uniform sampler2D tex;
 uniform vec4 color;
+uniform vec4 outlineColor;
+uniform float mixFactor;
+uniform float minOutlineD;
+uniform float maxOutlineD;
+uniform float minInsideD;
+uniform float maxInsideD;
 
 varying vec2 fUv;
-
-const vec4 outlineColor = vec4(0.0, 0.0, 0.0, 1.0);
-const float mixFactor = 0.5;
-const float minOutlineD = 0.2;
-const float maxOutlineD = 0.3;
-const float minInsideD = 0.45;
-const float maxInsideD = 0.5;
 
 void main(void) {
     float distance = texture2D(tex, fUv).a;
@@ -402,6 +401,14 @@ void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int
     glUniform1i(glGetUniformLocation(glctx->shaderProgram, "tex"), 0);
     glUniformMatrix4fv(glGetUniformLocation(glctx->shaderProgram, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
     glUniform4f(glGetUniformLocation(glctx->shaderProgram, "color"), color.r, color.g, color.b, color.a);
+    
+    // wip : use variables
+    glUniform4f(glGetUniformLocation(glctx->shaderProgram, "outlineColor"), 1.0, 1.0, 1.0, 1.0);
+    glUniform1f(glGetUniformLocation(glctx->shaderProgram, "mixFactor"), 0.5);
+    glUniform1f(glGetUniformLocation(glctx->shaderProgram, "minOutlineD"), 0.2);
+    glUniform1f(glGetUniformLocation(glctx->shaderProgram, "maxOutlineD"), 0.3);
+    glUniform1f(glGetUniformLocation(glctx->shaderProgram, "minInsideD"), 0.45);
+    glUniform1f(glGetUniformLocation(glctx->shaderProgram, "maxInsideD"), 0.5);
     
     glBindBuffer(GL_ARRAY_BUFFER, stash->vbo->buffers[0]);
     glVertexAttribPointer(glctx->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);

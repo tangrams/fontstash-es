@@ -89,7 +89,7 @@
     
     fontItalic = fonsAddFont(fs, "sans-italic", resourcePath);
     
-    float size = 100.0f;
+    float size = 30.0f;
     float blurFactor = size / 6.0f;
     
     fonsSetSize(fs, size);
@@ -129,7 +129,7 @@
     
     glfonsPushMatrix(fs);
         glfonsTranslate(fs, 100.0, 300.0);
-        //glfonsScale(fs, 3.0, 3.0);
+        glfonsScale(fs, 4.0, 4.0);
         glfonsSetColor(fs, 255, 255, 255, 150);
     
         glfonsDrawText(fs, text1);
