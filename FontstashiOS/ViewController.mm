@@ -89,7 +89,7 @@
     
     fontItalic = fonsAddFont(fs, "sans-italic", resourcePath);
     
-    float size = 48.0f;
+    float size = 100.0f;
     float blurFactor = size / 6.0f;
     
     fonsSetSize(fs, size);

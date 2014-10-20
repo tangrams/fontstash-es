@@ -98,16 +98,19 @@ uniform vec4 color;
 
 varying vec2 fUv;
 
-const vec4 outlineColor = vec4(0.15, 0.2, 0.3, 0.7);
+const vec4 outlineColor = vec4(0.0, 0.0, 0.0, 1.0);
+const float mixFactor = 0.5;
+const float minOutlineD = 0.2;
+const float maxOutlineD = 0.3;
+const float minInsideD = 0.45;
+const float maxInsideD = 0.5;
 
 void main(void) {
     float distance = texture2D(tex, fUv).a;
-    float inside = smoothstep(0.45, 0.5, distance);
-    vec4 outline = smoothstep(0.2, 0.3, distance) * outlineColor;
+    float inside = smoothstep(minInsideD, maxInsideD, distance);
+    vec4 outline = smoothstep(minOutlineD, maxOutlineD, distance) * outlineColor;
     vec4 outColor = color * inside;
-    // extrude
-    outline = clamp(outline - inside, 0.0, 1.0);
-    gl_FragColor = outline + outColor;
+    gl_FragColor = mix(outline, outColor, mixFactor);
 }
 )END";
 
@@ -209,7 +212,7 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
-    gl->projectionMatrix = glm::ortho(0.0, (double)viewport[2], (double)viewport[3], 0.0, -1.0, 1.0);
+    gl->projectionMatrix = glm::ortho(0.0, (double)viewport[2] * 2, (double)viewport[3] * 2, 0.0, -1.0, 1.0);
     
     // create shader
     gl->shaderProgram = linkShaderProgram(vertexShaderSrc, fragShaderSrc);
