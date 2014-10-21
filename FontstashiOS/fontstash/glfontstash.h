@@ -113,10 +113,9 @@ varying vec2 v_uv;
 
 void main(void) {
     float distance = texture2D(u_tex, v_uv).a;
-    float inside = smoothstep(u_minInsideD, u_maxInsideD, distance);
+    vec4 inside = smoothstep(u_minInsideD, u_maxInsideD, distance) * u_color;
     vec4 outline = smoothstep(u_minOutlineD, u_maxOutlineD, distance) * u_outlineColor;
-    vec4 outColor = u_color * inside;
-    gl_FragColor = mix(outline, outColor, u_mixFactor);
+    gl_FragColor = mix(outline, inside, u_mixFactor);
 }
 )END";
 
@@ -438,7 +437,6 @@ void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int
             break;
         default:
             program = glctx->defaultShaderProgram;
-            break;
     }
     
     glUseProgram(program);
@@ -446,7 +444,6 @@ void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int
     glUniformMatrix4fv(glGetUniformLocation(program, "u_mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
     glUniform4f(glGetUniformLocation(program, "u_color"), color.r, color.g, color.b, color.a);
     
-    // wip : use variables
     if(stash->effect == FONS_EFFECT_DISTANCE_FIELD) {
         glm::vec4 outlineColor = glctx->outlineColor / 255.0f;
         glUniform4f(glGetUniformLocation(program, "u_outlineColor"), outlineColor.r, outlineColor.g, outlineColor.b, outlineColor.a);
