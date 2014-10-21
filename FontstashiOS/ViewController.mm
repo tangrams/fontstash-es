@@ -124,10 +124,22 @@
     glfonsSetColor(fs, 255, 255, 255, 150);
     
     glfonsPushMatrix(fs);
-        glfonsTranslate(fs, 100.0, 300.0);
+        glfonsTranslate(fs, 100.0, 200.0);
         glfonsDrawText(fs, text2);
+    
         glfonsScale(fs, 4.0, 4.0);
+        glfonsSetColor(fs, 255, 255, 255, 255);
+        glfonsSetOutlineColor(fs, 0, 0, 0, 255);
+        glfonsSetSDFProperties(fs, 0.2, 0.3, 0.45, 0.5, xnorm);
+        glfonsTranslate(fs, 0.0, 50.0);
         glfonsTranslate(fs, 0.0, 30.0 * xnorm);
+        glfonsDrawText(fs, text1);
+    glfonsPopMatrix(fs);
+    
+    glfonsPushMatrix(fs);
+        glfonsTranslate(fs, 100.0, 800.0);
+        glfonsScale(fs, 4.0, 4.0);
+        glfonsSetSDFProperties(fs, 0.2, 0.3, 0.45, 0.5, 0.7);
         glfonsDrawText(fs, text1);
     glfonsPopMatrix(fs);
 }
