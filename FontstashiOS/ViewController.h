@@ -23,5 +23,6 @@
     int fontNormal;
     int fontItalic;
     fsuint text1;
+    fsuint text2;
 }
 @end

@@ -39,6 +39,7 @@ enum FONSalign {
 };
 
 enum FONSeffectType {
+    FONS_EFFECT_NONE = 0,
     FONS_EFFECT_BLUR = 1,
     FONS_EFFECT_GROW = 2,
     FONS_EFFECT_DISTANCE_FIELD = 3,

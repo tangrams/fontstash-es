@@ -85,19 +85,14 @@
         printf("Could not add font normal.\n");
     }
     
-    resourcePath = (char*)[[[NSBundle mainBundle] pathForResource:@"DroidSerif-Italic" ofType:@"ttf"] UTF8String];
+    fonsSetSize(fs, 100.0);
+    glfonsBufferText(fs, "Fontstash", &text2, FONS_EFFECT_NONE);
     
-    fontItalic = fonsAddFont(fs, "sans-italic", resourcePath);
-    
-    float size = 30.0f;
-    float blurFactor = size / 6.0f;
-    
-    fonsSetSize(fs, size);
-    fonsSetBlur(fs, blurFactor);
+    fonsSetSize(fs, 30.0);
+    fonsSetBlur(fs, 5.0);
     fonsSetBlurType(fs, FONS_EFFECT_DISTANCE_FIELD);
     fonsSetFont(fs, fontNormal);
-    
-    glfonsBufferText(fs, "Fontstash", &text1);
+    glfonsBufferText(fs, "Fontstash", &text1, FONS_EFFECT_DISTANCE_FIELD);
 }
 
 - (void)tearDownGL
@@ -125,13 +120,14 @@
     static float x;
     x += .05f;
     float xnorm = (sin(x) + 1.0) * 0.5;
-    int i = 0;
+    
+    glfonsSetColor(fs, 255, 255, 255, 150);
     
     glfonsPushMatrix(fs);
         glfonsTranslate(fs, 100.0, 300.0);
+        glfonsDrawText(fs, text2);
         glfonsScale(fs, 4.0, 4.0);
-        glfonsSetColor(fs, 255, 255, 255, 150);
-    
+        glfonsTranslate(fs, 0.0, 30.0 * xnorm);
         glfonsDrawText(fs, text1);
     glfonsPopMatrix(fs);
 }

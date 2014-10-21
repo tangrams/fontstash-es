@@ -42,6 +42,7 @@ typedef struct GLFONSvbo GLFONSvbo;
 
 struct GLStash {
     GLFONSvbo* vbo;
+    FONSeffectType effect;
     glm::vec4 bbox;
     float* glyphsXOffset;
     float length;
@@ -56,7 +57,9 @@ struct GLFONScontext {
     // the id counter
     fsuint idct;
     
-    GLuint shaderProgram;
+    GLuint sdfShaderProgram;
+    GLuint defaultShaderProgram;
+    
     GLuint posAttrib;
     GLuint texCoordAttrib;
     GLuint colorAttrib;
@@ -77,46 +80,61 @@ static const GLchar* vertexShaderSrc = R"END(
 #ifdef GL_ES
 precision mediump float;
 #endif
-attribute vec4 position;
-attribute vec2 texCoord;
+attribute vec4 a_position;
+attribute vec2 a_texCoord;
 
-uniform mat4 mvp;
-varying vec2 fUv;
+uniform mat4 u_mvp;
+varying vec2 v_uv;
 
 void main() {
-    gl_Position = mvp * position;
-    fUv = texCoord;
+    gl_Position = u_mvp * a_position;
+    v_uv = a_texCoord;
 }
 )END";
 
-static const GLchar* fragShaderSrc = R"END(
+static const GLchar* sdfFragShaderSrc = R"END(
 #ifdef GL_ES
 precision mediump float;
 #endif
-uniform sampler2D tex;
-uniform vec4 color;
-uniform vec4 outlineColor;
-uniform float mixFactor;
-uniform float minOutlineD;
-uniform float maxOutlineD;
-uniform float minInsideD;
-uniform float maxInsideD;
+uniform sampler2D u_tex;
+uniform vec4 u_color;
+uniform vec4 u_outlineColor;
+uniform float u_mixFactor;
+uniform float u_minOutlineD;
+uniform float u_maxOutlineD;
+uniform float u_minInsideD;
+uniform float u_maxInsideD;
 
-varying vec2 fUv;
+varying vec2 v_uv;
 
 void main(void) {
-    float distance = texture2D(tex, fUv).a;
-    float inside = smoothstep(minInsideD, maxInsideD, distance);
-    vec4 outline = smoothstep(minOutlineD, maxOutlineD, distance) * outlineColor;
-    vec4 outColor = color * inside;
-    gl_FragColor = mix(outline, outColor, mixFactor);
+    float distance = texture2D(u_tex, v_uv).a;
+    float inside = smoothstep(u_minInsideD, u_maxInsideD, distance);
+    vec4 outline = smoothstep(u_minOutlineD, u_maxOutlineD, distance) * u_outlineColor;
+    vec4 outColor = u_color * inside;
+    gl_FragColor = mix(outline, outColor, u_mixFactor);
+}
+)END";
+
+static const GLchar* defaultFragShaderSrc = R"END(
+#ifdef GL_ES
+precision mediump float;
+#endif
+uniform sampler2D u_tex;
+uniform vec4 u_color;
+
+varying vec2 v_uv;
+void main(void) {
+    vec4 texColor = texture2D(u_tex, v_uv);
+    vec3 invColor = 1.0 - texColor.rgb;
+    gl_FragColor = vec4(invColor * u_color.rgb, u_color.a * texColor.a);
 }
 )END";
 
 FONScontext* glfonsCreate(int width, int height, int flags);
 void glfonsDelete(FONScontext* ctx);
 
-void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id);
+void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectType effect);
 void glfonsUnbufferText(FONScontext* ctx, fsuint id);
 
 void glfonsRotate(FONScontext* ctx, float angle);
@@ -214,10 +232,16 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     gl->projectionMatrix = glm::ortho(0.0, (double)viewport[2] * 2, (double)viewport[3] * 2, 0.0, -1.0, 1.0);
     
     // create shader
-    gl->shaderProgram = linkShaderProgram(vertexShaderSrc, fragShaderSrc);
-    gl->posAttrib = glGetAttribLocation(gl->shaderProgram, "position");
-    gl->texCoordAttrib = glGetAttribLocation(gl->shaderProgram, "texCoord");
-    gl->colorAttrib = glGetAttribLocation(gl->shaderProgram, "color");
+    gl->defaultShaderProgram = linkShaderProgram(vertexShaderSrc, defaultFragShaderSrc);
+    gl->sdfShaderProgram = linkShaderProgram(vertexShaderSrc, sdfFragShaderSrc);
+    
+    gl->posAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_position");
+    gl->texCoordAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_texCoord");
+    gl->colorAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_color");
+    
+    gl->posAttrib = glGetAttribLocation(gl->sdfShaderProgram, "a_position");
+    gl->texCoordAttrib = glGetAttribLocation(gl->sdfShaderProgram, "a_texCoord");
+    gl->colorAttrib = glGetAttribLocation(gl->sdfShaderProgram, "a_color");
     
     gl->matrixStack.push(glm::mat4(1.0));
     gl->color = glm::vec4(1.0);
@@ -266,6 +290,9 @@ static void glfons__renderDelete(void* userPtr) {
         }
     }
     
+    glDeleteProgram(gl->defaultShaderProgram);
+    glDeleteProgram(gl->sdfShaderProgram);
+    
     delete gl->stashes;
     delete gl;
 }
@@ -302,16 +329,17 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
     return (r) | (g << 8) | (b << 16) | (a << 24);
 }
 
-void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id) {
+void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectType effect) {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
     GLStash* stash = new GLStash;
     
     stash->vbo = new GLFONSvbo;
-    
+
     *id = ++glctx->idct;
     
     fonsDrawText(ctx, 0, 0, s, NULL, 0);
     
+    stash->effect = effect;
     stash->glyphsXOffset = new float[ctx->nverts / N_GLYPH_VERTS];
     
     int j = 0;
@@ -397,18 +425,30 @@ void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int
     glBindTexture(GL_TEXTURE_2D, glctx->tex);
     glEnable(GL_TEXTURE_2D);
     
-    glUseProgram(glctx->shaderProgram);
-    glUniform1i(glGetUniformLocation(glctx->shaderProgram, "tex"), 0);
-    glUniformMatrix4fv(glGetUniformLocation(glctx->shaderProgram, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
-    glUniform4f(glGetUniformLocation(glctx->shaderProgram, "color"), color.r, color.g, color.b, color.a);
+    GLuint program;
+    switch (stash->effect) {
+        case FONS_EFFECT_DISTANCE_FIELD:
+            program = glctx->sdfShaderProgram;
+            break;
+        default:
+            program = glctx->defaultShaderProgram;
+            break;
+    }
+    
+    glUseProgram(program);
+    glUniform1i(glGetUniformLocation(program, "u_tex"), 0);
+    glUniformMatrix4fv(glGetUniformLocation(program, "u_mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
+    glUniform4f(glGetUniformLocation(program, "u_color"), color.r, color.g, color.b, color.a);
     
     // wip : use variables
-    glUniform4f(glGetUniformLocation(glctx->shaderProgram, "outlineColor"), 1.0, 1.0, 1.0, 1.0);
-    glUniform1f(glGetUniformLocation(glctx->shaderProgram, "mixFactor"), 0.5);
-    glUniform1f(glGetUniformLocation(glctx->shaderProgram, "minOutlineD"), 0.2);
-    glUniform1f(glGetUniformLocation(glctx->shaderProgram, "maxOutlineD"), 0.3);
-    glUniform1f(glGetUniformLocation(glctx->shaderProgram, "minInsideD"), 0.45);
-    glUniform1f(glGetUniformLocation(glctx->shaderProgram, "maxInsideD"), 0.5);
+    if(stash->effect == FONS_EFFECT_DISTANCE_FIELD) {
+        glUniform4f(glGetUniformLocation(program, "u_outlineColor"), 1.0, 1.0, 1.0, 1.0);
+        glUniform1f(glGetUniformLocation(program, "u_mixFactor"), 0.5);
+        glUniform1f(glGetUniformLocation(program, "u_minOutlineD"), 0.2);
+        glUniform1f(glGetUniformLocation(program, "u_maxOutlineD"), 0.3);
+        glUniform1f(glGetUniformLocation(program, "u_minInsideD"), 0.45);
+        glUniform1f(glGetUniformLocation(program, "u_maxInsideD"), 0.5);
+    }
     
     glBindBuffer(GL_ARRAY_BUFFER, stash->vbo->buffers[0]);
     glVertexAttribPointer(glctx->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
