@@ -241,7 +241,7 @@ int fons__tt_buildGlyphBitmap(FONSttFontImpl *font, int glyph, float size, float
 	ftError = FT_Get_Advance(font->font, glyph, FT_LOAD_NO_SCALE, (FT_Fixed*)advance);
 	if (ftError) return 0;
 	ftGlyph = font->font->glyph;
-	*lsb = ftGlyph->metrics.horiBearingX;
+	*lsb = (int)ftGlyph->metrics.horiBearingX;
 	*x0 = ftGlyph->bitmap_left;
 	*x1 = *x0 + ftGlyph->bitmap.width;
 	*y0 = -ftGlyph->bitmap_top;
@@ -272,7 +272,7 @@ int fons__tt_getGlyphKernAdvance(FONSttFontImpl *font, int glyph1, int glyph2)
 {
 	FT_Vector ftKerning;
 	FT_Get_Kerning(font->font, glyph1, glyph2, FT_KERNING_DEFAULT, &ftKerning);
-	return ftKerning.x;
+	return (int)ftKerning.x;
 }
 
 float fons__tt_getUnitScale()
@@ -529,13 +529,11 @@ void fons__hb_shape(FONScontext* stash, const char* text, FONSfont* font)
 	FONSshaping* shaping;
 	FONSshapingRes* res;
 	FONShbFontShaper* shaper;
-	FONSstate* state;
 	hb_buffer_t* buffer;
 	hb_font_t* ft;
     hb_script_t script;
     hb_language_t language;
     hb_direction_t direction;
-	unsigned int glyphCount;
 	int i,j;
 
 	shaper = (FONShbFontShaper *) font->font.shaper;
@@ -544,15 +542,15 @@ void fons__hb_shape(FONScontext* stash, const char* text, FONSfont* font)
 	buffer = shaper->buffer;
 	ft = shaper->font;
 
-	direction = hb_direction_from_string(shaping->direction, strlen(shaping->direction));
-	script = hb_script_from_string(shaping->script, strlen(shaping->script));
-	language = hb_language_from_string(shaping->language, strlen(shaping->language));
+	direction = hb_direction_from_string(shaping->direction, (int)strlen(shaping->direction));
+	script = hb_script_from_string(shaping->script, (int)strlen(shaping->script));
+	language = hb_language_from_string(shaping->language, (int)strlen(shaping->language));
 
 	hb_buffer_reset(buffer);
 	hb_buffer_set_direction(buffer, direction);
 	hb_buffer_set_script(buffer, script);
 	hb_buffer_set_language(buffer, language);   
-	hb_buffer_add_utf8(buffer, text, strlen(text), 0, strlen(text));
+	hb_buffer_add_utf8(buffer, text, (int)strlen(text), 0, (int)strlen(text));
 	hb_shape(ft, buffer, NULL, 0);
 
 	hb_glyph_info_t *glyphInfo = hb_buffer_get_glyph_infos(buffer, &res->glyphCount);
@@ -630,30 +628,30 @@ static void fons__tmpfree(void* ptr, void* up)
 	// empty
 }
 
+void fons__allocShaping(FONScontext* stash)
+{
+    FONSshaping* shaping = (FONSshaping *) malloc(sizeof(FONSshaping));
+    stash->shaping = shaping;
+}
+
+void fons__deleteShaping(FONScontext* stash)
+{
+    if(stash->shaping) {
+        free(stash->shaping);
+    }
+}
+
+void fons__clearShaping(FONScontext* stash)
+{
+    fons__hb_freeShapingResult(stash->shaping->shapingRes);
+    stash->shaping->it = -1;
+}
+
 // Copyright (c) 2008-2010 Bjoern Hoehrmann <bjoern@hoehrmann.de>
 // See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
 
 #define FONS_UTF8_ACCEPT 0
 #define FONS_UTF8_REJECT 12
-
-void fons__allocShaping(FONScontext* stash)
-{
-	FONSshaping* shaping = (FONSshaping *) malloc(sizeof(FONSshaping));
-	stash->shaping = shaping;
-}
-
-void fons__deleteShaping(FONScontext* stash) 
-{	
-	if(stash->shaping) {
-		free(stash->shaping);
-	}
-}
-
-void fons__clearShaping(FONScontext* stash) 
-{
-	fons__hb_freeShapingResult(stash->shaping->shapingRes);
-	stash->shaping->it = -1;
-}
 
 static unsigned int fons__decutf8(unsigned int* state, unsigned int* codep, unsigned int byte)
 {
@@ -1455,6 +1453,8 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
 
 		*x += (int)(xadv + 0.5f);
 		*y += (int)(yadv + 0.5f);
+        
+        printf("%f\n", shaping->advance[it]);
 	}
 }
 

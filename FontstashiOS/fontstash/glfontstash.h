@@ -264,7 +264,6 @@ static void glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* 
     GLFONScontext* gl = (GLFONScontext*)userPtr;
     if (gl->tex == 0) return;
     
-    int w = rect[2] - rect[0];
     int h = rect[3] - rect[1];
     
     glBindTexture(GL_TEXTURE_2D, gl->tex);

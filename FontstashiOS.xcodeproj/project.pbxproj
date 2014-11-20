@@ -13,6 +13,7 @@
 		984E014C1A1E3828000B1797 /* libfreetype2-sim.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 984E014B1A1E3828000B1797 /* libfreetype2-sim.a */; };
 		984E014E1A1E3A07000B1797 /* libharfbuzz-sim.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 984E014D1A1E3A07000B1797 /* libharfbuzz-sim.a */; };
 		984E01661A1E4DB9000B1797 /* libucdn-sim.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 984E01651A1E4DB9000B1797 /* libucdn-sim.a */; };
+		984E03591A1E7F63000B1797 /* amiri-regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 984E03581A1E7F63000B1797 /* amiri-regular.ttf */; };
 		98603FF419E435AC00912F0C /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 98603FF319E435AC00912F0C /* main.m */; };
 		98603FF719E435AC00912F0C /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 98603FF619E435AC00912F0C /* AppDelegate.m */; };
 		9860400219E435AC00912F0C /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9860400119E435AC00912F0C /* Images.xcassets */; };
@@ -137,6 +138,7 @@
 		984E01631A1E3A13000B1797 /* hb-version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-version.h"; sourceTree = "<group>"; };
 		984E01641A1E3A13000B1797 /* hb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hb.h; sourceTree = "<group>"; };
 		984E01651A1E4DB9000B1797 /* libucdn-sim.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = "libucdn-sim.a"; sourceTree = "<group>"; };
+		984E03581A1E7F63000B1797 /* amiri-regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "amiri-regular.ttf"; sourceTree = "<group>"; };
 		98603FEE19E435AC00912F0C /* FontstashiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FontstashiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		98603FF219E435AC00912F0C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		98603FF319E435AC00912F0C /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
@@ -645,6 +647,7 @@
 		9860418B19E436DD00912F0C /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				984E03581A1E7F63000B1797 /* amiri-regular.ttf */,
 				981C581B19E71345007150F7 /* DroidSansJapanese.ttf */,
 				981C581C19E71345007150F7 /* DroidSerif-Bold.ttf */,
 				981C581D19E71345007150F7 /* DroidSerif-Italic.ttf */,
@@ -1022,6 +1025,7 @@
 				9860400219E435AC00912F0C /* Images.xcassets in Resources */,
 				9860418D19E436DD00912F0C /* DroidSerif-Regular.ttf in Resources */,
 				981C581F19E71345007150F7 /* DroidSerif-Bold.ttf in Resources */,
+				984E03591A1E7F63000B1797 /* amiri-regular.ttf in Resources */,
 				981C581E19E71345007150F7 /* DroidSansJapanese.ttf in Resources */,
 				981C582019E71345007150F7 /* DroidSerif-Italic.ttf in Resources */,
 			);
