@@ -21,6 +21,11 @@
 
 #define FONS_INVALID -1
 
+#ifdef FONS_USE_HARFBUZZ
+#include <hb.h>
+#include <hb-ft.h>
+#endif
+
 enum FONSflags {
 	FONS_ZERO_TOPLEFT = 1,
 	FONS_ZERO_BOTTOMLEFT = 2,
@@ -92,6 +97,8 @@ typedef struct FONStextIter FONStextIter;
 
 typedef struct FONScontext FONScontext;
 
+typedef struct FONSshaping FONSshaping;
+
 // Contructor and destructor.
 FONScontext* fonsCreateInternal(FONSparams* params);
 void fonsDeleteInternal(FONScontext* s);
@@ -127,11 +134,15 @@ void fonsSetFont(FONScontext* s, int font);
 float fonsDrawText(FONScontext* s, float x, float y, const char* string, const char* end, const char c);
 
 // Measure text
+
+// /!\ this would give unexpected results when using harfbuzz shaping
 float fonsTextBounds(FONScontext* s, float x, float y, const char* string, const char* end, float* bounds);
 void fonsLineBounds(FONScontext* s, float y, float* miny, float* maxy);
 void fonsVertMetrics(FONScontext* s, float* ascender, float* descender, float* lineh);
 
 // Text iterator
+
+// /!\ this would give unexpected results when using harfbuzz shaping
 int fonsTextIterInit(FONScontext* stash, FONStextIter* iter, float x, float y, const char* str, const char* end);
 int fonsTextIterNext(FONScontext* stash, FONStextIter* iter, struct FONSquad* quad);
 
@@ -142,10 +153,18 @@ int fonsValidateTexture(FONScontext* s, int* dirty);
 // Draws the stash texture for debugging
 void fonsDrawDebug(FONScontext* s, float x, float y, const char clear);
 
+// Font shaping
+void fonsSetShaping(FONScontext* stash, char* script, char* direction, char* language);
+
 #endif // FONTSTASH_H
 
 
 #ifdef FONTSTASH_IMPLEMENTATION
+
+typedef struct FONSttFontImpl FONSttFontImpl;
+
+int fons__tt_initShaper(FONSttFontImpl* font);
+void fons__tt_freeShaper(FONSttFontImpl* font);
 
 #define SDF_IMPLEMENTATION
 #include "sdf.h"
@@ -161,13 +180,15 @@ void fonsDrawDebug(FONScontext* s, float x, float y, const char clear);
 
 struct FONSttFontImpl {
 	FT_Face font;
+	void* shaper;
 };
 typedef struct FONSttFontImpl FONSttFontImpl;
 
 static FT_Library ftLibrary;
 
-int fons__tt_init(FONScontext *context)
+int fons__tt_init(FONScontext *stash)
 {
+	FONS_NOTUSED(stash);
 	FT_Error ftError;
 	ftError = FT_Init_FreeType(&ftLibrary);
 	return ftError == 0;
@@ -180,6 +201,8 @@ int fons__tt_loadFont(FONScontext *context, FONSttFontImpl *font, unsigned char 
 
 	//font->font.userdata = stash;
 	ftError = FT_New_Memory_Face(ftLibrary, (const FT_Byte*)data, dataSize, 0, &font->font);
+
+	fons__tt_initShaper(font);
 	return ftError == 0;
 }
 
@@ -197,7 +220,11 @@ float fons__tt_getPixelHeightScale(FONSttFontImpl *font, float size)
 
 int fons__tt_getGlyphIndex(FONSttFontImpl *font, int codepoint)
 {
-	return FT_Get_Char_Index(font->font, codepoint);
+	if(font->shaper != NULL) {
+		return codepoint;
+	} else {
+		return FT_Get_Char_Index(font->font, codepoint);
+	}
 }
 
 int fons__tt_buildGlyphBitmap(FONSttFontImpl *font, int glyph, float size, float scale,
@@ -248,6 +275,12 @@ int fons__tt_getGlyphKernAdvance(FONSttFontImpl *font, int glyph1, int glyph2)
 	return ftKerning.x;
 }
 
+float fons__tt_getUnitScale()
+{
+	// 26.6 freetype pixel format, need to perform scaling, 1 unit = 1/64 pixel.
+	return 1.0 / 64;
+}
+
 #else
 
 #define STB_TRUETYPE_IMPLEMENTATION
@@ -259,6 +292,7 @@ static void fons__tmpfree(void* ptr, void* up);
 
 struct FONSttFontImpl {
 	stbtt_fontinfo font;
+	void* shaper;
 };
 typedef struct FONSttFontImpl FONSttFontImpl;
 
@@ -311,6 +345,11 @@ void fons__tt_renderGlyphBitmap(FONSttFontImpl *font, unsigned char *output, int
 int fons__tt_getGlyphKernAdvance(FONSttFontImpl *font, int glyph1, int glyph2)
 {
 	return stbtt_GetGlyphKernAdvance(&font->font, glyph1, glyph2);
+}
+
+float fons__tt_getUnitScale() 
+{
+	return 1.0;
 }
 
 #endif
@@ -413,6 +452,23 @@ struct FONSatlas
 };
 typedef struct FONSatlas FONSatlas;
 
+struct FONSshapingRes 
+{
+	unsigned int glyphCount;
+	uint32_t* codepoints;
+	float* advance;
+	float* offset;
+};
+typedef struct FONSshapingRes FONSshapingRes;
+
+struct FONSshaping {
+	FONSshapingRes* shapingRes;
+	char* script;
+	char* direction;
+	char* language;
+	int it;
+};
+
 struct FONScontext
 {
 	FONSparams params;
@@ -433,7 +489,121 @@ struct FONScontext
 	int nstates;
 	void (*handleError)(void* uptr, int error, int val);
 	void* errorUptr;
+	FONSshaping* shaping;
 };
+
+#ifdef FONS_USE_HARFBUZZ
+
+struct FONShbFontShaper 
+{
+    hb_font_t* font;
+    hb_buffer_t* buffer;
+};
+
+typedef struct FONShbFontShaper FONShbFontShaper;
+
+int fons__tt_initShaper(FONSttFontImpl* font) 
+{
+	FONShbFontShaper* shaper = (FONShbFontShaper *) malloc(sizeof(FONShbFontShaper));
+
+    shaper->font = hb_ft_font_create(font->font, NULL); 
+    shaper->buffer = hb_buffer_create();
+
+    font->shaper = shaper;
+
+    return hb_buffer_allocation_successful(shaper->buffer);
+}
+
+void fons__tt_freeShaper(FONSttFontImpl* font) 
+{
+	FONShbFontShaper* shaper = (FONShbFontShaper*)font->shaper;
+	if(shaper) {
+	    hb_buffer_destroy(shaper->buffer);
+	    hb_font_destroy(shaper->font); 
+		free(shaper);
+	}
+}
+
+void fons__hb_shape(FONScontext* stash, const char* text, FONSfont* font) 
+{
+	FONSshaping* shaping;
+	FONSshapingRes* res;
+	FONShbFontShaper* shaper;
+	FONSstate* state;
+	hb_buffer_t* buffer;
+	hb_font_t* ft;
+    hb_script_t script;
+    hb_language_t language;
+    hb_direction_t direction;
+	unsigned int glyphCount;
+	int i,j;
+
+	shaper = (FONShbFontShaper *) font->font.shaper;
+	shaping = stash->shaping;
+	res = shaping->shapingRes;
+	buffer = shaper->buffer;
+	ft = shaper->font;
+
+	direction = hb_direction_from_string(shaping->direction, strlen(shaping->direction));
+	script = hb_script_from_string(shaping->script, strlen(shaping->script));
+	language = hb_language_from_string(shaping->language, strlen(shaping->language));
+
+	hb_buffer_reset(buffer);
+	hb_buffer_set_direction(buffer, direction);
+	hb_buffer_set_script(buffer, script);
+	hb_buffer_set_language(buffer, language);   
+	hb_buffer_add_utf8(buffer, text, strlen(text), 0, strlen(text));
+	hb_shape(ft, buffer, NULL, 0);
+
+	hb_glyph_info_t *glyphInfo = hb_buffer_get_glyph_infos(buffer, &res->glyphCount);
+	hb_glyph_position_t *glyphPos = hb_buffer_get_glyph_positions(buffer, &res->glyphCount);
+
+	res->codepoints = (uint32_t *) malloc(sizeof(uint32_t) * res->glyphCount);
+
+	res->offset = (float *) malloc(sizeof(float) * res->glyphCount * 2);
+	res->advance = (float *) malloc(sizeof(float) * res->glyphCount * 2);
+
+	for(i = 0, j = 0; i < res->glyphCount; i++, j+=2) {
+		res->advance[j] = glyphPos[i].x_advance;
+		res->advance[j+1] = glyphPos[i].y_advance;
+		res->offset[j] = glyphPos[i].x_offset;
+		res->offset[j+1] = glyphPos[i].y_offset;
+		res->codepoints[i] = glyphInfo[i].codepoint;
+	}
+}
+
+void fons__hb_freeShapingResult(FONSshapingRes* res) 
+{
+	free(res->advance);
+	free(res->offset);
+	free(res->codepoints);
+}
+
+#else
+
+void fons__hb_shape(FONScontext* stash, const char* text, FONSfont* font)
+{
+	FONS_NOTUSED(stash);
+	FONS_NOTUSED(text);
+}
+
+void fons__hb_freeShapingResult(FONSshapingRes* res) 
+{
+	FONS_NOTUSED(res);
+}
+
+int fons__tt_initShaper(FONSttFontImpl* font) 
+{
+	FONS_NOTUSED(font);
+	return -1;
+}
+
+void fons__tt_freeShaper(FONSttFontImpl* font) 
+{
+	FONS_NOTUSED(font);
+}
+
+#endif // FONS_USE_HARFBUZZ
 
 static void* fons__tmpalloc(size_t size, void* up)
 {
@@ -465,6 +635,25 @@ static void fons__tmpfree(void* ptr, void* up)
 
 #define FONS_UTF8_ACCEPT 0
 #define FONS_UTF8_REJECT 12
+
+void fons__allocShaping(FONScontext* stash)
+{
+	FONSshaping* shaping = (FONSshaping *) malloc(sizeof(FONSshaping));
+	stash->shaping = shaping;
+}
+
+void fons__deleteShaping(FONScontext* stash) 
+{	
+	if(stash->shaping) {
+		free(stash->shaping);
+	}
+}
+
+void fons__clearShaping(FONScontext* stash) 
+{
+	fons__hb_freeShapingResult(stash->shaping->shapingRes);
+	stash->shaping->it = -1;
+}
 
 static unsigned int fons__decutf8(unsigned int* state, unsigned int* codep, unsigned int byte)
 {
@@ -750,6 +939,8 @@ FONScontext* fonsCreateInternal(FONSparams* params)
 	// Add white rect at 0,0 for debug drawing.
 	fons__addWhiteRect(stash, 2,2);
 
+	fons__allocShaping(stash);
+
 	fonsPushState(stash);
 	fonsClearState(stash);
 
@@ -839,6 +1030,7 @@ static void fons__freeFont(FONSfont* font)
 	if (font == NULL) return;
 	if (font->glyphs) free(font->glyphs);
 	if (font->freeData && font->data) free(font->data);
+	fons__tt_freeShaper(&font->font);
 	free(font);
 }
 
@@ -1183,54 +1375,87 @@ static FONSglyph* fons__getGlyph(FONScontext* stash, FONSfont* font, unsigned in
 
 static void fons__getQuad(FONScontext* stash, FONSfont* font,
 						   int prevGlyphIndex, FONSglyph* glyph,
-						   float scale, float spacing, float* x, float* y, FONSquad* q)
+						   float scale, float spacing, float* x, float* y, FONSquad* q,
+						   int useShaping)
 {
-	float rx,ry,xoff,yoff,x0,y0,x1,y1;
+	float rx,ry,xoff,yoff,x0,y0,x1,y1,xadv,yadv;
 
-	if (prevGlyphIndex != -1) {
-		float adv = fons__tt_getGlyphKernAdvance(&font->font, prevGlyphIndex, glyph->index) * scale;
-		*x += (int)(adv + spacing + 0.5f);
-	}
+	if(!useShaping) {
+		if (prevGlyphIndex != -1) {
+			float adv = fons__tt_getGlyphKernAdvance(&font->font, prevGlyphIndex, glyph->index) * scale;
+			*x += (int)(adv + spacing + 0.5f);
+		}
 
-	// Each glyph has 2px border to allow good interpolation,
-	// one pixel to prevent leaking, and one to allow good interpolation for rendering.
-	// Inset the texture region by one pixel for corret interpolation.
-	xoff = (short)(glyph->xoff+1);
-	yoff = (short)(glyph->yoff+1);
-	x0 = (float)(glyph->x0+1);
-	y0 = (float)(glyph->y0+1);
-	x1 = (float)(glyph->x1-1);
-	y1 = (float)(glyph->y1-1);
+		// Each glyph has 2px border to allow good interpolation,
+		// one pixel to prevent leaking, and one to allow good interpolation for rendering.
+		// Inset the texture region by one pixel for corret interpolation.
+		xoff = (short)(glyph->xoff+1);
+		yoff = (short)(glyph->yoff+1);
+		x0 = (float)(glyph->x0+1);
+		y0 = (float)(glyph->y0+1);
+		x1 = (float)(glyph->x1-1);
+		y1 = (float)(glyph->y1-1);
 
-	if (stash->params.flags & FONS_ZERO_TOPLEFT) {
-		rx = (float)(int)(*x + xoff);
-		ry = (float)(int)(*y + yoff);
+		if (stash->params.flags & FONS_ZERO_TOPLEFT) {
+			rx = (float)(int)(*x + xoff);
+			ry = (float)(int)(*y + yoff);
 
-		q->x0 = rx;
-		q->y0 = ry;
-		q->x1 = rx + x1 - x0;
-		q->y1 = ry + y1 - y0;
+			q->x0 = rx;
+			q->y0 = ry;
+			q->x1 = rx + x1 - x0;
+			q->y1 = ry + y1 - y0;
 
-		q->s0 = x0 * stash->itw;
-		q->t0 = y0 * stash->ith;
-		q->s1 = x1 * stash->itw;
-		q->t1 = y1 * stash->ith;
+			q->s0 = x0 * stash->itw;
+			q->t0 = y0 * stash->ith;
+			q->s1 = x1 * stash->itw;
+			q->t1 = y1 * stash->ith;
+		} else {
+			rx = (float)(int)(*x + xoff);
+			ry = (float)(int)(*y - yoff);
+
+			q->x0 = rx;
+			q->y0 = ry;
+			q->x1 = rx + x1 - x0;
+			q->y1 = ry - y1 + y0;
+
+			q->s0 = x0 * stash->itw;
+			q->t0 = y0 * stash->ith;
+			q->s1 = x1 * stash->itw;
+			q->t1 = y1 * stash->ith;
+		}
+
+		*x += (int)(glyph->xadv / 10.0f + 0.5f);
 	} else {
-		rx = (float)(int)(*x + xoff);
-		ry = (float)(int)(*y - yoff);
+		// TODO : kerning
+		FONSshapingRes* shaping = stash->shaping->shapingRes;
+		int it = stash->shaping->it;
+		float unitFontScale = fons__tt_getUnitScale();
 
-		q->x0 = rx;
-		q->y0 = ry;
-		q->x1 = rx + x1 - x0;
-		q->y1 = ry - y1 + y0;
+		xadv = (float)shaping->advance[it] * unitFontScale;
+		yadv = (float)shaping->advance[it+1] * unitFontScale;
+		xoff = (float)shaping->offset[it] * unitFontScale + 1;
+		yoff = (float)shaping->offset[it+1] * unitFontScale + 1;
+		x0 = (float)(glyph->x0 + 1);
+		y0 = (float)(glyph->y0 + 1);
+		x1 = (float)(glyph->x1 - 1);
+		y1 = (float)(glyph->y1 - 1);
+
+		rx = *x + xoff;
+		ry = *y + yoff;
+
+		q->x0 = rx + glyph->xoff;
+		q->y0 = ry + glyph->yoff;
+		q->x1 = glyph->xoff + *x + x1 - x0;
+		q->y1 = glyph->yoff + *y + y1 - y0;
 
 		q->s0 = x0 * stash->itw;
 		q->t0 = y0 * stash->ith;
 		q->s1 = x1 * stash->itw;
 		q->t1 = y1 * stash->ith;
-	}
 
-	*x += (int)(glyph->xadv / 10.0f + 0.5f);
+		*x += (int)(xadv + 0.5f);
+		*y += (int)(yadv + 0.5f);
+	}
 }
 
 static void fons__flush(FONScontext* stash, const char clear)
@@ -1291,6 +1516,24 @@ static float fons__getVertAlign(FONScontext* stash, FONSfont* font, int align, s
 	return 0.0;
 }
 
+static __inline void fons__vertices(FONScontext* stash, FONSquad q, FONSstate* state) 
+{
+	fons__vertex(stash, q.x0, q.y0, q.s0, q.t0, state->color);
+	fons__vertex(stash, q.x1, q.y1, q.s1, q.t1, state->color);
+	fons__vertex(stash, q.x1, q.y0, q.s1, q.t0, state->color);
+
+	fons__vertex(stash, q.x0, q.y0, q.s0, q.t0, state->color);
+	fons__vertex(stash, q.x0, q.y1, q.s0, q.t1, state->color);
+	fons__vertex(stash, q.x1, q.y1, q.s1, q.t1, state->color);
+}
+
+void fonsSetShaping(FONScontext* stash, char* script, char* direction, char* language) 
+{
+	stash->shaping->script = script;
+	stash->shaping->direction = direction;
+	stash->shaping->language = language;
+}
+
 float fonsDrawText(FONScontext* stash,
 				   float x, float y,
 				   const char* str, const char* end,
@@ -1307,6 +1550,7 @@ float fonsDrawText(FONScontext* stash,
 	float scale;
 	FONSfont* font;
 	float width;
+	int useShaping;
 
 	if (stash == NULL) return x;
 	if (state->font < 0 || state->font >= stash->nfonts) return x;
@@ -1315,44 +1559,79 @@ float fonsDrawText(FONScontext* stash,
 
 	scale = fons__tt_getPixelHeightScale(&font->font, (float)isize/10.0f);
 
-	if (end == NULL)
-		end = str + strlen(str);
+	useShaping = font->font.shaper != NULL;
 
-	// Align horizontally
-	if (state->align & FONS_ALIGN_LEFT) {
-		// empty
-	} else if (state->align & FONS_ALIGN_RIGHT) {
-		width = fonsTextBounds(stash, x,y, str, end, NULL);
-		x -= width;
-	} else if (state->align & FONS_ALIGN_CENTER) {
-		width = fonsTextBounds(stash, x,y, str, end, NULL);
-		x -= width * 0.5f;
-	}
-	// Align vertically.
 	y += fons__getVertAlign(stash, font, state->align, isize);
 
-	for (; str != end; ++str) {
-		if (fons__decutf8(&utf8state, &codepoint, *(const unsigned char*)str))
-			continue;
-		glyph = fons__getGlyph(stash, font, codepoint, isize, iblur, state->blurType);
-		if (glyph != NULL) {
-			fons__getQuad(stash, font, prevGlyphIndex, glyph, scale, state->spacing, &x, &y, &q);
+	if(useShaping) {
+		FONSshapingRes shapingRes;
+		FONSshaping* shaping;
+		int i, j;
 
-			if (stash->nverts+6 > FONS_VERTEX_COUNT)
-				fons__flush(stash, clear);
+		shaping = stash->shaping;
 
-			fons__vertex(stash, q.x0, q.y0, q.s0, q.t0, state->color);
-			fons__vertex(stash, q.x1, q.y1, q.s1, q.t1, state->color);
-			fons__vertex(stash, q.x1, q.y0, q.s1, q.t0, state->color);
+		if(shaping) {
+			shaping->shapingRes = &shapingRes;
+			fons__hb_shape(stash, str, font);
 
-			fons__vertex(stash, q.x0, q.y0, q.s0, q.t0, state->color);
-			fons__vertex(stash, q.x0, q.y1, q.s0, q.t1, state->color);
-			fons__vertex(stash, q.x1, q.y1, q.s1, q.t1, state->color);
+			for (i = 0, j = 0; i < shapingRes.glyphCount; i++, j+=2) {
+				shaping->it = j;
+				codepoint = shapingRes.codepoints[i];
+
+				glyph = fons__getGlyph(stash, font, codepoint, isize, iblur, state->blurType);
+
+				if (glyph != NULL) {
+					fons__getQuad(stash, font, prevGlyphIndex, glyph, scale, state->spacing, &x, &y, &q, useShaping);
+
+					if (stash->nverts+6 > FONS_VERTEX_COUNT)
+						fons__flush(stash, clear);
+
+					fons__vertices(stash, q, state);
+				}
+
+				prevGlyphIndex = glyph != NULL ? glyph->index : -1;
+			}
+
+			fons__flush(stash, clear);
+			fons__clearShaping(stash);
 		}
-		prevGlyphIndex = glyph != NULL ? glyph->index : -1;
-	}
-	fons__flush(stash, clear);
+	} else {
+		if (end == NULL)
+			end = str + strlen(str);
 
+		// Align horizontally
+		if (state->align & FONS_ALIGN_LEFT) {
+			// empty
+		} else if (state->align & FONS_ALIGN_RIGHT) {
+			width = fonsTextBounds(stash, x,y, str, end, NULL);
+			x -= width;
+		} else if (state->align & FONS_ALIGN_CENTER) {
+			width = fonsTextBounds(stash, x,y, str, end, NULL);
+			x -= width * 0.5f;
+		}
+
+		for (; str != end; ++str) {
+			if (fons__decutf8(&utf8state, &codepoint, *(const unsigned char*)str))
+				continue;
+			glyph = fons__getGlyph(stash, font, codepoint, isize, iblur, state->blurType);
+			if (glyph != NULL) {
+				fons__getQuad(stash, font, prevGlyphIndex, glyph, scale, state->spacing, &x, &y, &q, useShaping);
+
+				if (stash->nverts+6 > FONS_VERTEX_COUNT)
+					fons__flush(stash, clear);
+
+				fons__vertex(stash, q.x0, q.y0, q.s0, q.t0, state->color);
+				fons__vertex(stash, q.x1, q.y1, q.s1, q.t1, state->color);
+				fons__vertex(stash, q.x1, q.y0, q.s1, q.t0, state->color);
+
+				fons__vertex(stash, q.x0, q.y0, q.s0, q.t0, state->color);
+				fons__vertex(stash, q.x0, q.y1, q.s0, q.t1, state->color);
+				fons__vertex(stash, q.x1, q.y1, q.s1, q.t1, state->color);
+			}
+			prevGlyphIndex = glyph != NULL ? glyph->index : -1;
+		}
+		fons__flush(stash, clear);
+	}
 	return x;
 }
 
@@ -1420,7 +1699,7 @@ int fonsTextIterNext(FONScontext* stash, FONStextIter* iter, FONSquad* quad)
 		iter->y = iter->nexty;
 		glyph = fons__getGlyph(stash, iter->font, iter->codepoint, iter->isize, iter->iblur, iter->blurType);
 		if (glyph != NULL)
-			fons__getQuad(stash, iter->font, iter->prevGlyphIndex, glyph, iter->scale, iter->spacing, &iter->nextx, &iter->nexty, quad);
+			fons__getQuad(stash, iter->font, iter->prevGlyphIndex, glyph, iter->scale, iter->spacing, &iter->nextx, &iter->nexty, quad, 0 /* TODO */);
 		iter->prevGlyphIndex = glyph != NULL ? glyph->index : -1;
 		break;
 	}
@@ -1518,7 +1797,7 @@ float fonsTextBounds(FONScontext* stash,
 			continue;
 		glyph = fons__getGlyph(stash, font, codepoint, isize, iblur, blurType);
 		if (glyph != NULL) {
-			fons__getQuad(stash, font, prevGlyphIndex, glyph, scale, state->spacing, &x, &y, &q);
+			fons__getQuad(stash, font, prevGlyphIndex, glyph, scale, state->spacing, &x, &y, &q, 0 /* TODO */);
 			if (q.x0 < minx) minx = q.x0;
 			if (q.x1 > maxx) maxx = q.x1;
 			if (stash->params.flags & FONS_ZERO_TOPLEFT) {
@@ -1632,7 +1911,8 @@ void fonsDeleteInternal(FONScontext* stash)
 
 	if (stash->params.renderDelete)
 		stash->params.renderDelete(stash->params.userPtr);
-
+	
+	fons__deleteShaping(stash);
 	for (i = 0; i < stash->nfonts; ++i)
 		fons__freeFont(stash->fonts[i]);
 

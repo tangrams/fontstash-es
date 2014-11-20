@@ -17,6 +17,7 @@
 
 #define FONS_USE_FREETYPE
 #define GLFONTSTASH_IMPLEMENTATION
+//#define FONS_USE_HARFBUZZ
 #import "glfontstash.h"
 
 @interface ViewController : GLKViewController {
