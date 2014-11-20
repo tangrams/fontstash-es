@@ -77,7 +77,7 @@
         printf("Could not create stash.\n");
     }
 
-    char * resourcePath = (char*)[[[NSBundle mainBundle] pathForResource:@"DroidSerif-Regular" ofType:@"ttf"] UTF8String];
+    char * resourcePath = (char*)[[[NSBundle mainBundle] pathForResource:@"amiri-regular" ofType:@"ttf"] UTF8String];
     
     fontNormal = fonsAddFont(fs, "sans", resourcePath);
     
@@ -86,16 +86,16 @@
     }
     
     fonsSetFont(fs, fontNormal);
-    fonsSetShaping(fs, "french", "LTR", "fr");
-
-    fonsSetSize(fs, 100.0);
-    glfonsBufferText(fs, "Fontstash", &text2, FONS_EFFECT_NONE);
+    fonsSetSize(fs, 200.0);
+    fonsSetShaping(fs, "arabic", "RTL", "ar");
     
-    fonsSetSize(fs, 30.0);
     fonsSetBlur(fs, 5.0);
     fonsSetBlurType(fs, FONS_EFFECT_DISTANCE_FIELD);
+    glfonsBufferText(fs, "سنالى ما شاسعة وق", &text1, FONS_EFFECT_DISTANCE_FIELD);
     
-    glfonsBufferText(fs, "Fontstash", &text1, FONS_EFFECT_DISTANCE_FIELD);
+    fonsSetBlurType(fs, FONS_EFFECT_NONE);
+    glfonsBufferText(fs, "سنالى ما شاسعة وق", &text2, FONS_EFFECT_NONE);
+    
 }
 
 - (void)tearDownGL
@@ -124,26 +124,17 @@
     x += .05f;
     float xnorm = (sin(x) + 1.0) * 0.5;
     
-    glfonsSetColor(fs, 255, 255, 255, 150);
+    glfonsSetColor(fs, 255, 255, 255, 200);
     
     glfonsPushMatrix(fs);
-        glfonsTranslate(fs, 100.0, 200.0);
-        glfonsDrawText(fs, text2);
-    
-        glfonsScale(fs, 4.0, 4.0);
-        glfonsSetColor(fs, 255, 255, 255, 255);
-        glfonsSetOutlineColor(fs, 0, 0, 0, 255);
-        glfonsSetSDFProperties(fs, 0.2, 0.3, 0.45, 0.5, xnorm);
-        glfonsTranslate(fs, 0.0, 50.0);
-        glfonsTranslate(fs, 0.0, 30.0 * xnorm);
+        glfonsTranslate(fs, 50.0, 350.0);
+        glfonsSetSDFProperties(fs, 0.2, 0.3, 0.45, 0.5, 0.7);
         glfonsDrawText(fs, text1);
     glfonsPopMatrix(fs);
     
     glfonsPushMatrix(fs);
-        glfonsTranslate(fs, 100.0, 800.0);
-        glfonsScale(fs, 4.0, 4.0);
-        glfonsSetSDFProperties(fs, 0.2, 0.3, 0.45, 0.5, 0.7);
-        glfonsDrawText(fs, text1);
+        glfonsTranslate(fs, 50.0, 150.0);
+        glfonsDrawText(fs, text2);
     glfonsPopMatrix(fs);
 }
 
