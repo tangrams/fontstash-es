@@ -15,6 +15,7 @@
 #import <stdio.h>
 #import <string.h>
 
+#define FONS_USE_FREETYPE
 #define GLFONTSTASH_IMPLEMENTATION
 #import "glfontstash.h"
 
