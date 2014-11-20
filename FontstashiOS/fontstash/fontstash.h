@@ -154,7 +154,7 @@ int fonsValidateTexture(FONScontext* s, int* dirty);
 void fonsDrawDebug(FONScontext* s, float x, float y, const char clear);
 
 // Font shaping
-void fonsSetShaping(FONScontext* stash, char* script, char* direction, char* language);
+void fonsSetShaping(FONScontext* stash, const char* script, const char* direction, const char* language);
 
 #endif // FONTSTASH_H
 
@@ -463,9 +463,9 @@ typedef struct FONSshapingRes FONSshapingRes;
 
 struct FONSshaping {
 	FONSshapingRes* shapingRes;
-	char* script;
-	char* direction;
-	char* language;
+	const char* script;
+	const char* direction;
+	const char* language;
 	int it;
 };
 
@@ -1527,7 +1527,7 @@ static __inline void fons__vertices(FONScontext* stash, FONSquad q, FONSstate* s
 	fons__vertex(stash, q.x1, q.y1, q.s1, q.t1, state->color);
 }
 
-void fonsSetShaping(FONScontext* stash, char* script, char* direction, char* language) 
+void fonsSetShaping(FONScontext* stash, const char* script, const char* direction, const char* language)
 {
 	stash->shaping->script = script;
 	stash->shaping->direction = direction;

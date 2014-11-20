@@ -85,13 +85,16 @@
         printf("Could not add font normal.\n");
     }
     
+    fonsSetFont(fs, fontNormal);
+    fonsSetShaping(fs, "french", "LTR", "fr");
+
     fonsSetSize(fs, 100.0);
     glfonsBufferText(fs, "Fontstash", &text2, FONS_EFFECT_NONE);
     
     fonsSetSize(fs, 30.0);
     fonsSetBlur(fs, 5.0);
     fonsSetBlurType(fs, FONS_EFFECT_DISTANCE_FIELD);
-    fonsSetFont(fs, fontNormal);
+    
     glfonsBufferText(fs, "Fontstash", &text1, FONS_EFFECT_DISTANCE_FIELD);
 }
 
