@@ -11,6 +11,7 @@
 		981C581F19E71345007150F7 /* DroidSerif-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 981C581C19E71345007150F7 /* DroidSerif-Bold.ttf */; };
 		981C582019E71345007150F7 /* DroidSerif-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 981C581D19E71345007150F7 /* DroidSerif-Italic.ttf */; };
 		984E014C1A1E3828000B1797 /* libfreetype2-sim.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 984E014B1A1E3828000B1797 /* libfreetype2-sim.a */; };
+		984E014E1A1E3A07000B1797 /* libharfbuzz-sim.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 984E014D1A1E3A07000B1797 /* libharfbuzz-sim.a */; };
 		98603FF419E435AC00912F0C /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 98603FF319E435AC00912F0C /* main.m */; };
 		98603FF719E435AC00912F0C /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 98603FF619E435AC00912F0C /* AppDelegate.m */; };
 		9860400219E435AC00912F0C /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9860400119E435AC00912F0C /* Images.xcassets */; };
@@ -112,6 +113,28 @@
 		984E01491A1E380E000B1797 /* ttunpat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ttunpat.h; sourceTree = "<group>"; };
 		984E014A1A1E380E000B1797 /* ft2build.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ft2build.h; sourceTree = "<group>"; };
 		984E014B1A1E3828000B1797 /* libfreetype2-sim.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = "libfreetype2-sim.a"; sourceTree = "<group>"; };
+		984E014D1A1E3A07000B1797 /* libharfbuzz-sim.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = "libharfbuzz-sim.a"; sourceTree = "<group>"; };
+		984E01501A1E3A13000B1797 /* hb-blob.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-blob.h"; sourceTree = "<group>"; };
+		984E01511A1E3A13000B1797 /* hb-buffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-buffer.h"; sourceTree = "<group>"; };
+		984E01521A1E3A13000B1797 /* hb-common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-common.h"; sourceTree = "<group>"; };
+		984E01531A1E3A13000B1797 /* hb-deprecated.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-deprecated.h"; sourceTree = "<group>"; };
+		984E01541A1E3A13000B1797 /* hb-face.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-face.h"; sourceTree = "<group>"; };
+		984E01551A1E3A13000B1797 /* hb-font.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-font.h"; sourceTree = "<group>"; };
+		984E01561A1E3A13000B1797 /* hb-ft.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-ft.h"; sourceTree = "<group>"; };
+		984E01571A1E3A13000B1797 /* hb-glib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-glib.h"; sourceTree = "<group>"; };
+		984E01581A1E3A13000B1797 /* hb-gobject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-gobject.h"; sourceTree = "<group>"; };
+		984E01591A1E3A13000B1797 /* hb-icu.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-icu.h"; sourceTree = "<group>"; };
+		984E015A1A1E3A13000B1797 /* hb-ot-font.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-ot-font.h"; sourceTree = "<group>"; };
+		984E015B1A1E3A13000B1797 /* hb-ot-layout.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-ot-layout.h"; sourceTree = "<group>"; };
+		984E015C1A1E3A13000B1797 /* hb-ot-shape.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-ot-shape.h"; sourceTree = "<group>"; };
+		984E015D1A1E3A13000B1797 /* hb-ot-tag.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-ot-tag.h"; sourceTree = "<group>"; };
+		984E015E1A1E3A13000B1797 /* hb-ot.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-ot.h"; sourceTree = "<group>"; };
+		984E015F1A1E3A13000B1797 /* hb-set.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-set.h"; sourceTree = "<group>"; };
+		984E01601A1E3A13000B1797 /* hb-shape-plan.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-shape-plan.h"; sourceTree = "<group>"; };
+		984E01611A1E3A13000B1797 /* hb-shape.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-shape.h"; sourceTree = "<group>"; };
+		984E01621A1E3A13000B1797 /* hb-unicode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-unicode.h"; sourceTree = "<group>"; };
+		984E01631A1E3A13000B1797 /* hb-version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "hb-version.h"; sourceTree = "<group>"; };
+		984E01641A1E3A13000B1797 /* hb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hb.h; sourceTree = "<group>"; };
 		98603FEE19E435AC00912F0C /* FontstashiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FontstashiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		98603FF219E435AC00912F0C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		98603FF319E435AC00912F0C /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
@@ -390,6 +413,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				98D79D6D19E45EAD000C6D80 /* GLKit.framework in Frameworks */,
+				984E014E1A1E3A07000B1797 /* libharfbuzz-sim.a in Frameworks */,
 				98D79D6B19E45EA6000C6D80 /* UIKit.framework in Frameworks */,
 				98D79D6919E45E8F000C6D80 /* CoreGraphics.framework in Frameworks */,
 				98D79D6719E45E85000C6D80 /* OpenGLES.framework in Frameworks */,
@@ -403,6 +427,7 @@
 		983A811719E45EFF00B7C7C3 /* Libs */ = {
 			isa = PBXGroup;
 			children = (
+				984E014F1A1E3A13000B1797 /* harfbuzz */,
 				984E00F21A1E380E000B1797 /* freetype */,
 				9860418E19E4370000912F0C /* fontstash */,
 				98D79BF819E45A44000C6D80 /* glm */,
@@ -542,9 +567,38 @@
 			path = services;
 			sourceTree = "<group>";
 		};
+		984E014F1A1E3A13000B1797 /* harfbuzz */ = {
+			isa = PBXGroup;
+			children = (
+				984E01501A1E3A13000B1797 /* hb-blob.h */,
+				984E01511A1E3A13000B1797 /* hb-buffer.h */,
+				984E01521A1E3A13000B1797 /* hb-common.h */,
+				984E01531A1E3A13000B1797 /* hb-deprecated.h */,
+				984E01541A1E3A13000B1797 /* hb-face.h */,
+				984E01551A1E3A13000B1797 /* hb-font.h */,
+				984E01561A1E3A13000B1797 /* hb-ft.h */,
+				984E01571A1E3A13000B1797 /* hb-glib.h */,
+				984E01581A1E3A13000B1797 /* hb-gobject.h */,
+				984E01591A1E3A13000B1797 /* hb-icu.h */,
+				984E015A1A1E3A13000B1797 /* hb-ot-font.h */,
+				984E015B1A1E3A13000B1797 /* hb-ot-layout.h */,
+				984E015C1A1E3A13000B1797 /* hb-ot-shape.h */,
+				984E015D1A1E3A13000B1797 /* hb-ot-tag.h */,
+				984E015E1A1E3A13000B1797 /* hb-ot.h */,
+				984E015F1A1E3A13000B1797 /* hb-set.h */,
+				984E01601A1E3A13000B1797 /* hb-shape-plan.h */,
+				984E01611A1E3A13000B1797 /* hb-shape.h */,
+				984E01621A1E3A13000B1797 /* hb-unicode.h */,
+				984E01631A1E3A13000B1797 /* hb-version.h */,
+				984E01641A1E3A13000B1797 /* hb.h */,
+			);
+			path = harfbuzz;
+			sourceTree = "<group>";
+		};
 		98603FE519E435AC00912F0C = {
 			isa = PBXGroup;
 			children = (
+				984E014D1A1E3A07000B1797 /* libharfbuzz-sim.a */,
 				984E014B1A1E3828000B1797 /* libfreetype2-sim.a */,
 				98603FF019E435AC00912F0C /* FontstashiOS */,
 				98603FEF19E435AC00912F0C /* Products */,
@@ -1073,6 +1127,7 @@
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					freetype/,
+					harfbuzz/,
 				);
 				INFOPLIST_FILE = FontstashiOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -1092,6 +1147,7 @@
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 					freetype/,
+					harfbuzz/,
 				);
 				INFOPLIST_FILE = FontstashiOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
