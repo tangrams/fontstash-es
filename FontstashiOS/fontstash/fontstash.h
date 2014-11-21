@@ -227,6 +227,13 @@ int fons__tt_getGlyphIndex(FONSttFontImpl *font, int codepoint)
 	}
 }
 
+int fons__tt_setPixelSize(FONSttFontImpl* font, float size)
+{
+    FT_Error ftError;
+    ftError = FT_Set_Pixel_Sizes(font->font, 0, (FT_UInt)(size * (float)font->font->units_per_EM / (float)(font->font->ascender - font->font->descender)));
+    return ftError;
+}
+
 int fons__tt_buildGlyphBitmap(FONSttFontImpl *font, int glyph, float size, float scale,
 							  int *advance, int *lsb, int *x0, int *y0, int *x1, int *y1)
 {
@@ -234,7 +241,7 @@ int fons__tt_buildGlyphBitmap(FONSttFontImpl *font, int glyph, float size, float
 	FT_GlyphSlot ftGlyph;
 	FONS_NOTUSED(scale);
 
-	ftError = FT_Set_Pixel_Sizes(font->font, 0, (FT_UInt)(size * (float)font->font->units_per_EM / (float)(font->font->ascender - font->font->descender)));
+    ftError = fons__tt_setPixelSize(font, size);
 	if (ftError) return 0;
 	ftError = FT_Load_Glyph(font->font, glyph, FT_LOAD_RENDER);
 	if (ftError) return 0;
@@ -325,6 +332,13 @@ float fons__tt_getPixelHeightScale(FONSttFontImpl *font, float size)
 int fons__tt_getGlyphIndex(FONSttFontImpl *font, int codepoint)
 {
 	return stbtt_FindGlyphIndex(&font->font, codepoint);
+}
+
+int fons__tt_setPixelSize(FONSttFontImpl* font, float pxSize)
+{
+    FONS_NOTUSED(font);
+    FONS_NOTUSED(pxSize);
+    return 0;
 }
 
 int fons__tt_buildGlyphBitmap(FONSttFontImpl *font, int glyph, float size, float scale,
@@ -1453,8 +1467,6 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
 
 		*x += (int)(xadv + 0.5f);
 		*y += (int)(yadv + 0.5f);
-        
-        printf("%f\n", shaping->advance[it]);
 	}
 }
 
@@ -1562,39 +1574,42 @@ float fonsDrawText(FONScontext* stash,
 	useShaping = font->font.shaper != NULL;
 
 	y += fons__getVertAlign(stash, font, state->align, isize);
-
-	if(useShaping) {
+    
+    if(useShaping) {
 		FONSshapingRes shapingRes;
 		FONSshaping* shaping;
 		int i, j;
 
 		shaping = stash->shaping;
-
+        
 		if(shaping) {
-			shaping->shapingRes = &shapingRes;
-			fons__hb_shape(stash, str, font);
+            shaping->shapingRes = &shapingRes;
+            
+            // harfbuzz needs this to be called to be able to perform shaping
+            fons__tt_setPixelSize(&font->font, (float)isize/10.0f);
+            
+            fons__hb_shape(stash, str, font);
+                
+            for (i = 0, j = 0; i < shapingRes.glyphCount; i++, j+=2) {
+                shaping->it = j;
+                codepoint = shapingRes.codepoints[i];
 
-			for (i = 0, j = 0; i < shapingRes.glyphCount; i++, j+=2) {
-				shaping->it = j;
-				codepoint = shapingRes.codepoints[i];
+                glyph = fons__getGlyph(stash, font, codepoint, isize, iblur, state->blurType);
+                
+                if (glyph != NULL) {
+                    fons__getQuad(stash, font, prevGlyphIndex, glyph, scale, state->spacing, &x, &y, &q, useShaping);
+                        
+                    if (stash->nverts+6 > FONS_VERTEX_COUNT)
+                        fons__flush(stash, clear);
+                
+                    fons__vertices(stash, q, state);
+                }
+                prevGlyphIndex = glyph != NULL ? glyph->index : -1;
+            }
 
-				glyph = fons__getGlyph(stash, font, codepoint, isize, iblur, state->blurType);
-
-				if (glyph != NULL) {
-					fons__getQuad(stash, font, prevGlyphIndex, glyph, scale, state->spacing, &x, &y, &q, useShaping);
-
-					if (stash->nverts+6 > FONS_VERTEX_COUNT)
-						fons__flush(stash, clear);
-
-					fons__vertices(stash, q, state);
-				}
-
-				prevGlyphIndex = glyph != NULL ? glyph->index : -1;
-			}
-
-			fons__flush(stash, clear);
+            fons__flush(stash, clear);
 			fons__clearShaping(stash);
-		}
+        }
 	} else {
 		if (end == NULL)
 			end = str + strlen(str);
