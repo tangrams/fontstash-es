@@ -22,9 +22,13 @@
 
 @interface ViewController : GLKViewController {
     FONScontext* fs;
-    int fontNormal;
-    int fontItalic;
-    fsuint text1;
-    fsuint text2;
+    
+    fsuint textar1;
+    fsuint textar2;
+    fsuint textfr1;
+    
+    int amiri;
+    int dejavu;
 }
+
 @end

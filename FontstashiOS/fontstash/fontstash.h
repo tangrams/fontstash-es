@@ -1634,14 +1634,7 @@ float fonsDrawText(FONScontext* stash,
 
 				if (stash->nverts+6 > FONS_VERTEX_COUNT)
 					fons__flush(stash, clear);
-
-				fons__vertex(stash, q.x0, q.y0, q.s0, q.t0, state->color);
-				fons__vertex(stash, q.x1, q.y1, q.s1, q.t1, state->color);
-				fons__vertex(stash, q.x1, q.y0, q.s1, q.t0, state->color);
-
-				fons__vertex(stash, q.x0, q.y0, q.s0, q.t0, state->color);
-				fons__vertex(stash, q.x0, q.y1, q.s0, q.t1, state->color);
-				fons__vertex(stash, q.x1, q.y1, q.s1, q.t1, state->color);
+                fons__vertices(stash, q, state);
 			}
 			prevGlyphIndex = glyph != NULL ? glyph->index : -1;
 		}
