@@ -1457,8 +1457,8 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
 
 		q->x0 = rx + glyph->xoff;
 		q->y0 = ry + glyph->yoff;
-		q->x1 = glyph->xoff + *x + x1 - x0;
-		q->y1 = glyph->yoff + *y + y1 - y0;
+		q->x1 = q->x0 + x1 - x0;
+		q->y1 = q->y0 + y1 - y0;
 
 		q->s0 = x0 * stash->itw;
 		q->t0 = y0 * stash->ith;
