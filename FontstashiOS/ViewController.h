@@ -15,14 +15,22 @@
 #import <stdio.h>
 #import <string.h>
 
+#define FONS_USE_FREETYPE
 #define GLFONTSTASH_IMPLEMENTATION
+#define FONS_USE_HARFBUZZ
 #import "glfontstash.h"
 
 @interface ViewController : GLKViewController {
     FONScontext* fs;
-    int fontNormal;
-    int fontItalic;
-    fsuint text1;
-    fsuint text2;
+    
+    fsuint textar1;
+    fsuint textar2;
+    fsuint textfr1;
+    fsuint textjp1;
+    
+    int amiri;
+    int dejavu;
+    int droidsans;
 }
+
 @end
