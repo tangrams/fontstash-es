@@ -105,6 +105,7 @@ static float x;
 
 - (void)renderFont
 {
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_DEPTH_TEST);
@@ -116,7 +117,7 @@ static float x;
     glfonsPushMatrix(fs);
         glfonsTranslate(fs, 50.0, 150.0);
         glfonsSetOutlineColor(fs, 0, 0, 0, 255);
-        glfonsSetSDFProperties(fs, 0.2, 0.3, 0.45, 0.5, 0.8);
+        glfonsSetSDFProperties(fs, 0.2, 0.3, 0.45, 0.5, 0.7);
         glfonsDrawText(fs, textar1);
     glfonsPopMatrix(fs);
     
@@ -125,6 +126,11 @@ static float x;
         glfonsDrawText(fs, textar2);
         glfonsTranslate(fs, 0.0, 250.0 - 20 * xnorm);
         glfonsDrawText(fs, textfr1);
+    glfonsPopMatrix(fs);
+    
+    glfonsPushMatrix(fs);
+        glfonsTranslate(fs, 200.0, 1200.0);
+        glfonsDrawText(fs, textjp1);
     glfonsPopMatrix(fs);
     
     glDisable(GL_BLEND);
@@ -152,6 +158,15 @@ static float x;
     if(dejavu == FONS_INVALID) {
         NSLog(@"Could not add font droid serif");
     }
+    
+    resourcePath = (char*)[[bundle pathForResource:@"DroidSansJapanese"
+                                            ofType:@"ttf"] UTF8String];
+    
+    droidsans = fonsAddFont(fs, "droid-sans-japanese", resourcePath);
+    
+    if(droidsans == FONS_INVALID) {
+        NSLog(@"Could not add font droid sans japanese");
+    }
 }
 
 - (void)createFontContext
@@ -163,6 +178,11 @@ static float x;
     }
     
     [self loadFonts];
+    
+    fonsSetFont(fs, droidsans);
+    fonsSetSize(fs, 100.0);
+    fonsSetShaping(fs, "japanese", "TTB", "jp");
+    glfonsBufferText(fs, "ヂョ郎", &textjp1, FONS_EFFECT_NONE);
     
     fonsSetFont(fs, amiri);
     
