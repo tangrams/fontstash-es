@@ -208,6 +208,7 @@ static float x;
     glfonsUnbufferText(fs, textar1);
     glfonsUnbufferText(fs, textar2);
     glfonsUnbufferText(fs, textfr1);
+    glfonsUnbufferText(fs, textjp1);
     
     glfonsDelete(fs);
 }
