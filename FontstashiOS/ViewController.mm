@@ -130,7 +130,7 @@ static float x;
     
     glfonsPushMatrix(fs);
         glfonsTranslate(fs, 200.0, 1200.0);
-        glfonsDrawText(fs, textjp1);
+        glfonsDrawText(fs, textch1);
     glfonsPopMatrix(fs);
     
     glDisable(GL_BLEND);
@@ -159,12 +159,12 @@ static float x;
         NSLog(@"Could not add font droid serif");
     }
     
-    resourcePath = (char*)[[bundle pathForResource:@"DroidSansJapanese"
+    resourcePath = (char*)[[bundle pathForResource:@"fireflysung"
                                             ofType:@"ttf"] UTF8String];
     
-    droidsans = fonsAddFont(fs, "droid-sans-japanese", resourcePath);
+    han = fonsAddFont(fs, "fireflysung", resourcePath);
     
-    if(droidsans == FONS_INVALID) {
+    if(han == FONS_INVALID) {
         NSLog(@"Could not add font droid sans japanese");
     }
 }
@@ -179,10 +179,10 @@ static float x;
     
     [self loadFonts];
     
-    fonsSetFont(fs, droidsans);
+    fonsSetFont(fs, han);
     fonsSetSize(fs, 100.0);
-    fonsSetShaping(fs, "japanese", "TTB", "jp");
-    glfonsBufferText(fs, "ヂョ郎", &textjp1, FONS_EFFECT_NONE);
+    fonsSetShaping(fs, "han", "TTB", "ch");
+    glfonsBufferText(fs, "緳 踥踕", &textch1, FONS_EFFECT_NONE);
     
     fonsSetFont(fs, amiri);
     
@@ -208,7 +208,7 @@ static float x;
     glfonsUnbufferText(fs, textar1);
     glfonsUnbufferText(fs, textar2);
     glfonsUnbufferText(fs, textfr1);
-    glfonsUnbufferText(fs, textjp1);
+    glfonsUnbufferText(fs, textch1);
     
     glfonsDelete(fs);
 }

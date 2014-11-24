@@ -26,11 +26,11 @@
     fsuint textar1;
     fsuint textar2;
     fsuint textfr1;
-    fsuint textjp1;
+    fsuint textch1;
     
     int amiri;
     int dejavu;
-    int droidsans;
+    int han;
 }
 
 @end
