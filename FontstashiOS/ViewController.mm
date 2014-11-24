@@ -119,13 +119,18 @@ static float x;
         glfonsSetOutlineColor(fs, 0, 0, 0, 255);
         glfonsSetSDFProperties(fs, 0.2, 0.3, 0.45, 0.5, 0.7);
         glfonsDrawText(fs, textar1);
+    
     glfonsPopMatrix(fs);
     
     glfonsPushMatrix(fs);
         glfonsTranslate(fs, 50.0, 350.0);
         glfonsDrawText(fs, textar2);
-        glfonsTranslate(fs, 0.0, 250.0 - 20 * xnorm);
-        glfonsDrawText(fs, textfr1);
+    
+        glfonsTranslate(fs, 0.0, 100.0);
+        for(int i = 0; i < glfonsGetGlyphCount(fs, textfr1); i++) {
+            glfonsTranslate(fs, 20.0, 0.0);
+            glfonsDrawText(fs, textfr1, i, i);
+        }
     glfonsPopMatrix(fs);
     
     glfonsPushMatrix(fs);

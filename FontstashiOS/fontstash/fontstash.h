@@ -659,6 +659,7 @@ void fons__clearShaping(FONScontext* stash)
 {
     fons__hb_freeShapingResult(stash->shaping->shapingRes);
     stash->shaping->it = -1;
+    free(stash->shaping->shapingRes);
 }
 
 // Copyright (c) 2008-2010 Bjoern Hoehrmann <bjoern@hoehrmann.de>
@@ -1576,23 +1577,20 @@ float fonsDrawText(FONScontext* stash,
 	y += fons__getVertAlign(stash, font, state->align, isize);
     
     if(useShaping) {
-		FONSshapingRes shapingRes;
-		FONSshaping* shaping;
-		int i, j;
-
-		shaping = stash->shaping;
+        FONSshaping* shaping = stash->shaping;
+        int i, j;
+        
+        shaping->shapingRes = (FONSshapingRes*) malloc(sizeof(FONSshapingRes));
         
 		if(shaping) {
-            shaping->shapingRes = &shapingRes;
-            
             // harfbuzz needs this to be called to be able to perform shaping
             fons__tt_setPixelSize(&font->font, (float)isize/10.0f);
             
             fons__hb_shape(stash, str, font);
                 
-            for (i = 0, j = 0; i < shapingRes.glyphCount; i++, j+=2) {
+            for (i = 0, j = 0; i < shaping->shapingRes->glyphCount; i++, j+=2) {
                 shaping->it = j;
-                codepoint = shapingRes.codepoints[i];
+                codepoint = shaping->shapingRes->codepoints[i];
 
                 glyph = fons__getGlyph(stash, font, codepoint, isize, iblur, state->blurType);
                 
@@ -1608,7 +1606,10 @@ float fonsDrawText(FONScontext* stash,
             }
 
             fons__flush(stash, clear);
-			fons__clearShaping(stash);
+            
+            if(clear) {
+                fons__clearShaping(stash);
+            }
         }
 	} else {
 		if (end == NULL)

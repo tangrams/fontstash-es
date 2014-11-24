@@ -159,6 +159,8 @@ void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1,
 float glfonsGetGlyphOffset(FONScontext* ctx, fsuint id, int i);
 float glfonsGetLength(FONScontext* ctx, fsuint id);
 
+int glfonsGetGlyphCount(FONScontext* ctx, fsuint id);
+
 unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
 
 #endif
@@ -360,6 +362,14 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectTyp
         y1 = ctx->verts[i+1] > y1 ? ctx->verts[i+1] : y1;
     }
     
+#ifdef FONS_USE_HARFBUZZ
+    FONSshapingRes* res = ctx->shaping->shapingRes;
+    stash->nbGlyph = res->glyphCount;
+    fons__clearShaping(ctx);
+#else
+    stash->nbGlyph = (int)strlen(s);
+#endif
+    
     stash->bbox[0] = x0; stash->bbox[1] = y0;
     stash->bbox[2] = x1; stash->bbox[3] = y1;
     
@@ -381,6 +391,17 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectTyp
     ctx->nverts = 0;
     
     glctx->stashes->insert(std::pair<fsuint, GLStash*>(*id, stash));
+}
+
+int glfonsGetGlyphCount(FONScontext* ctx, fsuint id) {
+    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
+    
+    if(glctx->stashes->find(id) != glctx->stashes->end()) {
+        GLStash* stash = glctx->stashes->at(id);
+        return stash->nbGlyph;
+    }
+    
+    return -1;
 }
 
 void glfonsUnbufferText(FONScontext* ctx, fsuint id) {
