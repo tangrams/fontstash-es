@@ -93,3 +93,12 @@ void glfonsSetSDFProperties(FONScontext* ctx, float minOutlineD, float maxOutlin
 ```
 
 Note that using outlines on scripts having high typographic ligatures gives unexpected results for now.
+
+Adding fontstash-es to your project
+-----------------------------------
+
+The text-shaping feature creates a lot of dependencies and uses some static libraries in order to be used. 
+
+If you're not planning to use the text-shaping engine, simply add the fontstash-es/glm headers in your project (the glm dependency should be removed anytime soon). 
+
+If you want to use the text-shaping engine you would need the header files from harfbuzz, freetype2 and the static libraries for these two + [ucdn](https://github.com/grigorig/ucdn) for unicode database and normalization; this for each of the different architectures you would be targetting. This project has these static libraries only for the iPhone simulator architecture (i386, x86_64).
