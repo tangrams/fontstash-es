@@ -113,6 +113,7 @@ int fonsResetAtlas(FONScontext* stash, int width, int height, const char);
 
 // Add fonts
 int fonsAddFont(FONScontext* s, const char* name, const char* path);
+int fonsAddFont(FONScontext* stash, const char* name, unsigned char* data, int dataSize);
 int fonsAddFontMem(FONScontext* s, const char* name, unsigned char* data, int ndata, int freeData);
 int fonsGetFontByName(FONScontext* s, const char* name);
 
@@ -589,6 +590,7 @@ void fons__hb_freeShapingResult(FONSshapingRes* res)
 	free(res->advance);
 	free(res->offset);
 	free(res->codepoints);
+    free(res);
 }
 
 #else
@@ -659,7 +661,6 @@ void fons__clearShaping(FONScontext* stash)
 {
     fons__hb_freeShapingResult(stash->shaping->shapingRes);
     stash->shaping->it = -1;
-    free(stash->shaping->shapingRes);
 }
 
 // Copyright (c) 2008-2010 Bjoern Hoehrmann <bjoern@hoehrmann.de>
@@ -1072,6 +1073,11 @@ error:
 	fons__freeFont(font);
 
 	return FONS_INVALID;
+}
+
+int fonsAddFont(FONScontext* stash, const char* name, unsigned char* data, int dataSize)
+{
+    return fonsAddFontMem(stash, name, data, dataSize, 1);
 }
 
 int fonsAddFont(FONScontext* stash, const char* name, const char* path)
