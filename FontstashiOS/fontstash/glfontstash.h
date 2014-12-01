@@ -88,11 +88,11 @@ attribute vec4 a_position;
 attribute vec2 a_texCoord;
 
 uniform mat4 u_mvp;
-varying vec2 v_uv;
+varying vec2 f_uv;
 
 void main() {
     gl_Position = u_mvp * a_position;
-    v_uv = a_texCoord;
+    f_uv = a_texCoord;
 }
 )END";
 
@@ -109,10 +109,10 @@ uniform float u_maxOutlineD;
 uniform float u_minInsideD;
 uniform float u_maxInsideD;
 
-varying vec2 v_uv;
+varying vec2 f_uv;
 
 void main(void) {
-    float distance = texture2D(u_tex, v_uv).a;
+    float distance = texture2D(u_tex, f_uv).a;
     vec4 inside = smoothstep(u_minInsideD, u_maxInsideD, distance) * u_color;
     vec4 outline = smoothstep(u_minOutlineD, u_maxOutlineD, distance) * u_outlineColor;
     gl_FragColor = mix(outline, inside, u_mixFactor);
@@ -126,9 +126,10 @@ precision mediump float;
 uniform sampler2D u_tex;
 uniform vec4 u_color;
 
-varying vec2 v_uv;
+varying vec2 f_uv;
+
 void main(void) {
-    vec4 texColor = texture2D(u_tex, v_uv);
+    vec4 texColor = texture2D(u_tex, f_uv);
     vec3 invColor = 1.0 - texColor.rgb;
     gl_FragColor = vec4(invColor * u_color.rgb, u_color.a * texColor.a);
 }
@@ -244,11 +245,9 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     
     gl->posAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_position");
     gl->texCoordAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_texCoord");
-    gl->colorAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_color");
     
     gl->posAttrib = glGetAttribLocation(gl->sdfShaderProgram, "a_position");
     gl->texCoordAttrib = glGetAttribLocation(gl->sdfShaderProgram, "a_texCoord");
-    gl->colorAttrib = glGetAttribLocation(gl->sdfShaderProgram, "a_color");
     
     gl->matrixStack.push(glm::mat4(1.0));
     gl->color = glm::vec4(1.0);
@@ -448,7 +447,6 @@ void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int
     
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, glctx->tex);
-    glEnable(GL_TEXTURE_2D);
     
     GLuint program;
     switch (stash->effect) {
@@ -483,14 +481,13 @@ void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int
     glEnableVertexAttribArray(glctx->texCoordAttrib);
     
     glDrawArrays(GL_TRIANGLES, iFirst, count);
-    
-    glDisableVertexAttribArray(glctx->posAttrib);
-    glDisableVertexAttribArray(glctx->texCoordAttrib);
-    glDisableVertexAttribArray(glctx->colorAttrib);
-    
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glUseProgram(0);
-    glDisable(GL_TEXTURE_2D);
+
+    glDisableVertexAttribArray(glctx->posAttrib);
+    glDisableVertexAttribArray(glctx->texCoordAttrib);
+
 }
 
 void glfonsDrawText(FONScontext* ctx, fsuint id) {

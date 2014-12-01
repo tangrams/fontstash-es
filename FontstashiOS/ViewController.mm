@@ -138,6 +138,12 @@ static float x;
     glfonsPopMatrix(fs);
     
     glDisable(GL_BLEND);
+    
+    GLenum glError = glGetError();
+    if (glError) {
+        printf("GL Error %d!!!\n", glError);
+        exit(0);
+    }
 }
 
 - (void)loadFonts
