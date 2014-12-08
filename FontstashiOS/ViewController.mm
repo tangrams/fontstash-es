@@ -219,18 +219,18 @@ static float x;
     fonsSetBlurType(fs, FONS_EFFECT_NONE);
     fonsSetSize(fs, 100.0);
     fonsSetShaping(fs, "arabic", "RTL", "ar");
-    glfonsBufferText(fs, "الأمريكي، ما سقط, مع وعلى الحربي،", &textar2, FONS_EFFECT_NONE);
+    glfonsBufferText(fs, "تسجّل يتكلّم", &textar2, FONS_EFFECT_NONE);
     
     fonsSetFont(fs, dejavu);
     
-    fonsSetSize(fs, 200.0);
+    fonsSetSize(fs, 50.0);
     fonsSetShaping(fs, "french", "left-to-right", "fr");
     glfonsBufferText(fs, "ffffi", &textfr1, FONS_EFFECT_NONE);
 
     fonsSetFont(fs, hindi);
     fonsSetSize(fs, 100.0);
-    fonsSetShaping(fs, "hindi", "LTR", "hi");
-    glfonsBufferText(fs, "पश्चाताप से बचें", &texthi1, FONS_EFFECT_NONE);
+    fonsSetShaping(fs, "devanagari", "LTR", "hi");
+    glfonsBufferText(fs, "हालाँकि प्रचलित रूप पूजा", &texthi1, FONS_EFFECT_NONE);
 }
 
 - (void)deleteFontContext
