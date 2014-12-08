@@ -219,13 +219,13 @@ float fons__tt_getPixelHeightScale(FONSttFontImpl *font, float size)
 	return size / (font->font->ascender - font->font->descender);
 }
 
-int fons__tt_getGlyphIndex(FONSttFontImpl *font, int codepoint)
+int fons__tt_getGlyphIndex(FONSttFontImpl *font, int codepoint, int useShaping)
 {
-	if(font->shaper != NULL) {
-		return codepoint;
-	} else {
-		return FT_Get_Char_Index(font->font, codepoint);
-	}
+    if(useShaping) {
+        return codepoint;
+    } else {
+        return FT_Get_Char_Index(font->font, codepoint);
+    }
 }
 
 int fons__tt_setPixelSize(FONSttFontImpl* font, float size)
@@ -330,7 +330,7 @@ float fons__tt_getPixelHeightScale(FONSttFontImpl *font, float size)
 	return stbtt_ScaleForPixelHeight(&font->font, size);
 }
 
-int fons__tt_getGlyphIndex(FONSttFontImpl *font, int codepoint)
+int fons__tt_getGlyphIndex(FONSttFontImpl *font, int codepoint, int useShaping)
 {
 	return stbtt_FindGlyphIndex(&font->font, codepoint);
 }
@@ -609,6 +609,7 @@ void fons__hb_freeShapingResult(FONSshapingRes* res)
 
 int fons__tt_initShaper(FONSttFontImpl* font) 
 {
+    font->shaper = NULL;
 	FONS_NOTUSED(font);
 	return -1;
 }
@@ -1271,7 +1272,7 @@ static FONSglyph* fons__getGlyph(FONScontext* stash, FONSfont* font, unsigned in
 
 	// Could not find glyph, create it.
 	scale = fons__tt_getPixelHeightScale(&font->font, size);
-	g = fons__tt_getGlyphIndex(&font->font, codepoint);
+    g = fons__tt_getGlyphIndex(&font->font, codepoint, stash->shaping->useShaping && font->font.shaper != NULL);
 	fons__tt_buildGlyphBitmap(&font->font, g, size, scale, &advance, &lsb, &x0, &y0, &x1, &y1);
 	gw = x1-x0 + pad*2;
 	gh = y1-y0 + pad*2;
