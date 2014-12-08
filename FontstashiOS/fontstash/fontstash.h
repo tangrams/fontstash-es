@@ -482,6 +482,7 @@ struct FONSshaping {
 	const char* direction;
 	const char* language;
 	int it;
+    int useShaping;
 };
 
 struct FONScontext
@@ -648,6 +649,8 @@ void fons__allocShaping(FONScontext* stash)
 {
     FONSshaping* shaping = (FONSshaping *) malloc(sizeof(FONSshaping));
     stash->shaping = shaping;
+    stash->shaping->useShaping = 0;
+    stash->shaping->it = -1;
 }
 
 void fons__deleteShaping(FONScontext* stash)
@@ -661,6 +664,7 @@ void fons__clearShaping(FONScontext* stash)
 {
     fons__hb_freeShapingResult(stash->shaping->shapingRes);
     stash->shaping->it = -1;
+    stash->shaping->useShaping = 0;
 }
 
 // Copyright (c) 2008-2010 Bjoern Hoehrmann <bjoern@hoehrmann.de>
@@ -1551,6 +1555,7 @@ void fonsSetShaping(FONScontext* stash, const char* script, const char* directio
 	stash->shaping->script = script;
 	stash->shaping->direction = direction;
 	stash->shaping->language = language;
+    stash->shaping->useShaping = 1;
 }
 
 float fonsDrawText(FONScontext* stash,
@@ -1578,7 +1583,7 @@ float fonsDrawText(FONScontext* stash,
 
 	scale = fons__tt_getPixelHeightScale(&font->font, (float)isize/10.0f);
 
-	useShaping = font->font.shaper != NULL;
+	useShaping = font->font.shaper != NULL && stash->shaping->useShaping;
 
 	y += fons__getVertAlign(stash, font, state->align, isize);
     

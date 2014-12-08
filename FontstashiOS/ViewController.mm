@@ -136,7 +136,12 @@ static float x;
         glfonsTranslate(fs, 200.0, 1200.0);
         glfonsDrawText(fs, textch1);
     glfonsPopMatrix(fs);
-    
+
+    glfonsPushMatrix(fs);
+        glfonsTranslate(fs, 200.0, 500.0);
+        glfonsDrawText(fs, texthi1);
+    glfonsPopMatrix(fs);
+
     glDisable(GL_BLEND);
     
     GLenum glError = glGetError();
@@ -177,6 +182,15 @@ static float x;
     if(han == FONS_INVALID) {
         NSLog(@"Could not add font droid sans japanese");
     }
+
+    resourcePath = (char*)[[bundle pathForResource:@"Sanskrit2003"
+                                            ofType:@"ttf"] UTF8String];
+
+    hindi = fonsAddFont(fs, "Sanskrit2003", resourcePath);
+
+    if(hindi == FONS_INVALID) {
+        NSLog(@"Could not add font Sanskrit2003");
+    }
 }
 
 - (void)createFontContext
@@ -204,6 +218,7 @@ static float x;
     
     fonsSetBlurType(fs, FONS_EFFECT_NONE);
     fonsSetSize(fs, 100.0);
+    fonsSetShaping(fs, "arabic", "RTL", "ar");
     glfonsBufferText(fs, "الأمريكي، ما سقط, مع وعلى الحربي،", &textar2, FONS_EFFECT_NONE);
     
     fonsSetFont(fs, dejavu);
@@ -211,6 +226,11 @@ static float x;
     fonsSetSize(fs, 200.0);
     fonsSetShaping(fs, "french", "left-to-right", "fr");
     glfonsBufferText(fs, "ffffi", &textfr1, FONS_EFFECT_NONE);
+
+    fonsSetFont(fs, hindi);
+    fonsSetSize(fs, 100.0);
+    fonsSetShaping(fs, "hindi", "LTR", "hi");
+    glfonsBufferText(fs, "पश्चाताप से बचें", &texthi1, FONS_EFFECT_NONE);
 }
 
 - (void)deleteFontContext
@@ -219,6 +239,7 @@ static float x;
     glfonsUnbufferText(fs, textar2);
     glfonsUnbufferText(fs, textfr1);
     glfonsUnbufferText(fs, textch1);
+    glfonsUnbufferText(fs, texthi1);
     
     glfonsDelete(fs);
 }

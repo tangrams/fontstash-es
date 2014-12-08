@@ -22,6 +22,7 @@
 		98D79D6919E45E8F000C6D80 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D79D6819E45E8F000C6D80 /* CoreGraphics.framework */; };
 		98D79D6B19E45EA6000C6D80 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D79D6A19E45EA6000C6D80 /* UIKit.framework */; };
 		98D79D6D19E45EAD000C6D80 /* GLKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D79D6C19E45EAD000C6D80 /* GLKit.framework */; };
+		98ECEAAF1A36054500449813 /* Sanskrit2003.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 98ECEAAE1A36054500449813 /* Sanskrit2003.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -405,6 +406,7 @@
 		98D79D6819E45E8F000C6D80 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		98D79D6A19E45EA6000C6D80 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		98D79D6C19E45EAD000C6D80 /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
+		98ECEAAE1A36054500449813 /* Sanskrit2003.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Sanskrit2003.ttf; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -643,6 +645,7 @@
 		9860418B19E436DD00912F0C /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				98ECEAAE1A36054500449813 /* Sanskrit2003.ttf */,
 				984E035A1A1FB374000B1797 /* DejaVuSerif.ttf */,
 				984E03581A1E7F63000B1797 /* amiri-regular.ttf */,
 				98852A8B1A23954800690529 /* fireflysung.ttf */,
@@ -1015,6 +1018,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				98ECEAAF1A36054500449813 /* Sanskrit2003.ttf in Resources */,
 				9860401C19E4360E00912F0C /* Main_iPhone.storyboard in Resources */,
 				9860400219E435AC00912F0C /* Images.xcassets in Resources */,
 				984E035B1A1FB374000B1797 /* DejaVuSerif.ttf in Resources */,

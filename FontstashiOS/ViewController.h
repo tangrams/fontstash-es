@@ -27,10 +27,12 @@
     fsuint textar2;
     fsuint textfr1;
     fsuint textch1;
+    fsuint texthi1;
     
     int amiri;
     int dejavu;
     int han;
+    int hindi;
 }
 
 @end

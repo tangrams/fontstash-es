@@ -361,13 +361,13 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectTyp
         y1 = ctx->verts[i+1] > y1 ? ctx->verts[i+1] : y1;
     }
     
-#ifdef FONS_USE_HARFBUZZ
-    FONSshapingRes* res = ctx->shaping->shapingRes;
-    stash->nbGlyph = res->glyphCount;
-    fons__clearShaping(ctx);
-#else
-    stash->nbGlyph = (int)strlen(s);
-#endif
+    if(ctx->shaping != NULL && ctx->shaping->useShaping) {
+        FONSshapingRes* res = ctx->shaping->shapingRes;
+        stash->nbGlyph = res->glyphCount;
+        fons__clearShaping(ctx);
+    } else {
+        stash->nbGlyph = (int)strlen(s);
+    }
     
     stash->bbox[0] = x0; stash->bbox[1] = y0;
     stash->bbox[2] = x1; stash->bbox[3] = y1;
