@@ -1457,8 +1457,8 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
 
         xadv = (float)shaping->advance[it] * unitFontScale;
         yadv = (float)shaping->advance[it+1] * unitFontScale;
-        xoff = (float)shaping->offset[it] * unitFontScale + 1;
-        yoff = (float)shaping->offset[it+1] * unitFontScale + 1;
+        xoff = (float)shaping->offset[it] / 10.0f * unitFontScale + 1;
+        yoff = (float)shaping->offset[it+1] / 10.0f * unitFontScale + 1;
         x0 = (float)(glyph->x0 + 1);
         y0 = (float)(glyph->y0 + 1);
         x1 = (float)(glyph->x1 - 1);
