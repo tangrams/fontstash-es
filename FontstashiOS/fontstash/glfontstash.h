@@ -30,12 +30,12 @@
 
 typedef unsigned int fsuint;
 
-#define BUFFER_SIZE     2
 #define N_GLYPH_VERTS   6
 
 struct GLFONSvbo {
     int nverts;
-    GLuint buffers[BUFFER_SIZE];
+    unsigned int size;
+    GLuint buffer;
 };
 
 typedef struct GLFONSvbo GLFONSvbo;
@@ -288,7 +288,7 @@ static void glfons__renderDelete(void* userPtr) {
     for(auto& elmt : *gl->stashes) {
         GLStash* stash = elmt.second;
         if(stash != NULL) {
-            glDeleteBuffers(BUFFER_SIZE, stash->vbo->buffers);
+            glDeleteBuffers(1, &stash->vbo->buffer);
             delete stash->vbo;
             delete[] stash->glyphsXOffset;
             delete stash;
@@ -337,12 +337,14 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
 void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectType effect) {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
     GLStash* stash = new GLStash;
-    
+
     stash->vbo = new GLFONSvbo;
 
     *id = ++glctx->idct;
     
     fonsDrawText(ctx, 0, 0, s, NULL, 0);
+
+    GLfloat* interleavedArray = new GLfloat[ctx->nverts * 4];
     
     stash->effect = effect;
     stash->glyphsXOffset = new float[ctx->nverts / N_GLYPH_VERTS];
@@ -355,10 +357,22 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectTyp
     float inf = std::numeric_limits<float>::infinity();
     float x0 = inf, x1 = -inf, y0 = inf, y1 = -inf;
     for(int i = 0; i < ctx->nverts * 2; i += 2) {
-        x0 = ctx->verts[i] < x0 ? ctx->verts[i] : x0;
-        x1 = ctx->verts[i] > x1 ? ctx->verts[i] : x1;
-        y0 = ctx->verts[i+1] < y0 ? ctx->verts[i+1] : y0;
-        y1 = ctx->verts[i+1] > y1 ? ctx->verts[i+1] : y1;
+        GLfloat x, y, u, v;
+
+        x = ctx->verts[i];
+        y = ctx->verts[i+1];
+        u = ctx->tcoords[i];
+        v = ctx->tcoords[i+1];
+
+        x0 = x < x0 ? x : x0;
+        x1 = x > x1 ? x : x1;
+        y0 = y < y0 ? y : y0;
+        y1 = y > y1 ? y : y1;
+
+        interleavedArray[i*2] = x;
+        interleavedArray[i*2+1] = y;
+        interleavedArray[i*2+2] = u;
+        interleavedArray[i*2+3] = v;
     }
     
     if(ctx->shaping != NULL && ctx->shaping->useShaping) {
@@ -374,15 +388,14 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectTyp
     
     stash->length = ctx->verts[(ctx->nverts*2)-2];
     
-    glGenBuffers(BUFFER_SIZE, stash->vbo->buffers);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, stash->vbo->buffers[0]);
-    glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(float) * ctx->nverts, ctx->verts, GL_STATIC_DRAW);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, stash->vbo->buffers[1]);
-    glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(float) * ctx->nverts, ctx->tcoords, GL_STATIC_DRAW);
-    
+    glGenBuffers(1, &stash->vbo->buffer);
+
+    glBindBuffer(GL_ARRAY_BUFFER, stash->vbo->buffer);
+    glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(float) * ctx->nverts, interleavedArray, GL_STATIC_DRAW);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    delete[] interleavedArray;
     
     stash->vbo->nverts = ctx->nverts;
     
@@ -409,8 +422,7 @@ void glfonsUnbufferText(FONScontext* ctx, fsuint id) {
     if(glctx->stashes->find(id) != glctx->stashes->end()) {
         GLStash* stash = glctx->stashes->at(id);
         
-        glDeleteBuffers(BUFFER_SIZE, stash->vbo->buffers);
-        // WIP : maybe release cpu mem
+        glDeleteBuffers(1, &stash->vbo->buffer);
     }
 }
 
@@ -471,13 +483,13 @@ void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int
         glUniform1f(glGetUniformLocation(program, "u_minInsideD"), glctx->sdfProperties[2]);
         glUniform1f(glGetUniformLocation(program, "u_maxInsideD"), glctx->sdfProperties[3]);
     }
-    
-    glBindBuffer(GL_ARRAY_BUFFER, stash->vbo->buffers[0]);
-    glVertexAttribPointer(glctx->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, stash->vbo->buffer);
+
+    glVertexAttribPointer(glctx->posAttrib, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
     glEnableVertexAttribArray(glctx->posAttrib);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, stash->vbo->buffers[1]);
-    glVertexAttribPointer(glctx->texCoordAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glVertexAttribPointer(glctx->texCoordAttrib, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (const GLvoid*)(2 * sizeof(float)));
     glEnableVertexAttribArray(glctx->texCoordAttrib);
     
     glDrawArrays(GL_TRIANGLES, iFirst, count);
