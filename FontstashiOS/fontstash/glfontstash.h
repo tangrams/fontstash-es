@@ -130,8 +130,7 @@ varying vec2 f_uv;
 
 void main(void) {
     vec4 texColor = texture2D(u_tex, f_uv);
-    vec3 invColor = 1.0 - texColor.rgb;
-    gl_FragColor = vec4(invColor * u_color.rgb, u_color.a * texColor.a);
+    gl_FragColor = vec4(u_color.rgb, u_color.a * texColor.a);
 }
 )END";
 
