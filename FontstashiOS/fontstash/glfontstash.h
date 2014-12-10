@@ -87,11 +87,45 @@ precision mediump float;
 attribute vec4 a_position;
 attribute vec2 a_texCoord;
 
-uniform mat4 u_mvp;
+uniform sampler2D u_transforms;
+uniform int u_twidth;
+uniform int u_theight;
+uniform int u_fsid;
+
+uniform mat4 u_proj;
 varying vec2 f_uv;
 
+vec2 ij2uv(int i, int j, int w, int h) {
+    return vec2(
+        (2.0*float(i)+1.0) / (2.0*float(w)),
+        (2.0*float(j)+1.0) / (2.0*float(h))
+    );
+}
+
+ivec2 id2ij(int fsid) {
+    // find a way to encode ids and get (i,j) position inside texture
+    return ivec2(10, 10);
+}
+
 void main() {
-    gl_Position = u_mvp * a_position;
+    ivec2 ij = id2ij(u_fsid);
+    vec2 uv = ij2uv(ij.x, ij.y, u_twidth, u_theight);
+
+    vec4 tdata = texture2D(u_transforms, uv);
+
+    tdata = tdata * 255.0;
+
+    // translation matrix
+    mat4 t = mat4(
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        tdata.x, tdata.y, tdata.z, 1.0
+    );
+
+    mat4 r = mat4(1.0);
+
+    gl_Position = u_proj * t * a_position;
     f_uv = a_texCoord;
 }
 )END";
@@ -214,6 +248,8 @@ static GLuint linkShaderProgram(const GLchar* vertexSrc, const GLchar* fragmentS
     return program;
 }
 
+GLuint textureId;
+
 static int glfons__renderCreate(void* userPtr, int width, int height) {
     GLFONScontext* gl = (GLFONScontext*)userPtr;
     // Create may be called multiple times, delete existing texture.
@@ -223,7 +259,27 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     }
     gl->idct = 0;
     gl->stashes = new std::map<fsuint, GLStash*>();
-    
+
+    // test case
+    unsigned int texData[32*32];
+    for(int i = 0; i < 32; i++) {
+        for(int j = 0; j < 32; j++) {
+            // put some translation data inside the texture at (10, 10)
+            if(i == 10 && j == 10) {
+                float tx = 250;
+                float ty = 250;
+                texData[i*32+j] = glfonsRGBA(tx, ty, 0, 0);
+            } else {
+                texData[i*32+j] = glfonsRGBA(150, 0, 0, 0);
+            }
+        }
+    }
+
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, texData);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
     // create texture
     glGenTextures(1, &gl->tex);
     if (!gl->tex) return 0;
@@ -452,13 +508,15 @@ void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int
     int count = d * N_GLYPH_VERTS;
     
     GLStash* stash = glctx->stashes->at(id);
-    
-    glm::mat4 mvp = glctx->projectionMatrix * glctx->transform;
+
     glm::vec4 color = glctx->color / 255.0f;
     
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, glctx->tex);
-    
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+
     GLuint program;
     switch (stash->effect) {
         case FONS_EFFECT_DISTANCE_FIELD:
@@ -469,8 +527,14 @@ void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int
     }
     
     glUseProgram(program);
+
+    glUniform1i(glGetUniformLocation(program, "u_transforms"), 1);
+    glUniform1i(glGetUniformLocation(program, "u_twidth"), 32);
+    glUniform1i(glGetUniformLocation(program, "u_theight"), 32);
+    glUniform1i(glGetUniformLocation(program, "u_fsid"), id);
+
     glUniform1i(glGetUniformLocation(program, "u_tex"), 0);
-    glUniformMatrix4fv(glGetUniformLocation(program, "u_mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
+    glUniformMatrix4fv(glGetUniformLocation(program, "u_proj"), 1, GL_FALSE, glm::value_ptr(glctx->projectionMatrix));
     glUniform4f(glGetUniformLocation(program, "u_color"), color.r, color.g, color.b, color.a);
     
     if(stash->effect == FONS_EFFECT_DISTANCE_FIELD) {
