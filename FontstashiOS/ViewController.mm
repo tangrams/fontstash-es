@@ -207,7 +207,9 @@ static float x;
     fonsSetSize(fs, 100.0);
     fonsSetShaping(fs, "han", "TTB", "ch");
     glfonsBufferText(fs, "緳 踥踕", &textch1, FONS_EFFECT_NONE);
-    
+
+    fonsClearState(fs);
+
     fonsSetFont(fs, amiri);
     
     fonsSetSize(fs, 200.0);
@@ -215,17 +217,22 @@ static float x;
     fonsSetBlur(fs, 8.0);
     fonsSetBlurType(fs, FONS_EFFECT_DISTANCE_FIELD);
     glfonsBufferText(fs, "سنالى ما شاسعة وق", &textar1, FONS_EFFECT_DISTANCE_FIELD);
-    
-    fonsSetBlurType(fs, FONS_EFFECT_NONE);
+
+    fonsClearState(fs);
+
     fonsSetSize(fs, 100.0);
     fonsSetShaping(fs, "arabic", "RTL", "ar");
     glfonsBufferText(fs, "تسجّل يتكلّم", &textar2, FONS_EFFECT_NONE);
-    
+
+    fonsClearState(fs);
+
     fonsSetFont(fs, dejavu);
     
     fonsSetSize(fs, 50.0);
     fonsSetShaping(fs, "french", "left-to-right", "fr");
     glfonsBufferText(fs, "ffffi", &textfr1, FONS_EFFECT_NONE);
+
+    fonsClearState(fs);
 
     fonsSetFont(fs, hindi);
     fonsSetSize(fs, 100.0);

@@ -450,6 +450,7 @@ struct FONSstate
     unsigned int color;
     float blur;
     float spacing;
+    int useShaping;
 };
 typedef struct FONSstate FONSstate;
 
@@ -482,7 +483,6 @@ struct FONSshaping {
     const char* direction;
     const char* language;
     int it;
-    int useShaping;
 };
 
 struct FONScontext
@@ -588,10 +588,12 @@ void fons__hb_shape(FONScontext* stash, const char* text, FONSfont* font)
 
 void fons__hb_freeShapingResult(FONSshapingRes* res)
 {
-    free(res->advance);
-    free(res->offset);
-    free(res->codepoints);
-    free(res);
+    if(res) {
+        free(res->advance);
+        free(res->offset);
+        free(res->codepoints);
+        free(res);
+    }
 }
 
 #else
@@ -644,28 +646,6 @@ static void fons__tmpfree(void* ptr, void* up)
     (void)ptr;
     (void)up;
     // empty
-}
-
-void fons__allocShaping(FONScontext* stash)
-{
-    FONSshaping* shaping = (FONSshaping *) malloc(sizeof(FONSshaping));
-    stash->shaping = shaping;
-    stash->shaping->useShaping = 0;
-    stash->shaping->it = -1;
-}
-
-void fons__deleteShaping(FONScontext* stash)
-{
-    if(stash->shaping) {
-        free(stash->shaping);
-    }
-}
-
-void fons__clearShaping(FONScontext* stash)
-{
-    fons__hb_freeShapingResult(stash->shaping->shapingRes);
-    stash->shaping->it = -1;
-    stash->shaping->useShaping = 0;
 }
 
 // Copyright (c) 2008-2010 Bjoern Hoehrmann <bjoern@hoehrmann.de>
@@ -910,6 +890,20 @@ static void fons__addWhiteRect(FONScontext* stash, int w, int h)
     stash->dirtyRect[3] = fons__maxi(stash->dirtyRect[3], gy+h);
 }
 
+void fons__allocShaping(FONScontext* stash)
+{
+    FONSshaping* shaping = (FONSshaping *) malloc(sizeof(FONSshaping));
+    stash->shaping = shaping;
+    stash->shaping->it = -1;
+}
+
+void fons__deleteShaping(FONScontext* stash)
+{
+    if(stash->shaping) {
+        free(stash->shaping);
+    }
+}
+
 FONScontext* fonsCreateInternal(FONSparams* params)
 {
     FONScontext* stash = NULL;
@@ -1010,6 +1004,13 @@ void fonsSetFont(FONScontext* stash, int font)
     fons__getState(stash)->font = font;
 }
 
+void fons__clearShaping(FONScontext* stash)
+{
+    fons__hb_freeShapingResult(stash->shaping->shapingRes);
+    stash->shaping->it = -1;
+    fons__getState(stash)->useShaping = 0;
+}
+
 void fonsPushState(FONScontext* stash)
 {
     if (stash->nstates >= FONS_MAX_STATES) {
@@ -1039,9 +1040,10 @@ void fonsClearState(FONScontext* stash)
     state->color = 0xffffffff;
     state->font = 0;
     state->blur = 0;
-    state->blurType = FONS_EFFECT_BLUR;
+    state->blurType = FONS_EFFECT_NONE;
     state->spacing = 0;
     state->align = FONS_ALIGN_LEFT | FONS_ALIGN_BASELINE;
+    state->useShaping = 0;
 }
 
 static void fons__freeFont(FONSfont* font)
@@ -1272,7 +1274,7 @@ static FONSglyph* fons__getGlyph(FONScontext* stash, FONSfont* font, unsigned in
 
     // Could not find glyph, create it.
     scale = fons__tt_getPixelHeightScale(&font->font, size);
-    g = fons__tt_getGlyphIndex(&font->font, codepoint, stash->shaping->useShaping && font->font.shaper != NULL);
+    g = fons__tt_getGlyphIndex(&font->font, codepoint, fons__getState(stash)->useShaping && font->font.shaper != NULL);
     fons__tt_buildGlyphBitmap(&font->font, g, size, scale, &advance, &lsb, &x0, &y0, &x1, &y1);
     gw = x1-x0 + pad*2;
     gh = y1-y0 + pad*2;
@@ -1556,7 +1558,7 @@ void fonsSetShaping(FONScontext* stash, const char* script, const char* directio
     stash->shaping->script = script;
     stash->shaping->direction = direction;
     stash->shaping->language = language;
-    stash->shaping->useShaping = 1;
+    fons__getState(stash)->useShaping = 1;
 }
 
 float fonsDrawText(FONScontext* stash,
@@ -1584,7 +1586,7 @@ float fonsDrawText(FONScontext* stash,
 
     scale = fons__tt_getPixelHeightScale(&font->font, (float)isize/10.0f);
 
-    useShaping = font->font.shaper != NULL && stash->shaping->useShaping;
+    useShaping = font->font.shaper != NULL && fons__getState(stash)->useShaping;
 
     y += fons__getVertAlign(stash, font, state->align, isize);
 

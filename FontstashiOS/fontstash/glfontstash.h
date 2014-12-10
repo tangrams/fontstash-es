@@ -375,7 +375,7 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectTyp
         interleavedArray[i*2+3] = v;
     }
     
-    if(ctx->shaping != NULL && ctx->shaping->useShaping) {
+    if(ctx->shaping != NULL && fons__getState(ctx)->useShaping) {
         FONSshapingRes* res = ctx->shaping->shapingRes;
         stash->nbGlyph = res->glyphCount;
         fons__clearShaping(ctx);
