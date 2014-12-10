@@ -95,6 +95,10 @@ uniform int u_fsid;
 uniform mat4 u_proj;
 varying vec2 f_uv;
 
+/*
+ * Converts i and j pixel coordinates to the corresponding u and v in
+ * texture space. The u and v targets the center of pixel
+ */
 vec2 ij2uv(int i, int j, int w, int h) {
     return vec2(
         (2.0*float(i)+1.0) / (2.0*float(w)),
@@ -102,6 +106,10 @@ vec2 ij2uv(int i, int j, int w, int h) {
     );
 }
 
+/*
+ * Decodes the id and find its place for its transform inside the texture
+ * Returnes the i and j corresponding to the pixel position inside pixel
+ */
 ivec2 id2ij(int fsid) {
     // find a way to encode ids and get (i,j) position inside texture
     return ivec2(10, 10);
