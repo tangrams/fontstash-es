@@ -95,9 +95,14 @@ uniform int u_fsid;
 uniform mat4 u_proj;
 varying vec2 f_uv;
 
+#define alpha   tdata.a
+#define tx      tdata.x
+#define ty      tdata.y
+#define theta   tdata.z
+
 /*
- * Converts i and j pixel coordinates to the corresponding u and v in
- * texture space. The u and v targets the center of pixel
+ * Converts (i, j) pixel coordinates to the corresponding (u, v) in
+ * texture space. The (u,v) targets the center of pixel
  */
 vec2 ij2uv(int i, int j, int w, int h) {
     return vec2(
@@ -108,7 +113,7 @@ vec2 ij2uv(int i, int j, int w, int h) {
 
 /*
  * Decodes the id and find its place for its transform inside the texture
- * Returnes the i and j corresponding to the pixel position inside pixel
+ * Returns the (i,j) position inside texture
  */
 ivec2 id2ij(int fsid) {
     // find a way to encode ids and get (i,j) position inside texture
@@ -121,19 +126,27 @@ void main() {
 
     vec4 tdata = texture2D(u_transforms, uv);
 
-    tdata = tdata * 255.0;
+    //theta /= 255.0;
+    // those should be scaled considering screen size
+    tx *= 255.0;
+    ty *= 255.0;
 
     // translation matrix
     mat4 t = mat4(
         1.0, 0.0, 0.0, 0.0,
         0.0, 1.0, 0.0, 0.0,
         0.0, 0.0, 1.0, 0.0,
-        tdata.x, tdata.y, tdata.z, 1.0
+         tx,  ty, 0.0, 1.0
     );
 
-    mat4 r = mat4(1.0);
+    mat4 r = mat4(
+        cos(theta), -sin(theta), 0.0, 0.0,
+        sin(theta),  cos(theta), 0.0, 0.0,
+               0.0,         0.0, 1.0, 0.0,
+               0.0,         0.0, 0.0, 1.0
+    );
 
-    gl_Position = u_proj * t * a_position;
+    gl_Position = u_proj * t * r * a_position;
     f_uv = a_texCoord;
 }
 )END";
@@ -276,7 +289,10 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
             if(i == 10 && j == 10) {
                 float tx = 250;
                 float ty = 250;
-                texData[i*32+j] = glfonsRGBA(tx, ty, 0, 0);
+                float r = M_PI / 4.0;
+                // scale it to be between 0..255
+                r = (r / (2.0 * M_PI)) * 255.0;
+                texData[i*32+j] = glfonsRGBA(tx, ty, r, 0);
             } else {
                 texData[i*32+j] = glfonsRGBA(150, 0, 0, 0);
             }
