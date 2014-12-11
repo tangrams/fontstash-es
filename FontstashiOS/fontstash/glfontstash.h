@@ -76,6 +76,11 @@ struct GLFONScontext {
     float sdfMixFactor;
     
     glm::mat4 transform;
+
+    GLuint texTransform;
+    glm::ivec2 transformRes;
+    unsigned int* transformData;
+    unsigned char* transformDirty;
 };
 
 typedef struct GLFONScontext GLFONScontext;
@@ -104,10 +109,10 @@ varying vec2 f_uv;
  * Converts (i, j) pixel coordinates to the corresponding (u, v) in
  * texture space. The (u,v) targets the center of pixel
  */
-vec2 ij2uv(int i, int j, int w, int h) {
+vec2 ij2uv(float i, float j, int w, int h) {
     return vec2(
-        (2.0*float(i)+1.0) / (2.0*float(w)),
-        (2.0*float(j)+1.0) / (2.0*float(h))
+        (2.0*i+1.0) / (2.0*float(w)),
+        (2.0*j+1.0) / (2.0*float(h))
     );
 }
 
@@ -115,23 +120,22 @@ vec2 ij2uv(int i, int j, int w, int h) {
  * Decodes the id and find its place for its transform inside the texture
  * Returns the (i,j) position inside texture
  */
-ivec2 id2ij(int fsid) {
-    // find a way to encode ids and get (i,j) position inside texture
-    return ivec2(10, 10);
+vec2 id2ij(int fsid, int w, int h) {
+    float i = mod(float(fsid), float(w));
+    float j = floor(float(fsid) / float(h));
+    return vec2(i, j);
 }
 
 void main() {
-    ivec2 ij = id2ij(u_fsid);
+    vec2 ij = id2ij(u_fsid, u_twidth, u_theight);
     vec2 uv = ij2uv(ij.x, ij.y, u_twidth, u_theight);
 
     vec4 tdata = texture2D(u_transforms, uv);
 
-    //theta /= 255.0;
     // those should be scaled considering screen size
     tx *= 255.0;
     ty *= 255.0;
 
-    // translation matrix
     mat4 t = mat4(
         1.0, 0.0, 0.0, 0.0,
         0.0, 1.0, 0.0, 0.0,
@@ -269,7 +273,56 @@ static GLuint linkShaderProgram(const GLchar* vertexSrc, const GLchar* fragmentS
     return program;
 }
 
-GLuint textureId;
+void glfons__id2ij(GLFONScontext* gl, fsuint id, int* i, int* j) {
+    glm::ivec2 res = gl->transformRes;
+    *i = id % res.x;
+    *j = id / res.y;
+}
+
+void glfons__updateTransform(GLFONScontext* gl, fsuint id, float tx, float ty, float r, float a) {
+    int i, j;
+
+    glfons__id2ij(gl, id, &i, &j);
+
+    gl->transformData[j*gl->transformRes.x+i] = glfonsRGBA(tx, ty, r, a);
+    gl->transformDirty[j] = 1;
+}
+
+void glfons__uploadTransforms(GLFONScontext* gl) {
+    if (gl->texTransform == 0) return;
+
+    int min = 0;
+    int max = 0;
+    bool dirty = false;
+
+    for(int i = 0; i < gl->transformRes.y; ++i) {
+        if(gl->transformDirty[i]) {
+            dirty = true;
+            if(!min) {
+                min = max = i;
+            } else {
+                max = i;
+            }
+        }
+    }
+
+    if(!dirty) {
+        return;
+    }
+
+    glBindTexture(GL_TEXTURE_2D, gl->texTransform);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, gl->transformRes.x, gl->transformRes.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, gl->transformData);
+
+    // update smaller part
+    //const unsigned int* subdata = gl->transformData + min * gl->transformRes.x;
+    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, min, gl->transformRes.x, max - min, GL_ALPHA, GL_UNSIGNED_BYTE, subdata);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    for(int i = 0; i < gl->transformRes.y; ++i) {
+        gl->transformDirty[i] = 0;
+    }
+}
 
 static int glfons__renderCreate(void* userPtr, int width, int height) {
     GLFONScontext* gl = (GLFONScontext*)userPtr;
@@ -281,27 +334,13 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     gl->idct = 0;
     gl->stashes = new std::map<fsuint, GLStash*>();
 
-    // test case
-    unsigned int texData[32*32];
-    for(int i = 0; i < 32; i++) {
-        for(int j = 0; j < 32; j++) {
-            // put some translation data inside the texture at (10, 10)
-            if(i == 10 && j == 10) {
-                float tx = 250;
-                float ty = 250;
-                float r = M_PI / 4.0;
-                // scale it to be between 0..255
-                r = (r / (2.0 * M_PI)) * 255.0;
-                texData[i*32+j] = glfonsRGBA(tx, ty, r, 0);
-            } else {
-                texData[i*32+j] = glfonsRGBA(150, 0, 0, 0);
-            }
-        }
-    }
+    gl->transformRes = glm::vec2(32, 32);
+    gl->transformData = new unsigned int[gl->transformRes.x * gl->transformRes.y] ();
+    gl->transformDirty = new unsigned char[gl->transformRes.y] ();
 
-    glGenTextures(1, &textureId);
-    glBindTexture(GL_TEXTURE_2D, textureId);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, texData);
+    glGenTextures(1, &gl->texTransform);
+    glBindTexture(GL_TEXTURE_2D, gl->texTransform);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, gl->transformRes.x, gl->transformRes.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, gl->transformData);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
     // create texture
@@ -363,6 +402,10 @@ static void glfons__renderDelete(void* userPtr) {
     if (gl->tex != 0) {
         glDeleteTextures(1, &gl->tex);
     }
+
+    if(gl->texTransform != 0) {
+        glDeleteTextures(1, &gl->texTransform);
+    }
     
     for(auto& elmt : *gl->stashes) {
         GLStash* stash = elmt.second;
@@ -376,6 +419,9 @@ static void glfons__renderDelete(void* userPtr) {
     
     glDeleteProgram(gl->defaultShaderProgram);
     glDeleteProgram(gl->sdfShaderProgram);
+
+    delete[] gl->transformDirty;
+    delete[] gl->transformData;
     
     delete gl->stashes;
     delete gl;
@@ -419,7 +465,7 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectTyp
 
     stash->vbo = new GLFONSvbo;
 
-    *id = ++glctx->idct;
+    *id = glctx->idct++;
     
     fonsDrawText(ctx, 0, 0, s, NULL, 0);
 
@@ -482,6 +528,12 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectTyp
     ctx->nverts = 0;
     
     glctx->stashes->insert(std::pair<fsuint, GLStash*>(*id, stash));
+
+    // test, transform only id 0
+    if(*id == 0) {
+        glfons__updateTransform(glctx, *id, 250, 250, 0.0, 0.0);
+        glfons__uploadTransforms(glctx);
+    }
 }
 
 int glfonsGetGlyphCount(FONScontext* ctx, fsuint id) {
@@ -539,7 +591,7 @@ void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int
     glBindTexture(GL_TEXTURE_2D, glctx->tex);
 
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, textureId);
+    glBindTexture(GL_TEXTURE_2D, glctx->texTransform);
 
     GLuint program;
     switch (stash->effect) {
@@ -553,8 +605,8 @@ void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int
     glUseProgram(program);
 
     glUniform1i(glGetUniformLocation(program, "u_transforms"), 1);
-    glUniform1i(glGetUniformLocation(program, "u_twidth"), 32);
-    glUniform1i(glGetUniformLocation(program, "u_theight"), 32);
+    glUniform1i(glGetUniformLocation(program, "u_twidth"), glctx->transformRes.x);
+    glUniform1i(glGetUniformLocation(program, "u_theight"), glctx->transformRes.y);
     glUniform1i(glGetUniformLocation(program, "u_fsid"), id);
 
     glUniform1i(glGetUniformLocation(program, "u_tex"), 0);
