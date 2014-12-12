@@ -74,8 +74,10 @@
     
     glViewport(0, 0, width, height);
     glClearColor(0.25f, 0.25f, 0.28f, 1.0f);
-    
+
     [self createFontContext];
+
+    glfonsUpdateViewport(fs, 2 /* retina */);
 }
 
 - (void)tearDownGL
@@ -109,38 +111,17 @@ static float x;
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_DEPTH_TEST);
     
-    float xnorm = (sin(x) + 1.0) * 0.5;
-    
     glfonsSetColor(fs, 255, 255, 255, 255);
-    
-    glfonsPushMatrix(fs);
-        glfonsTranslate(fs, 50.0, 150.0);
-        glfonsSetOutlineColor(fs, 0, 0, 0, 255);
-        glfonsSetSDFProperties(fs, 0.2, 0.3, 0.45, 0.5, 0.7);
-        glfonsDrawText(fs, textar1);
-    
-    glfonsPopMatrix(fs);
-    
-    glfonsPushMatrix(fs);
-        glfonsTranslate(fs, 50.0, 350.0);
-        glfonsDrawText(fs, textar2);
-    
-        glfonsTranslate(fs, 0.0, 100.0);
-        for(int i = 0; i < glfonsGetGlyphCount(fs, textfr1); i++) {
-            glfonsTranslate(fs, 20.0, 0.0);
-            glfonsDrawText(fs, textfr1, i, i);
-        }
-    glfonsPopMatrix(fs);
-    
-    glfonsPushMatrix(fs);
-        glfonsTranslate(fs, 200.0, 1200.0);
-        glfonsDrawText(fs, textch1);
-    glfonsPopMatrix(fs);
 
-    glfonsPushMatrix(fs);
-        glfonsTranslate(fs, 200.0, 500.0);
-        glfonsDrawText(fs, texthi1);
-    glfonsPopMatrix(fs);
+    float xnorm = (sin(x) + 1.0) * 0.5;
+
+    int i = 0;
+    for(auto id: texts) {
+        i++;
+        glfonsTransform(fs, id, 600.0 - i * 40.0, 800.0 + xnorm * 40.0 - i * 20.0, xnorm * 2.0 * M_PI + i);
+    }
+
+    glfonsDraw(fs);
 
     glDisable(GL_BLEND);
     
@@ -156,41 +137,10 @@ static float x;
     NSBundle* bundle = [NSBundle mainBundle];
     char* resourcePath;
     
-    resourcePath = (char*)[[bundle pathForResource:@"amiri-regular"
-                                            ofType:@"ttf"] UTF8String];
-    
-    amiri = fonsAddFont(fs, "amiri", resourcePath);
-    
-    if (amiri == FONS_INVALID) {
-        NSLog(@"Could not add font normal");
-    }
-    
     resourcePath = (char*)[[bundle pathForResource:@"DejaVuSerif"
                                             ofType:@"ttf"] UTF8String];
     
     dejavu = fonsAddFont(fs, "droid-serif", resourcePath);
-    
-    if(dejavu == FONS_INVALID) {
-        NSLog(@"Could not add font droid serif");
-    }
-    
-    resourcePath = (char*)[[bundle pathForResource:@"fireflysung"
-                                            ofType:@"ttf"] UTF8String];
-    
-    han = fonsAddFont(fs, "fireflysung", resourcePath);
-    
-    if(han == FONS_INVALID) {
-        NSLog(@"Could not add font droid sans japanese");
-    }
-
-    resourcePath = (char*)[[bundle pathForResource:@"Sanskrit2003"
-                                            ofType:@"ttf"] UTF8String];
-
-    hindi = fonsAddFont(fs, "Sanskrit2003", resourcePath);
-
-    if(hindi == FONS_INVALID) {
-        NSLog(@"Could not add font Sanskrit2003");
-    }
 }
 
 - (void)createFontContext
@@ -202,52 +152,23 @@ static float x;
     }
     
     [self loadFonts];
-    
-    fonsSetFont(fs, han);
-    fonsSetSize(fs, 100.0);
-    fonsSetShaping(fs, "han", "TTB", "ch");
-    glfonsBufferText(fs, "緳 踥踕", &textch1, FONS_EFFECT_NONE);
-
-    fonsClearState(fs);
-
-    fonsSetFont(fs, amiri);
-    
-    fonsSetSize(fs, 200.0);
-    fonsSetShaping(fs, "arabic", "RTL", "ar");
-    fonsSetBlur(fs, 8.0);
-    fonsSetBlurType(fs, FONS_EFFECT_DISTANCE_FIELD);
-    glfonsBufferText(fs, "سنالى ما شاسعة وق", &textar1, FONS_EFFECT_DISTANCE_FIELD);
-
-    fonsClearState(fs);
-
-    fonsSetSize(fs, 100.0);
-    fonsSetShaping(fs, "arabic", "RTL", "ar");
-    glfonsBufferText(fs, "تسجّل يتكلّم", &textar2, FONS_EFFECT_NONE);
-
-    fonsClearState(fs);
 
     fonsSetFont(fs, dejavu);
-    
+
     fonsSetSize(fs, 50.0);
-    fonsSetShaping(fs, "french", "left-to-right", "fr");
-    glfonsBufferText(fs, "ffffi", &textfr1, FONS_EFFECT_NONE);
 
-    fonsClearState(fs);
+    for(int i = 0; i < 100; i++) {
+        fsuint id;
+        glfonsBufferText(fs, "text", &id, FONS_EFFECT_NONE);
+        texts.push_back(id);
+    }
 
-    fonsSetFont(fs, hindi);
-    fonsSetSize(fs, 100.0);
-    fonsSetShaping(fs, "devanagari", "LTR", "hi");
-    glfonsBufferText(fs, "हालाँकि प्रचलित रूप पूजा", &texthi1, FONS_EFFECT_NONE);
+    glfonsUploadVertices(fs);
+
 }
 
 - (void)deleteFontContext
 {
-    glfonsUnbufferText(fs, textar1);
-    glfonsUnbufferText(fs, textar2);
-    glfonsUnbufferText(fs, textfr1);
-    glfonsUnbufferText(fs, textch1);
-    glfonsUnbufferText(fs, texthi1);
-    
     glfonsDelete(fs);
 }
 
