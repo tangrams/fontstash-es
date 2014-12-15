@@ -88,16 +88,16 @@ static const GLchar* vertexShaderSrc = R"END(
 #ifdef GL_ES
 precision mediump float;
 #endif
-attribute float a_fsid;
+
+attribute lowp float a_fsid;
 attribute vec4 a_position;
 attribute vec2 a_texCoord;
 
 uniform sampler2D u_transforms;
-uniform int u_twidth;
-uniform int u_theight;
-uniform vec2 u_resolution;
-
+uniform lowp vec2 u_tresolution;
+uniform lowp vec2 u_resolution;
 uniform mat4 u_proj;
+
 varying vec2 f_uv;
 
 #define PI 3.14159265358979323846
@@ -111,10 +111,10 @@ varying vec2 f_uv;
  * Converts (i, j) pixel coordinates to the corresponding (u, v) in
  * texture space. The (u,v) targets the center of pixel
  */
-vec2 ij2uv(float i, float j, int w, int h) {
+vec2 ij2uv(float i, float j, float w, float h) {
     return vec2(
-        (2.0*i+1.0) / (2.0*float(w)),
-        (2.0*j+1.0) / (2.0*float(h))
+        (2.0*i+1.0) / (2.0*w),
+        (2.0*j+1.0) / (2.0*h)
     );
 }
 
@@ -122,15 +122,15 @@ vec2 ij2uv(float i, float j, int w, int h) {
  * Decodes the id and find its place for its transform inside the texture
  * Returns the (i,j) position inside texture
  */
-vec2 id2ij(int fsid, int w, int h) {
-    float i = mod(float(fsid), float(w));
-    float j = floor(float(fsid) / float(h));
+vec2 id2ij(int fsid, float w, float h) {
+    float i = mod(float(fsid), w);
+    float j = floor(float(fsid) / h);
     return vec2(i, j);
 }
 
 void main() {
-    vec2 ij = id2ij(int(a_fsid), u_twidth, u_theight);
-    vec2 uv = ij2uv(ij.x, ij.y, u_twidth, u_theight);
+    vec2 ij = id2ij(int(a_fsid), u_tresolution.x, u_tresolution.y);
+    vec2 uv = ij2uv(ij.x, ij.y, u_tresolution.x, u_tresolution.y);
 
     vec4 tdata = texture2D(u_transforms, uv);
 
@@ -160,19 +160,25 @@ static const GLchar* sdfFragShaderSrc = R"END(
 #ifdef GL_ES
 precision mediump float;
 #endif
-uniform sampler2D u_tex;
-uniform vec4 u_color;
-uniform vec4 u_outlineColor;
-uniform float u_mixFactor;
-uniform float u_minOutlineD;
-uniform float u_maxOutlineD;
-uniform float u_minInsideD;
-uniform float u_maxInsideD;
+
+uniform lowp sampler2D u_tex;
+uniform lowp vec4 u_color;
+uniform lowp vec4 u_outlineColor;
+uniform lowp vec4 u_sdfParams;
+uniform lowp float u_mixFactor;
+
+#define minOutlineD u_sdfParams.x
+#define maxOutlineD u_sdfParams.y
+#define minInsideD  u_sdfParams.z
+#define maxInsideD  u_sdfParams.w
+
 varying vec2 f_uv;
+
 void main(void) {
     float distance = texture2D(u_tex, f_uv).a;
-    vec4 inside = smoothstep(u_minInsideD, u_maxInsideD, distance) * u_color;
-    vec4 outline = smoothstep(u_minOutlineD, u_maxOutlineD, distance) * u_outlineColor;
+    vec4 inside = smoothstep(minInsideD, maxInsideD, distance) * u_color;
+    vec4 outline = smoothstep(minOutlineD, maxOutlineD, distance) * u_outlineColor;
+    
     gl_FragColor = mix(outline, inside, u_mixFactor);
 }
 )END";
@@ -181,8 +187,9 @@ static const GLchar* defaultFragShaderSrc = R"END(
 #ifdef GL_ES
 precision mediump float;
 #endif
-uniform sampler2D u_tex;
-uniform vec4 u_color;
+
+uniform lowp sampler2D u_tex;
+uniform lowp vec4 u_color;
 
 varying vec2 f_uv;
 
@@ -290,6 +297,7 @@ void glfons__updateTransform(GLFONScontext* gl, fsuint id, float tx, float ty, f
     // modify transforms only if it has changed from last frame
     if(data != gl->transformData[j*gl->transformRes.x+i]) {
         gl->transformData[j*gl->transformRes.x+i] = data;
+        // make the whole texture line dirty
         gl->transformDirty[j] = 1;
     }
 }
@@ -592,8 +600,7 @@ void glfonsDraw(FONScontext* ctx) {
     glUseProgram(program);
 
     glUniform1i(glGetUniformLocation(program, "u_transforms"), 1);
-    glUniform1i(glGetUniformLocation(program, "u_twidth"), glctx->transformRes.x);
-    glUniform1i(glGetUniformLocation(program, "u_theight"), glctx->transformRes.y);
+    glUniform2f(glGetUniformLocation(program, "u_tresolution"), glctx->transformRes.x, glctx->transformRes.y);
     glUniform1i(glGetUniformLocation(program, "u_tex"), 0);
     glUniform4f(glGetUniformLocation(program, "u_color"), color.r, color.g, color.b, color.a);
     glUniform2f(glGetUniformLocation(program, "u_resolution"), glctx->resolution.x, glctx->resolution.y);
