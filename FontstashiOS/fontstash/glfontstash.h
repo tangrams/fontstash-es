@@ -105,7 +105,7 @@ varying vec2 f_uv;
 #define alpha   tdata.a
 #define tx      tdata.x
 #define ty      tdata.y
-#define theta   tdata.z * 2.0 * PI
+#define theta   tdata.z
 
 /*
  * Converts (i, j) pixel coordinates to the corresponding (u, v) in
@@ -137,21 +137,19 @@ void main() {
     tx *= u_resolution.x * tx;
     ty *= u_resolution.y * ty;
 
-    mat4 t = mat4(
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-         tx,  ty, 0.0, 1.0
+    theta *= theta * 2.0 * PI;
+
+    float st = sin(theta);
+    float ct = cos(theta);
+
+    vec4 p = vec4(
+        a_position.x * ct - a_position.y * st + tx,
+        a_position.x * st + a_position.y * ct + ty,
+        a_position.z,
+        a_position.w
     );
 
-    mat4 r = mat4(
-        cos(theta), -sin(theta), 0.0, 0.0,
-        sin(theta),  cos(theta), 0.0, 0.0,
-               0.0,         0.0, 1.0, 0.0,
-               0.0,         0.0, 0.0, 1.0
-    );
-
-    gl_Position = u_proj * t * r * a_position;
+    gl_Position = u_proj * p;
     f_uv = a_texCoord;
 }
 )END";
@@ -178,7 +176,7 @@ void main(void) {
     float distance = texture2D(u_tex, f_uv).a;
     vec4 inside = smoothstep(minInsideD, maxInsideD, distance) * u_color;
     vec4 outline = smoothstep(minOutlineD, maxOutlineD, distance) * u_outlineColor;
-    
+
     gl_FragColor = mix(outline, inside, u_mixFactor);
 }
 )END";

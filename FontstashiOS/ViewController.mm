@@ -115,6 +115,9 @@ static float x;
 
     float xnorm = (sin(x) + 1.0) * 0.5;
 
+
+    NSDate *start = [NSDate date];
+
     int i = 0;
     for(auto id: texts) {
         i++;
@@ -122,6 +125,10 @@ static float x;
     }
 
     glfonsDraw(fs);
+
+    NSDate *end = [NSDate date];
+    NSTimeInterval exec = [end timeIntervalSinceDate:start];
+    NSLog(@"draw = %f ms", 1000.0 * exec);
 
     glDisable(GL_BLEND);
     
