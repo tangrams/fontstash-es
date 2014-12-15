@@ -326,7 +326,7 @@ void glfons__uploadTransforms(GLFONScontext* gl) {
 
     // update smaller part of texture, only the part where transforms has been modified
     const unsigned int* subdata = gl->transformData + min * gl->transformRes.x;
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, min, gl->transformRes.x, max - min, GL_RGBA, GL_UNSIGNED_BYTE, subdata);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, min, gl->transformRes.x, (max - min) + 1, GL_RGBA, GL_UNSIGNED_BYTE, subdata);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
