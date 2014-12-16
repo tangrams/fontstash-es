@@ -134,8 +134,8 @@ void main() {
 
     vec4 tdata = texture2D(u_transforms, uv);
 
-    tx *= u_resolution.x * tx;
-    ty *= u_resolution.y * ty;
+    tx = u_resolution.x * tx;
+    ty = u_resolution.y * ty;
 
     theta *= theta * 2.0 * PI;
 
@@ -303,14 +303,15 @@ void glfons__updateTransform(GLFONScontext* gl, fsuint id, float tx, float ty, f
 void glfons__uploadTransforms(GLFONScontext* gl) {
     if (gl->texTransform == 0) return;
 
-    int min = 0;
-    int max = 0;
+    int inf = INT_MAX;
+    int min = inf;
+    int max = -inf;
     bool dirty = false;
 
     for(int i = 0; i < gl->transformRes.y; ++i) {
         if(gl->transformDirty[i]) {
             dirty = true;
-            if(!min) {
+            if(min > max) {
                 min = max = i;
             } else {
                 max = i;

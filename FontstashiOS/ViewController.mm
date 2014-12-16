@@ -77,7 +77,7 @@
 
     [self createFontContext];
 
-    glfonsUpdateViewport(fs, 2 /* retina */);
+    glfonsUpdateViewport(fs, 1);
 }
 
 - (void)tearDownGL
@@ -115,13 +115,12 @@ static float x;
 
     float xnorm = (sin(x) + 1.0) * 0.5;
 
-
     NSDate *start = [NSDate date];
 
     int i = 0;
     for(auto id: texts) {
         i++;
-        glfonsTransform(fs, id, 600.0 - i * 40.0, 800.0 + xnorm * 40.0 - i * 20.0, xnorm * 2.0 * M_PI + i);
+        glfonsTransform(fs, id, 50.0, 150.0 + i * 25.0, 0.0);
     }
 
     glfonsDraw(fs);
@@ -164,7 +163,7 @@ static float x;
 
     fonsSetSize(fs, 50.0);
 
-    for(int i = 0; i < 100; i++) {
+    for(int i = 0; i < 20; i++) {
         fsuint id;
         glfonsBufferText(fs, "text", &id, FONS_EFFECT_NONE);
         texts.push_back(id);
