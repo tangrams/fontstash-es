@@ -136,8 +136,7 @@ void main() {
 
     tx = u_resolution.x * tx;
     ty = u_resolution.y * ty;
-
-    theta *= theta * 2.0 * PI;
+    theta = theta * 2.0 * PI;
 
     float st = sin(theta);
     float ct = cos(theta);

@@ -120,7 +120,7 @@ static float x;
     int i = 0;
     for(auto id: texts) {
         i++;
-        glfonsTransform(fs, id, 50.0, 150.0 + i * 25.0, 0.0);
+        glfonsTransform(fs, id, 50.0, 150.0 + i * 25.0, 2.0 * M_PI * i);
     }
 
     glfonsDraw(fs);
