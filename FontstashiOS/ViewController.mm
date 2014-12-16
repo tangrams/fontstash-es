@@ -114,7 +114,7 @@ static float avg = 0.0f;
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_DEPTH_TEST);
     
-    glfonsSetColor(fs, 255, 255, 255, 255);
+    glfonsSetColor(fs, 255, 255, 255);
 
     float xnorm = (sin(x) + 1.0) * 0.5;
 
@@ -123,7 +123,11 @@ static float avg = 0.0f;
     int i = 0;
     for(auto id: texts) {
         i++;
-        glfonsTransform(fs, id, 50.0, 150.0 + i * 25.0 * xnorm, 2.0 * M_PI * i);
+        if(i > 10) {
+            glfonsTransform(fs, id, 0.0, i * 25.0 * xnorm, 2.0 * M_PI * i, xnorm);
+        } else {
+            glfonsTransform(fs, id, 50.0, 150.0 + i * 25.0, 2.0 * M_PI * i, xnorm);
+        }
     }
 
     glfonsDraw(fs);

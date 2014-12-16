@@ -150,6 +150,7 @@
 		9860419319E4372E00912F0C /* ViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ViewController.mm; sourceTree = "<group>"; };
 		9860A78119F556880094D9F0 /* sdf.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sdf.h; sourceTree = "<group>"; };
 		98852A8B1A23954800690529 /* fireflysung.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = fireflysung.ttf; sourceTree = "<group>"; };
+		98BAF1F91A40CBCC004AFF20 /* shaders.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = shaders.h; sourceTree = "<group>"; };
 		98D79BF919E45A44000C6D80 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		98D79BFA19E45A44000C6D80 /* common.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = common.hpp; sourceTree = "<group>"; };
 		98D79BFC19E45A44000C6D80 /* _features.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = _features.hpp; sourceTree = "<group>"; };
@@ -661,6 +662,7 @@
 				9860419019E4370000912F0C /* glfontstash.h */,
 				9860419119E4370000912F0C /* stb_truetype.h */,
 				9860A78119F556880094D9F0 /* sdf.h */,
+				98BAF1F91A40CBCC004AFF20 /* shaders.h */,
 			);
 			name = fontstash;
 			path = FontstashiOS/fontstash;
