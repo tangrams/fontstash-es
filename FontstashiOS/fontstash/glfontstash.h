@@ -73,8 +73,10 @@ struct GLFONScontext {
     float sdfMixFactor;
 
     GLuint texTransform;
+    GLuint texTransformPrecision;
     glm::ivec2 transformRes;
     unsigned int* transformData;
+    unsigned int* transformDataPrecision;
     unsigned char* transformDirty;
 
     GLFONSvbo* vbo;
@@ -94,18 +96,21 @@ attribute vec4 a_position;
 attribute vec2 a_texCoord;
 
 uniform sampler2D u_transforms;
+uniform sampler2D u_transformsPrecision;
 uniform lowp vec2 u_tresolution;
 uniform lowp vec2 u_resolution;
 uniform mat4 u_proj;
 
 varying vec2 f_uv;
 
-#define PI 3.14159265358979323846
+#define PI 3.14159
 
 #define alpha   tdata.a
 #define tx      tdata.x
 #define ty      tdata.y
 #define theta   tdata.z
+#define txp     tdataPrecision.x
+#define typ     tdataPrecision.y
 
 /*
  * Converts (i, j) pixel coordinates to the corresponding (u, v) in
@@ -133,9 +138,10 @@ void main() {
     vec2 uv = ij2uv(ij.x, ij.y, u_tresolution.x, u_tresolution.y);
 
     vec4 tdata = texture2D(u_transforms, uv);
+    vec4 tdataPrecision = texture2D(u_transformsPrecision, uv);
 
-    tx = u_resolution.x * tx;
-    ty = u_resolution.y * ty;
+    tx = u_resolution.x * (tx + txp / 255.0);
+    ty = u_resolution.y * (ty + typ / 255.0);
     theta = theta * 2.0 * PI;
 
     float st = sin(theta);
@@ -281,19 +287,31 @@ void glfons__updateTransform(GLFONScontext* gl, fsuint id, float tx, float ty, f
 
     glfons__id2ij(gl, id, &i, &j);
 
-    // scaling between 0..resolution to 0..255
+    // scale between [0..resolution] to [0..255]
     tx = (tx * 255.0) / gl->resolution.x;
     ty = (ty * 255.0) / gl->resolution.y;
 
-    // scaling between 0..2Pi to 0..255
+    // scale between [0..2Pi] to [0..255]
     r = (r / (2.0 * M_PI)) * 255.0;
+
+    // scale decimal part from [0..1] to [0..255] rounding to the closest value
+    // known floating point error here of 0.5/255 ~= 0.00196 due to rounding
+    float dx = floor((1.0 - ((int)(tx + 1) - tx)) * 255.0 + 0.5);
+    float dy = floor((1.0 - ((int)(ty + 1) - ty)) * 255.0 + 0.5);
 
     // encode in an unsigned int
     unsigned int data = glfonsRGBA(tx, ty, r, a);
 
+    // 2 bytes are not used here, can be used later for scaling
+    unsigned int fract = glfonsRGBA(dx, dy, /* bytes not used -> */ 0, 0);
+
+    unsigned int index = j*gl->transformRes.x+i;
+
     // modify transforms only if it has changed from last frame
-    if(data != gl->transformData[j*gl->transformRes.x+i]) {
-        gl->transformData[j*gl->transformRes.x+i] = data;
+    if(data != gl->transformData[index] || fract != gl->transformDataPrecision[index]) {
+        gl->transformDataPrecision[index] = fract;
+        gl->transformData[index] = data;
+
         // make the whole texture line dirty
         gl->transformDirty[j] = 1;
     }
@@ -325,7 +343,13 @@ void glfons__uploadTransforms(GLFONScontext* gl) {
     glBindTexture(GL_TEXTURE_2D, gl->texTransform);
 
     // update smaller part of texture, only the part where transforms has been modified
-    const unsigned int* subdata = gl->transformData + min * gl->transformRes.x;
+    const unsigned int* subdata;
+
+    subdata = gl->transformData + min * gl->transformRes.x;
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, min, gl->transformRes.x, (max - min) + 1, GL_RGBA, GL_UNSIGNED_BYTE, subdata);
+
+    glBindTexture(GL_TEXTURE_2D, gl->texTransformPrecision);
+    subdata = gl->transformDataPrecision + min * gl->transformRes.x;
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, min, gl->transformRes.x, (max - min) + 1, GL_RGBA, GL_UNSIGNED_BYTE, subdata);
 
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -347,11 +371,17 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
 
     gl->transformRes = glm::vec2(32, 32); // 1024 potential text ids
     gl->transformData = new unsigned int[gl->transformRes.x * gl->transformRes.y] ();
+    gl->transformDataPrecision = new unsigned int[gl->transformRes.x * gl->transformRes.y] ();
     gl->transformDirty = new unsigned char[gl->transformRes.y] ();
 
     glGenTextures(1, &gl->texTransform);
     glBindTexture(GL_TEXTURE_2D, gl->texTransform);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, gl->transformRes.x, gl->transformRes.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, gl->transformData);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glGenTextures(1, &gl->texTransformPrecision);
+    glBindTexture(GL_TEXTURE_2D, gl->texTransformPrecision);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, gl->transformRes.x, gl->transformRes.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, gl->transformDataPrecision);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
     // create texture
@@ -409,6 +439,10 @@ static void glfons__renderDelete(void* userPtr) {
     if(gl->texTransform != 0) {
         glDeleteTextures(1, &gl->texTransform);
     }
+
+    if(gl->texTransformPrecision != 0) {
+        glDeleteTextures(1, &gl->texTransformPrecision);
+    }
     
     for(auto& elmt : *gl->stashes) {
         GLStash* stash = elmt.second;
@@ -428,6 +462,7 @@ static void glfons__renderDelete(void* userPtr) {
     }
     delete[] gl->transformDirty;
     delete[] gl->transformData;
+    delete[] gl->transformDataPrecision;
     
     delete gl->stashes;
     delete gl;
@@ -593,11 +628,15 @@ void glfonsDraw(FONScontext* ctx) {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, glctx->texTransform);
 
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, glctx->texTransformPrecision);
+
     GLuint program = glctx->defaultShaderProgram;
 
     glUseProgram(program);
 
     glUniform1i(glGetUniformLocation(program, "u_transforms"), 1);
+    glUniform1i(glGetUniformLocation(program, "u_transformsPrecision"), 2);
     glUniform2f(glGetUniformLocation(program, "u_tresolution"), glctx->transformRes.x, glctx->transformRes.y);
     glUniform1i(glGetUniformLocation(program, "u_tex"), 0);
     glUniform4f(glGetUniformLocation(program, "u_color"), color.r, color.g, color.b, color.a);

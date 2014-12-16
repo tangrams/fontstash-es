@@ -105,6 +105,9 @@ static float x;
 
 #pragma mark - Fontstash
 
+static int frames = 0;
+static float avg = 0.0f;
+
 - (void)renderFont
 {
     glEnable(GL_BLEND);
@@ -120,14 +123,20 @@ static float x;
     int i = 0;
     for(auto id: texts) {
         i++;
-        glfonsTransform(fs, id, 50.0, 150.0 + i * 25.0, 2.0 * M_PI * i);
+        glfonsTransform(fs, id, 50.0, 150.0 + i * 25.0 * xnorm, 2.0 * M_PI * i);
     }
 
     glfonsDraw(fs);
 
     NSDate *end = [NSDate date];
     NSTimeInterval exec = [end timeIntervalSinceDate:start];
-    NSLog(@"draw = %f ms", 1000.0 * exec);
+
+    frames++;
+    avg += 1000.0 * exec;
+
+    if(frames % 50 == 0) {
+        NSLog(@"avg = %f ms", avg / frames);
+    }
 
     glDisable(GL_BLEND);
     
