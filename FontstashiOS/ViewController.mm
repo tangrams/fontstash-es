@@ -195,9 +195,7 @@ static float x;
 
     fonsSetSize(fs, 200.0);
     fonsSetShaping(fs, "arabic", "RTL", "ar");
-    fonsSetBlur(fs, 8.0);
-    fonsSetBlurType(fs, FONS_EFFECT_DISTANCE_FIELD);
-    glfonsBufferText(fs, "سنالى ما شاسعة وق", &textar1, FONS_EFFECT_DISTANCE_FIELD);
+    glfonsBufferText(fs, "سنالى ما شاسعة وق", &textar1, FONS_EFFECT_NONE);
 
     fonsClearState(fs);
 

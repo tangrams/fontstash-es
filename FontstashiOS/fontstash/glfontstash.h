@@ -543,7 +543,7 @@ void glfonsDraw(FONScontext* ctx) {
     if(glctx->tex == 0)
         return;
 
-    // would be uploaded only if some transforms have been modified
+    // would be uploaded only if some transforms has been modified
     glfons__uploadTransforms(glctx);
 
     glm::vec3 color = glctx->color / 255.0f;
