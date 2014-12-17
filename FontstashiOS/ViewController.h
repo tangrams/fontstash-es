@@ -14,6 +14,7 @@
 
 #import <stdio.h>
 #import <string.h>
+#import <vector>
 
 #define FONS_USE_FREETYPE
 #define GLFONTSTASH_IMPLEMENTATION
@@ -22,17 +23,17 @@
 
 @interface ViewController : GLKViewController {
     FONScontext* fs;
-    
+
+    int amiri;
+    int dejavu;
+    int han;
+    int hindi;
+
     fsuint textar1;
     fsuint textar2;
     fsuint textfr1;
     fsuint textch1;
     fsuint texthi1;
-    
-    int amiri;
-    int dejavu;
-    int han;
-    int hindi;
 }
 
 @end
