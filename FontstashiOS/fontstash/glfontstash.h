@@ -283,7 +283,7 @@ void glfons__uploadTransforms(GLFONScontext* gl) {
         return;
     }
 
-    // update smaller part of texture, only the part where transforms has been modified
+    // update smaller part of texture, only the part where transforms have been modified
     const unsigned int* subdata;
 
     glBindTexture(GL_TEXTURE_2D, gl->texTransform);
@@ -543,7 +543,7 @@ void glfonsDraw(FONScontext* ctx) {
     if(glctx->tex == 0)
         return;
 
-    // would be uploaded only if some transforms has been modified
+    // would be uploaded only if some transforms have been modified
     glfons__uploadTransforms(glctx);
 
     glm::vec3 color = glctx->color / 255.0f;

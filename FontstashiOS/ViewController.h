@@ -16,17 +16,24 @@
 #import <string.h>
 #import <vector>
 
-//#define FONS_USE_FREETYPE
+#define FONS_USE_FREETYPE
 #define GLFONTSTASH_IMPLEMENTATION
-//#define FONS_USE_HARFBUZZ
+#define FONS_USE_HARFBUZZ
 #import "glfontstash.h"
 
 @interface ViewController : GLKViewController {
     FONScontext* fs;
 
-    std::vector<fsuint> texts;
-
+    int amiri;
     int dejavu;
+    int han;
+    int hindi;
+
+    fsuint textar1;
+    fsuint textar2;
+    fsuint textfr1;
+    fsuint textch1;
+    fsuint texthi1;
 }
 
 @end
