@@ -9,6 +9,8 @@
 #ifndef FontstashiOS_shaders_h
 #define FontstashiOS_shaders_h
 
+namespace glfs {
+
 static const GLchar* vertexShaderSrc = R"END(
 
 #ifdef GL_ES
@@ -20,7 +22,6 @@ attribute vec4 a_position;
 attribute vec2 a_texCoord;
 
 uniform sampler2D u_transforms;
-uniform sampler2D u_transformsPrecision;
 uniform lowp vec2 u_tresolution;
 uniform lowp vec2 u_resolution;
 uniform mat4 u_proj;
@@ -52,20 +53,21 @@ vec2 ij2uv(float i, float j, float w, float h) {
  * Decodes the id and find its place for its transform inside the texture
  * Returns the (i,j) position inside texture
  */
-vec2 id2ij(int fsid, float w, float h) {
-    float i = mod(float(fsid), w);
-    float j = floor(float(fsid) / h);
+vec2 id2ij(int fsid, float w) {
+    float i = mod(float(fsid * 2), (w * 0.5));
+    float j = floor(float(fsid * 2) / (w * 0.5));
     return vec2(i, j);
 }
 
 void main() {
     // decode the uv from a text id
-    vec2 ij = id2ij(int(a_fsid), u_tresolution.x, u_tresolution.y);
-    vec2 uv = ij2uv(ij.x, ij.y, u_tresolution.x, u_tresolution.y);
+    vec2 ij = id2ij(int(a_fsid), u_tresolution.x);
+    vec2 uv1 = ij2uv(ij.x, ij.y, u_tresolution.x, u_tresolution.y);
+    vec2 uv2 = ij2uv(ij.x+1.0, ij.y, u_tresolution.x, u_tresolution.y);
 
     // reads the transform data and its precision
-    vec4 tdata = texture2D(u_transforms, uv);
-    vec4 tdataPrecision = texture2D(u_transformsPrecision, uv);
+    vec4 tdata = texture2D(u_transforms, uv1);
+    vec4 tdataPrecision = texture2D(u_transforms, uv2);
 
     float precisionScale = 1.0/255.0;
 
@@ -146,5 +148,7 @@ void main(void) {
 }
 
 )END";
+
+}
 
 #endif

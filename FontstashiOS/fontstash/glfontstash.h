@@ -146,10 +146,8 @@ struct GLFONScontext {
     float sdfMixFactor;
 
     GLuint texTransform;
-    GLuint texTransformPrecision;
     glm::ivec2 transformRes;
     unsigned int* transformData;
-    unsigned int* transformDataPrecision;
     unsigned char* transformDirty;
 
     GLFONSvbo* vbo;
@@ -210,15 +208,24 @@ static GLuint glfons__linkShaderProgram(const GLchar* vertexSrc, const GLchar* f
 
 void glfons__id2ij(GLFONScontext* gl, fsuint id, int* i, int* j) {
     glm::ivec2 res = gl->transformRes;
-    *i = id % res.x;
-    *j = id / res.y;
+    *i = (id*2) % (res.x/2);
+    *j = (id*2) / (res.x/2);
 }
 
+/*
+ * Data is stored in the texture as following :
+ *  | translation_x | translation_y | rotation | alpha | precision_tx | precision_ty | Ø | Ø |
+ *       1 byte
+ * Each texts id uses 8 bytes of GPU texture memory for its own transform
+ */
 void glfons__updateTransform(GLFONScontext* gl, fsuint id, float tx, float ty, float r, float a) {
     int i, j;
 
     // TODO : manage out of screen translations
 
+    // get the i and j pixel index from an id
+    // every specific transform data for an id is contiguous in memory
+    // in order to update smaller part of textures later
     glfons__id2ij(gl, id, &i, &j);
 
     // scale between [0..resolution] to [0..255]
@@ -244,9 +251,9 @@ void glfons__updateTransform(GLFONScontext* gl, fsuint id, float tx, float ty, f
     unsigned int index = j*gl->transformRes.x+i;
 
     // modify transforms only if it has changed from last frame
-    if(data != gl->transformData[index] || fract != gl->transformDataPrecision[index]) {
-        gl->transformDataPrecision[index] = fract;
+    if(data != gl->transformData[index] || fract != gl->transformData[index+1]) {
         gl->transformData[index] = data;
+        gl->transformData[index+1] = fract;
 
         // make the whole texture line dirty
         gl->transformDirty[j] = 1;
@@ -282,11 +289,6 @@ void glfons__uploadTransforms(GLFONScontext* gl) {
     glBindTexture(GL_TEXTURE_2D, gl->texTransform);
     subdata = gl->transformData + min * gl->transformRes.x;
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, min, gl->transformRes.x, (max - min) + 1, GL_RGBA, GL_UNSIGNED_BYTE, subdata);
-
-    glBindTexture(GL_TEXTURE_2D, gl->texTransformPrecision);
-    subdata = gl->transformDataPrecision + min * gl->transformRes.x;
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, min, gl->transformRes.x, (max - min) + 1, GL_RGBA, GL_UNSIGNED_BYTE, subdata);
-
     glBindTexture(GL_TEXTURE_2D, 0);
 
     for(int i = 0; i < gl->transformRes.y; ++i) {
@@ -304,19 +306,13 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     gl->idct = 0;
     gl->stashes = new std::map<fsuint, GLStash*>();
 
-    gl->transformRes = glm::vec2(32, 32); // 1024 potential text ids
+    gl->transformRes = glm::vec2(32, 64); // 1024 potential text ids
     gl->transformData = new unsigned int[gl->transformRes.x * gl->transformRes.y] ();
-    gl->transformDataPrecision = new unsigned int[gl->transformRes.x * gl->transformRes.y] ();
     gl->transformDirty = new unsigned char[gl->transformRes.y] ();
 
     glGenTextures(1, &gl->texTransform);
     glBindTexture(GL_TEXTURE_2D, gl->texTransform);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, gl->transformRes.x, gl->transformRes.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, gl->transformData);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-    glGenTextures(1, &gl->texTransformPrecision);
-    glBindTexture(GL_TEXTURE_2D, gl->texTransformPrecision);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, gl->transformRes.x, gl->transformRes.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, gl->transformDataPrecision);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
     // create texture
@@ -330,8 +326,8 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     
     // create shader
-    gl->defaultShaderProgram = glfons__linkShaderProgram(vertexShaderSrc, defaultFragShaderSrc);
-    gl->sdfShaderProgram = glfons__linkShaderProgram(vertexShaderSrc, sdfFragShaderSrc);
+    gl->defaultShaderProgram = glfons__linkShaderProgram(glfs::vertexShaderSrc, glfs::defaultFragShaderSrc);
+    gl->sdfShaderProgram = glfons__linkShaderProgram(glfs::vertexShaderSrc, glfs::sdfFragShaderSrc);
     
     gl->posAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_position");
     gl->texCoordAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_texCoord");
@@ -374,10 +370,6 @@ static void glfons__renderDelete(void* userPtr) {
     if(gl->texTransform != 0) {
         glDeleteTextures(1, &gl->texTransform);
     }
-
-    if(gl->texTransformPrecision != 0) {
-        glDeleteTextures(1, &gl->texTransformPrecision);
-    }
     
     for(auto& elmt : *gl->stashes) {
         GLStash* stash = elmt.second;
@@ -397,12 +389,12 @@ static void glfons__renderDelete(void* userPtr) {
     }
     delete[] gl->transformDirty;
     delete[] gl->transformData;
-    delete[] gl->transformDataPrecision;
     
     delete gl->stashes;
     delete gl;
 }
 
+// TODO : get those values from outside, the client should handle correctly the viewport considering density
 void glfonsUpdateViewport(FONScontext* ctx, int scale) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLint viewport[4];
@@ -444,7 +436,7 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectTyp
 
     *id = glctx->idct++;
 
-    if(*id > glctx->transformRes.x * glctx->transformRes.y) {
+    if(*id > glctx->transformRes.x * (glctx->transformRes.y/2)) {
         std::cerr << "No more texture transform data available" << std::endl;
         std::cerr << "Consider resizing the transform texture" << std::endl;
         return;
@@ -518,6 +510,7 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectTyp
 
 void glfonsUploadVertices(FONScontext* ctx) {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
+    
     glGenBuffers(1, &glctx->vbo->buffer);
 
     glBindBuffer(GL_ARRAY_BUFFER, glctx->vbo->buffer);
@@ -563,15 +556,11 @@ void glfonsDraw(FONScontext* ctx) {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, glctx->texTransform);
 
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, glctx->texTransformPrecision);
-
     GLuint program = glctx->defaultShaderProgram;
 
     glUseProgram(program);
 
     glUniform1i(glGetUniformLocation(program, "u_transforms"), 1);
-    glUniform1i(glGetUniformLocation(program, "u_transformsPrecision"), 2);
     glUniform2f(glGetUniformLocation(program, "u_tresolution"), glctx->transformRes.x, glctx->transformRes.y);
     glUniform1i(glGetUniformLocation(program, "u_tex"), 0);
     glUniform3f(glGetUniformLocation(program, "u_color"), color.r, color.g, color.b);
