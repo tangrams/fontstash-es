@@ -55,7 +55,7 @@ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 glDisable(GL_DEPTH_TEST);
 glfonsSetColor(fs, 255, 255, 255);
 // [...] any transform
-glfonsDrawText(context);
+glfonsDraw(context);
 glDisable(GL_BLEND);
 ```
 
