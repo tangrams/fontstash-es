@@ -291,9 +291,7 @@ void glfons__uploadTransforms(GLFONScontext* gl) {
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, min, gl->transformRes.x, (max - min) + 1, GL_RGBA, GL_UNSIGNED_BYTE, subdata);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    for(int i = 0; i < gl->transformRes.y; ++i) {
-        gl->transformDirty[i] = 0;
-    }
+    std::fill(gl->transformDirty, gl->transformDirty + gl->transformRes.y, 0);
 }
 
 static int glfons__renderCreate(void* userPtr, int width, int height) {
