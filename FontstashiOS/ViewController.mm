@@ -68,16 +68,15 @@
 - (void)setupGL
 {
     [EAGLContext setCurrentContext:self.context];
+
+    CGSize screen = [UIScreen mainScreen].bounds.size;
     
-    int width = self.view.bounds.size.width;
-    int height = self.view.bounds.size.height;
-    
-    glViewport(0, 0, width, height);
+    glViewport(0, 0, screen.width, screen.height);
     glClearColor(0.25f, 0.25f, 0.28f, 1.0f);
 
     [self createFontContext];
 
-    glfonsUpdateViewport(fs, 1);
+    glfonsUpdateViewport(fs, screen.width, screen.height);
 }
 
 - (void)tearDownGL
@@ -214,7 +213,7 @@ static float x;
     fonsClearState(fs);
 
     fonsSetFont(fs, hindi);
-    fonsSetSize(fs, 100.0);
+    fonsSetSize(fs, 200.0);
     fonsSetShaping(fs, "devanagari", "LTR", "hi");
     glfonsBufferText(fs, "हालाँकि प्रचलित रूप पूजा", &texthi1, FONS_EFFECT_NONE);
 

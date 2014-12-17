@@ -75,7 +75,7 @@ void glfonsSetSDFProperties(FONScontext* ctx, float minOutlineD, float maxOutlin
 /*
  * Updates the viewport size for vertices projection considering the screen scale
  */
-void glfonsUpdateViewport(FONScontext* ctx, int scale);
+void glfonsUpdateViewport(FONScontext* ctx, float width, float height);
 
 /*
  * Transforms a buffered id, translation on x, y, rotation between 0..2pi and alpha between 0..1
@@ -394,15 +394,14 @@ static void glfons__renderDelete(void* userPtr) {
     delete gl;
 }
 
-// TODO : get those values from outside, the client should handle correctly the viewport considering density
-void glfonsUpdateViewport(FONScontext* ctx, int scale) {
+void glfonsUpdateViewport(FONScontext* ctx, float width, float height) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
 
-    float r = (float)viewport[2];
+    float r = width;
     float l = 0.0;
-    float b = (float)viewport[3];
+    float b = height;
     float t = 0.0;
     float n = -1.0;
     float f = 1.0;
@@ -416,8 +415,8 @@ void glfonsUpdateViewport(FONScontext* ctx, int scale) {
     gl->projectionMatrix[14] = -(f+n)/(f-n);
     gl->projectionMatrix[15] = 1.0;
 
-    gl->resolution[0] = (float)viewport[2] * scale;
-    gl->resolution[1] = (float)viewport[3] * scale;
+    gl->resolution[0] = width;
+    gl->resolution[1] = height;
 }
 
 FONScontext* glfonsCreate(int width, int height, int flags) {
