@@ -139,7 +139,7 @@ struct GLFONScontext {
     
     std::map<fsuint, GLStash*>* stashes;
 
-    glm::mat4 projectionMatrix;
+    std::vector<float> projectionMatrix;
     glm::vec3 color;
     glm::vec4 outlineColor;
     glm::vec4 sdfProperties;
@@ -331,6 +331,9 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     gl->texCoordAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_texCoord");
     gl->idAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_fsid");
 
+    gl->projectionMatrix.reserve(4 * 4);
+    std::fill(gl->projectionMatrix.begin(), gl->projectionMatrix.end(), 0);
+
     gl->color = glm::vec3(1.0);
     
     return 1;
@@ -397,7 +400,23 @@ void glfonsUpdateViewport(FONScontext* ctx, int scale) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
-    gl->projectionMatrix = glm::ortho(0.0, (double)viewport[2] * scale, (double)viewport[3] * scale, 0.0, -1.0, 1.0);
+
+    float r = (float)viewport[2];
+    float l = 0.0;
+    float b = (float)viewport[3];
+    float t = 0.0;
+    float n = -1.0;
+    float f = 1.0;
+
+    // could be simplified, exposing it like this for comprehension
+    gl->projectionMatrix[0] = 2 / (r-l);
+    gl->projectionMatrix[5] = 2 / (t-b);
+    gl->projectionMatrix[10] = 2 / (f-n);
+    gl->projectionMatrix[12] = -(r+l)/(r-l);
+    gl->projectionMatrix[13] = -(t+b)/(t-b);
+    gl->projectionMatrix[14] = -(f+n)/(f-n);
+    gl->projectionMatrix[15] = 1.0;
+
     gl->resolution = glm::vec2((double)viewport[2] * scale, (double)viewport[3] * scale);
 }
 
@@ -563,7 +582,7 @@ void glfonsDraw(FONScontext* ctx) {
     glUniform1i(glGetUniformLocation(program, "u_tex"), 0);
     glUniform3f(glGetUniformLocation(program, "u_color"), color.r, color.g, color.b);
     glUniform2f(glGetUniformLocation(program, "u_resolution"), glctx->resolution.x, glctx->resolution.y);
-    glUniformMatrix4fv(glGetUniformLocation(program, "u_proj"), 1, GL_FALSE, glm::value_ptr(glctx->projectionMatrix));
+    glUniformMatrix4fv(glGetUniformLocation(program, "u_proj"), 1, GL_FALSE, &glctx->projectionMatrix[0]);
 
     // TODO : add back sdf feature effects, not anymore by id, but by context
 
