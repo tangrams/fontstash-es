@@ -19,10 +19,6 @@
 #ifndef GLFONTSTASH_H
 #define GLFONTSTASH_H
 
-#include "glm.hpp"
-#include "type_ptr.hpp"
-#include "matrix_transform.hpp"
-
 #include <iostream>
 #include <map>
 #include <stack>
@@ -69,7 +65,7 @@ void glfonsSetColor(FONScontext* ctx, unsigned int r, unsigned int g, unsigned i
 /*
  * Sets the current outline color
  */
-void glfonsSetOutlineColor(FONScontext* ctx, unsigned int r, unsigned int g, unsigned int b, unsigned int a);
+void glfonsSetOutlineColor(FONScontext* ctx, unsigned int r, unsigned int g, unsigned int b);
 
 /*
  * Update the signed distance field properties, controling the outline/inside distance and the mix factor to mix them together
@@ -117,7 +113,7 @@ typedef struct GLFONSvbo GLFONSvbo;
 
 struct GLStash {
     FONSeffectType effect;
-    glm::vec4 bbox;
+    float bbox[4];
     float* glyphsXOffset;
     float length;
     int nbGlyph;
@@ -139,20 +135,20 @@ struct GLFONScontext {
     
     std::map<fsuint, GLStash*>* stashes;
 
-    glm::mat4 projectionMatrix;
-    glm::vec3 color;
-    glm::vec4 outlineColor;
-    glm::vec4 sdfProperties;
+    std::vector<float> projectionMatrix;
+    float color[3];
+    float outlineColor[4];
+    float sdfProperties[4];
     float sdfMixFactor;
 
     GLuint texTransform;
-    glm::ivec2 transformRes;
+    int transformRes[2];
     unsigned int* transformData;
     unsigned char* transformDirty;
 
     GLFONSvbo* vbo;
     float* interleavedArray;
-    glm::vec2 resolution;
+    float resolution[2];
 };
 
 #endif
@@ -207,9 +203,9 @@ static GLuint glfons__linkShaderProgram(const GLchar* vertexSrc, const GLchar* f
 }
 
 void glfons__id2ij(GLFONScontext* gl, fsuint id, int* i, int* j) {
-    glm::ivec2 res = gl->transformRes;
-    *i = (id*2) % (res.x/2);
-    *j = (id*2) / (res.x/2);
+    int* res = gl->transformRes;
+    *i = (id*2) % (res[0]/2);
+    *j = (id*2) / (res[0]/2);
 }
 
 /*
@@ -229,8 +225,8 @@ void glfons__updateTransform(GLFONScontext* gl, fsuint id, float tx, float ty, f
     glfons__id2ij(gl, id, &i, &j);
 
     // scale between [0..resolution] to [0..255]
-    tx = (tx * 255.0) / gl->resolution.x;
-    ty = (ty * 255.0) / gl->resolution.y;
+    tx = (tx * 255.0) / gl->resolution[0];
+    ty = (ty * 255.0) / gl->resolution[1];
 
     // scale between [0..2Pi] to [0..255]
     r = (r / (2.0 * M_PI)) * 255.0;
@@ -248,7 +244,7 @@ void glfons__updateTransform(GLFONScontext* gl, fsuint id, float tx, float ty, f
     // 2 bytes are not used here, can be used later for scaling
     unsigned int fract = glfonsRGBA(dx, dy, /* bytes not used -> */ 0, 0);
 
-    unsigned int index = j*gl->transformRes.x+i;
+    unsigned int index = j*gl->transformRes[0]+i;
 
     // modify transforms only if it has changed from last frame
     if(data != gl->transformData[index] || fract != gl->transformData[index+1]) {
@@ -268,7 +264,7 @@ void glfons__uploadTransforms(GLFONScontext* gl) {
     int max = -inf;
     bool dirty = false;
 
-    for(int i = 0; i < gl->transformRes.y; ++i) {
+    for(int i = 0; i < gl->transformRes[1]; ++i) {
         if(gl->transformDirty[i]) {
             dirty = true;
             if(min > max) {
@@ -287,11 +283,11 @@ void glfons__uploadTransforms(GLFONScontext* gl) {
     const unsigned int* subdata;
 
     glBindTexture(GL_TEXTURE_2D, gl->texTransform);
-    subdata = gl->transformData + min * gl->transformRes.x;
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, min, gl->transformRes.x, (max - min) + 1, GL_RGBA, GL_UNSIGNED_BYTE, subdata);
+    subdata = gl->transformData + min * gl->transformRes[0];
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, min, gl->transformRes[0], (max - min) + 1, GL_RGBA, GL_UNSIGNED_BYTE, subdata);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    std::fill(gl->transformDirty, gl->transformDirty + gl->transformRes.y, 0);
+    std::fill(gl->transformDirty, gl->transformDirty + gl->transformRes[1], 0);
 }
 
 static int glfons__renderCreate(void* userPtr, int width, int height) {
@@ -304,13 +300,14 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     gl->idct = 0;
     gl->stashes = new std::map<fsuint, GLStash*>();
 
-    gl->transformRes = glm::vec2(32, 64); // 1024 potential text ids
-    gl->transformData = new unsigned int[gl->transformRes.x * gl->transformRes.y] ();
-    gl->transformDirty = new unsigned char[gl->transformRes.y] ();
+    gl->transformRes[0] = 32;
+    gl->transformRes[1] = 64; // 1024 potential text ids
+    gl->transformData = new unsigned int[gl->transformRes[0] * gl->transformRes[1]] ();
+    gl->transformDirty = new unsigned char[gl->transformRes[1]] ();
 
     glGenTextures(1, &gl->texTransform);
     glBindTexture(GL_TEXTURE_2D, gl->texTransform);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, gl->transformRes.x, gl->transformRes.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, gl->transformData);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, gl->transformRes[0], gl->transformRes[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, gl->transformData);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
     // create texture
@@ -331,7 +328,12 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     gl->texCoordAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_texCoord");
     gl->idAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_fsid");
 
-    gl->color = glm::vec3(1.0);
+    gl->projectionMatrix.reserve(4 * 4);
+    for(int i = 0; i < 16; i++) {
+        gl->projectionMatrix[i] = 0.0;
+    }
+
+    std::fill(gl->color, gl->color + 3, 255.0);
     
     return 1;
 }
@@ -397,8 +399,25 @@ void glfonsUpdateViewport(FONScontext* ctx, int scale) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
-    gl->projectionMatrix = glm::ortho(0.0, (double)viewport[2] * scale, (double)viewport[3] * scale, 0.0, -1.0, 1.0);
-    gl->resolution = glm::vec2((double)viewport[2] * scale, (double)viewport[3] * scale);
+
+    float r = (float)viewport[2];
+    float l = 0.0;
+    float b = (float)viewport[3];
+    float t = 0.0;
+    float n = -1.0;
+    float f = 1.0;
+
+    // could be simplified, exposing it like this for comprehension
+    gl->projectionMatrix[0] = 2.0 / (r-l);
+    gl->projectionMatrix[5] = 2.0 / (t-b);
+    gl->projectionMatrix[10] = 2.0 / (f-n);
+    gl->projectionMatrix[12] = -(r+l)/(r-l);
+    gl->projectionMatrix[13] = -(t+b)/(t-b);
+    gl->projectionMatrix[14] = -(f+n)/(f-n);
+    gl->projectionMatrix[15] = 1.0;
+
+    gl->resolution[0] = (float)viewport[2] * scale;
+    gl->resolution[1] = (float)viewport[3] * scale;
 }
 
 FONScontext* glfonsCreate(int width, int height, int flags) {
@@ -434,7 +453,7 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectTyp
 
     *id = glctx->idct++;
 
-    if(*id > glctx->transformRes.x * (glctx->transformRes.y/2)) {
+    if(*id > glctx->transformRes[0] * (glctx->transformRes[1]/2)) {
         std::cerr << "No more texture transform data available" << std::endl;
         std::cerr << "Consider resizing the transform texture" << std::endl;
         return;
@@ -546,8 +565,6 @@ void glfonsDraw(FONScontext* ctx) {
     // would be uploaded only if some transforms has been modified
     glfons__uploadTransforms(glctx);
 
-    glm::vec3 color = glctx->color / 255.0f;
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, glctx->tex);
 
@@ -559,11 +576,11 @@ void glfonsDraw(FONScontext* ctx) {
     glUseProgram(program);
 
     glUniform1i(glGetUniformLocation(program, "u_transforms"), 1);
-    glUniform2f(glGetUniformLocation(program, "u_tresolution"), glctx->transformRes.x, glctx->transformRes.y);
+    glUniform2f(glGetUniformLocation(program, "u_tresolution"), glctx->transformRes[0], glctx->transformRes[1]);
     glUniform1i(glGetUniformLocation(program, "u_tex"), 0);
-    glUniform3f(glGetUniformLocation(program, "u_color"), color.r, color.g, color.b);
-    glUniform2f(glGetUniformLocation(program, "u_resolution"), glctx->resolution.x, glctx->resolution.y);
-    glUniformMatrix4fv(glGetUniformLocation(program, "u_proj"), 1, GL_FALSE, glm::value_ptr(glctx->projectionMatrix));
+    glUniform3f(glGetUniformLocation(program, "u_color"), glctx->color[0] / 255.0, glctx->color[1] / 255.0, glctx->color[2] / 255.0);
+    glUniform2f(glGetUniformLocation(program, "u_resolution"), glctx->resolution[0], glctx->resolution[1]);
+    glUniformMatrix4fv(glGetUniformLocation(program, "u_proj"), 1, GL_FALSE, &glctx->projectionMatrix[0]);
 
     // TODO : add back sdf feature effects, not anymore by id, but by context
 
@@ -589,7 +606,9 @@ void glfonsDraw(FONScontext* ctx) {
 
 void glfonsSetColor(FONScontext* ctx, unsigned int r, unsigned int g, unsigned int b) {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    glctx->color = glm::vec3(r, g, b);
+    glctx->color[0] = r;
+    glctx->color[1] = g;
+    glctx->color[2] = b;
 }
 
 float glfonsGetGlyphOffset(FONScontext* ctx, fsuint id, int i) {
@@ -614,9 +633,11 @@ float glfonsGetLength(FONScontext* ctx, fsuint id) {
     return stash->length;
 }
 
-void glfonsSetOutlineColor(FONScontext* ctx, unsigned int r, unsigned int g, unsigned int b, unsigned int a) {
+void glfonsSetOutlineColor(FONScontext* ctx, unsigned int r, unsigned int g, unsigned int b) {
     GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    glctx->outlineColor = glm::vec4(r, g, b, a);
+    glctx->outlineColor[0] = r;
+    glctx->outlineColor[1] = g;
+    glctx->outlineColor[2] = b;
 }
 
 void glfonsSetSDFProperties(FONScontext* ctx, float minOutlineD, float maxOutlineD, float minInsideD, float maxInsideD, float mixFactor) {
