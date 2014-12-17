@@ -50,16 +50,14 @@ glfonsDrawText(context, textId);
 
 **Transforming text**
 
-To transform text you can use the following functions:
+To transform text you can use the following function:
 
 ```c++
-void glfonsRotate(FONScontext* ctx, float angle);
-void glfonsTranslate(FONScontext* ctx, float x, float y);
-void glfonsScale(FONScontext* ctx, float x, float y);
-
-void glfonsPushMatrix(FONScontext* ctx);
-void glfonsPopMatrix(FONScontext* ctx);
+void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a);
 ```
+
+Where tx and ty are the translations in pixel in screen space, r the rotation in radians. 
+Alpha could also be given here since it's stored in the same memory location as transforms.
 
 ![00](images/fontstash.gif)
 
