@@ -396,9 +396,7 @@ static void glfons__renderDelete(void* userPtr) {
 
 void glfonsUpdateViewport(FONScontext* ctx, float width, float height) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
-    GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-
+    
     float r = width;
     float l = 0.0;
     float b = height;
