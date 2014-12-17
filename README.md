@@ -39,13 +39,24 @@ Then add **.ttf** font files to your context using `fonsAddFont`.
 
 **Drawing text**
 
-After creating a context you can send data to the GPU, to do so, use the `glfonsBufferText` function. 
+After creating a context you can start to buffer some text to get ids, to do so, use the `glfonsBufferText` function. 
 ```c++
 glfonsBufferText(context, "fontstash-es", &textId, FONS_EFFECT_NONE);
 ```
-This call has to be done only once, then use the identifier in your main rendering loop like this:
+To be able to draw, you need to send the data to the GPU by calling:
 ```c++
-glfonsDrawText(context, textId);
+glfonsUploadVertices(context);
+```
+
+Then draw all buffered text ids like that:
+```c++
+glEnable(GL_BLEND);
+glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+glDisable(GL_DEPTH_TEST);
+glfonsSetColor(fs, 255, 255, 255);
+// [...] any transform
+glfonsDrawText(context);
+glDisable(GL_BLEND);
 ```
 
 **Transforming text**
