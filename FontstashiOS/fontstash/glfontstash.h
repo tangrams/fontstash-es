@@ -19,9 +19,7 @@
 #ifndef GLFONTSTASH_H
 #define GLFONTSTASH_H
 
-#include <iostream>
-#include <map>
-#include <stack>
+#include <unordered_map>
 
 #include "fontstash.h"
 #include "shaders.h"
@@ -31,124 +29,62 @@ typedef unsigned int fsuint;
 
 #define N_GLYPH_VERTS 6
 
-/*
- * Creates a font context with an atlas of size (width, height)
- */
 FONScontext* glfonsCreate(int width, int height, int flags);
-
-/*
- * Release all memory the FONScontext could have used
- */
 void glfonsDelete(FONScontext* ctx);
-
-/*
- * Buffer a string, asks for rasterization and keep the CPU vertices memory up to date
- * This should be followed by a glfonsUploadVertices later
- */
-void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectType effect);
-
-/*
- * Upload vertices inside a single vbo in the gpu
- */
 void glfonsUploadVertices(FONScontext* ctx);
-
-/*
- * Batched draw call, draw the whole vbo referencing the buffered ids
- */
 void glfonsDraw(FONScontext* ctx);
-
-/*
- * Sets the current color
- */
-void glfonsSetColor(FONScontext* ctx, unsigned int r, unsigned int g, unsigned int b);
-
-/*
- * Sets the current outline color
- */
-void glfonsSetOutlineColor(FONScontext* ctx, unsigned int r, unsigned int g, unsigned int b);
-
-/*
- * Update the signed distance field properties, controling the outline/inside distance and the mix factor to mix them together
- */
-void glfonsSetSDFProperties(FONScontext* ctx, float minOutlineD, float maxOutlineD, float minInsideD, float maxInsideD, float mixFactor);
-
-/*
- * Updates the viewport size for vertices projection considering the screen scale
- */
 void glfonsUpdateViewport(FONScontext* ctx, float width, float height);
-
-/*
- * Transforms a buffered id, translation on x, y, rotation between 0..2pi and alpha between 0..1
- */
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a);
-
-/*
- * Gets the bounding box of an id
- */
 void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1, float* y1);
-
-/*
- * Gets the x offset of a glyph positioned at i inside the string referenced by id
- */
 float glfonsGetGlyphOffset(FONScontext* ctx, fsuint id, int i);
-
-/*
- * Gets the string length in pixel
- */
 float glfonsGetLength(FONScontext* ctx, fsuint id);
-
-/*
- * Gets the number of glyph inside a string referenced by id
- */
 int glfonsGetGlyphCount(FONScontext* ctx, fsuint id);
 
 unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
 
-struct GLFONSvbo {
-    int nverts;
-    GLuint buffer;
+enum class GLFONSError {
+    ID_OVERFLOW
 };
 
-typedef struct GLFONSvbo GLFONSvbo;
-
-struct GLStash {
-    FONSeffectType effect;
-    float bbox[4];
-    float* glyphsXOffset;
-    float length;
+struct GLFONSstash {
     int nbGlyph;
+    float bbox[4];
+    float length;
+    float* glyphsXOffset;
 };
 
-typedef struct GLStash GLStash;
-
-struct GLFONScontext {
-    GLuint tex;
-    int width, height;
-    // the id counter
+struct GLFONSbuffer {
+    fsuint id;
     fsuint idct;
-    
-    GLuint sdfShaderProgram;
-    GLuint defaultShaderProgram;
-    GLuint posAttrib;
-    GLuint texCoordAttrib;
-    GLuint idAttrib;
-    
-    std::map<fsuint, GLStash*>* stashes;
-
-    std::vector<float> projectionMatrix;
-    float color[3];
-    float outlineColor[4];
-    float sdfProperties[4];
-    float sdfMixFactor;
-
-    GLuint texTransform;
-    int transformRes[2];
     unsigned int* transformData;
     unsigned char* transformDirty;
-
-    GLFONSvbo* vbo;
     float* interleavedArray;
-    float resolution[2];
+    unsigned int nbVerts;
+    unsigned int maxId;
+    int transformRes[2];
+    std::unordered_map<fsuint, GLFONSstash*>* stashes;
+};
+
+struct GLFONSparams {
+    void (*errorCallback)(void* usrPtr, GLFONSbuffer* buffer, GLFONSError error);
+    void (*createTexTransforms)(void* usrPtr, unsigned int width, unsigned int height);
+    void (*createAtlas)(void* usrPtr, unsigned int width, unsigned int height);
+    void (*updateTransforms)(void* usrPtr, unsigned int xoff, unsigned int yoff,
+                             unsigned int width, unsigned int height, const unsigned int* pixels);
+    void (*updateAtlas)(void* usrPtr, unsigned int xoff, unsigned int yoff,
+                        unsigned int width, unsigned int height, const unsigned int* pixels);
+    void (*vertexData)(void* usrPtr, unsigned int nVerts, const float* data);
+};
+
+struct GLFONScontext {
+    GLFONSparams params;
+    int atlasRes[2];
+    float screenSize[2];
+    float projectionMatrix[16];
+    fsuint idct;
+    fsuint boundBuffer;
+    std::unordered_map<fsuint, GLFONSbuffer*>* buffers;
+    void* userPtr;
 };
 
 #endif
@@ -158,114 +94,70 @@ struct GLFONScontext {
 #define FONTSTASH_IMPLEMENTATION
 #include "fontstash.h"
 
-static void glfons__printShaderInfoLog(GLuint shader) {
-    GLint length = 0;
-    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
-    if(length > 1) {
-        char* log = (char*)malloc(sizeof(char) * length);
-        glGetShaderInfoLog(shader, length, NULL, log);
-        printf("Log: %s\n", log);
-        free(log);
-    }
-}
-
-static GLuint glfons__compileShader(const GLchar* src, GLenum type) {
-    GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, &src, NULL);
-    glCompileShader(shader);
-    GLint status;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-    
-    if(!status) {
-        glfons__printShaderInfoLog(shader);
-        glDeleteShader(shader);
-        exit(-1);
-    }
-    return shader;
-}
-
-static GLuint glfons__linkShaderProgram(const GLchar* vertexSrc, const GLchar* fragmentSrc) {
-    GLuint program = glCreateProgram();
-    GLuint vertex = glfons__compileShader(vertexSrc, GL_VERTEX_SHADER);
-    GLuint fragment = glfons__compileShader(fragmentSrc, GL_FRAGMENT_SHADER);
-    glAttachShader(program, vertex);
-    glAttachShader(program, fragment);
-    glLinkProgram(program);
-    GLint linkStatus;
-    glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
-    
-    if(!linkStatus) {
-        glfons__printShaderInfoLog(program);
-        glDeleteProgram(program);
-        exit(-1);
-    }
-    return program;
-}
-
 void glfons__id2ij(GLFONScontext* gl, fsuint id, int* i, int* j) {
-    int* res = gl->transformRes;
+    int* res = gl->buffers->at(gl->boundBuffer)->transformRes;
     *i = (id*2) % (res[0]/2);
     *j = (id*2) / (res[0]/2);
 }
 
-/*
- * Data is stored in the texture as following :
- *  | translation_x | translation_y | rotation | alpha | precision_tx | precision_ty | Ø | Ø |
- *       1 byte
- * Each texts id uses 8 bytes of GPU texture memory for its own transform
- */
-void glfons__updateTransform(GLFONScontext* gl, fsuint id, float tx, float ty, float r, float a) {
-    int i, j;
+static int glfons__renderCreate(void* userPtr, int width, int height) {
+    GLFONScontext* gl = (GLFONScontext*)userPtr;
 
-    // TODO : manage out of screen translations
+    gl->idct = 0;
+    gl->buffers = new std::unordered_map<fsuint, GLFONSbuffer*>();
+    gl->atlasRes[0] = width;
+    gl->atlasRes[1] = height;
+    gl->params.createAtlas(gl->userPtr, width, height);
 
-    // get the i and j pixel index from an id
-    // every specific transform data for an id is contiguous in memory
-    // in order to update smaller part of textures later
-    glfons__id2ij(gl, id, &i, &j);
+    // TODO : shader management
 
-    // scale between [0..resolution] to [0..255]
-    tx = (tx * 255.0) / gl->resolution[0];
-    ty = (ty * 255.0) / gl->resolution[1];
-
-    // scale between [0..2Pi] to [0..255]
-    r = (r / (2.0 * M_PI)) * 255.0;
-
-    a = a * 255.0;
-
-    // scale decimal part from [0..1] to [0..255] rounding to the closest value
-    // known floating point error here of 0.5/255 ~= 0.00196 due to rounding
-    float dx = floor((1.0 - ((int)(tx + 1) - tx)) * 255.0 + 0.5);
-    float dy = floor((1.0 - ((int)(ty + 1) - ty)) * 255.0 + 0.5);
-
-    // encode in an unsigned int
-    unsigned int data = glfonsRGBA(tx, ty, r, a);
-
-    // 2 bytes are not used here, can be used later for scaling
-    unsigned int fract = glfonsRGBA(dx, dy, /* bytes not used -> */ 0, 0);
-
-    unsigned int index = j*gl->transformRes[0]+i;
-
-    // modify transforms only if it has changed from last frame
-    if(data != gl->transformData[index] || fract != gl->transformData[index+1]) {
-        gl->transformData[index] = data;
-        gl->transformData[index+1] = fract;
-
-        // make the whole texture line dirty
-        gl->transformDirty[j] = 1;
+    for(int i = 0; i < 16; i++) {
+        gl->projectionMatrix[i] = 0.0;
     }
+    
+    return 1;
 }
 
-void glfons__uploadTransforms(GLFONScontext* gl) {
-    if (gl->texTransform == 0) return;
+static int glfons__renderResize(void* userPtr, int width, int height) {
+    return 1;
+}
+
+static void glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* data) {
+    GLFONScontext* gl = (GLFONScontext*)userPtr;
+    
+    int h = rect[3] - rect[1];
+    const unsigned char* subdata = data + rect[1] * gl->atlasRes[0];
+    gl->params.updateAtlas(gl->userPtr, 0, rect[1], gl->atlasRes[0], h, reinterpret_cast<const unsigned int*>(subdata));
+}
+
+static void glfons__renderDraw(void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts) {
+    // called by fontstash, but has nothing to do
+}
+
+void glfons__freeStash(GLFONSstash* stash) {
+    delete[] stash->glyphsXOffset;
+    delete stash;
+}
+
+GLFONSbuffer* glfons__bufferBound(GLFONScontext* gl) {
+    if(gl->boundBuffer == 0) {
+        return nullptr;
+    }
+
+    return gl->buffers->at(gl->boundBuffer);
+}
+
+void glfonsUploadTransforms(FONScontext* ctx) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    GLFONSbuffer* buffer = glfons__bufferBound(gl);
 
     int inf = INT_MAX;
     int min = inf;
     int max = -inf;
     bool dirty = false;
 
-    for(int i = 0; i < gl->transformRes[1]; ++i) {
-        if(gl->transformDirty[i]) {
+    for(int i = 0; i < buffer->transformRes[1]; ++i) {
+        if(buffer->transformDirty[i]) {
             dirty = true;
             if(min > max) {
                 min = max = i;
@@ -279,118 +171,154 @@ void glfons__uploadTransforms(GLFONScontext* gl) {
         return;
     }
 
-    // update smaller part of texture, only the part where transforms have been modified
     const unsigned int* subdata;
-
-    glBindTexture(GL_TEXTURE_2D, gl->texTransform);
-    subdata = gl->transformData + min * gl->transformRes[0];
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, min, gl->transformRes[0], (max - min) + 1, GL_RGBA, GL_UNSIGNED_BYTE, subdata);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    std::fill(gl->transformDirty, gl->transformDirty + gl->transformRes[1], 0);
+    subdata = buffer->transformData + min * buffer->transformRes[0];
+    gl->params.updateTransforms(gl->userPtr, 0, min, buffer->transformRes[0], (max - min) + 1, subdata);
+    std::fill(buffer->transformDirty, buffer->transformDirty + buffer->transformRes[1], 0);
 }
 
-static int glfons__renderCreate(void* userPtr, int width, int height) {
-    GLFONScontext* gl = (GLFONScontext*)userPtr;
-    // Create may be called multiple times, delete existing texture.
-    if (gl->tex != 0) {
-        glDeleteTextures(1, &gl->tex);
-        gl->tex = 0;
-    }
-    gl->idct = 0;
-    gl->stashes = new std::map<fsuint, GLStash*>();
+void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    GLFONSbuffer* buffer = glfons__bufferBound(gl);
 
-    gl->transformRes[0] = 32;
-    gl->transformRes[1] = 64; // 1024 potential text ids
-    gl->transformData = new unsigned int[gl->transformRes[0] * gl->transformRes[1]] ();
-    gl->transformDirty = new unsigned char[gl->transformRes[1]] ();
-
-    glGenTextures(1, &gl->texTransform);
-    glBindTexture(GL_TEXTURE_2D, gl->texTransform);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, gl->transformRes[0], gl->transformRes[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, gl->transformData);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-    // create texture
-    glGenTextures(1, &gl->tex);
-    if (!gl->tex) return 0;
-    gl->width = width;
-    gl->height = height;
-    
-    glBindTexture(GL_TEXTURE_2D, gl->tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, gl->width, gl->height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    
-    // create shader
-    gl->defaultShaderProgram = glfons__linkShaderProgram(glfs::vertexShaderSrc, glfs::defaultFragShaderSrc);
-    gl->sdfShaderProgram = glfons__linkShaderProgram(glfs::vertexShaderSrc, glfs::sdfFragShaderSrc);
-    
-    gl->posAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_position");
-    gl->texCoordAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_texCoord");
-    gl->idAttrib = glGetAttribLocation(gl->defaultShaderProgram, "a_fsid");
-
-    gl->projectionMatrix.reserve(4 * 4);
-    for(int i = 0; i < 16; i++) {
-        gl->projectionMatrix[i] = 0.0;
+    if(buffer->idct + nb > buffer->maxId) {
+        if(gl->params.errorCallback) {
+            gl->params.errorCallback(gl->userPtr, buffer, GLFONSError::ID_OVERFLOW);
+        }
+        return;
     }
 
-    std::fill(gl->color, gl->color + 3, 255.0);
-    
-    return 1;
+    for(int i = 0; i < nb; ++i) {
+        textId[i] = buffer->idct++;
+    }
 }
 
-static int glfons__renderResize(void* userPtr, int width, int height) {
-    // Reuse create to resize too.
-    return glfons__renderCreate(userPtr, width, height);
+void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, FONSeffectType effect) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    GLFONSbuffer* buffer = glfons__bufferBound(gl);
+    GLFONSstash* stash = new GLFONSstash;
+
+    fonsDrawText(ctx, 0, 0, s, NULL, 0);
+
+    float* data = nullptr;
+
+    if(buffer->interleavedArray == nullptr) {
+        buffer->interleavedArray = (float*) malloc(sizeof(float) * ctx->nverts * 5);
+        buffer->nbVerts = 0;
+        data = buffer->interleavedArray;
+    } else {
+        // TODO : realloc can be expensive, improve
+        buffer->interleavedArray = (float*) realloc(buffer->interleavedArray,
+                                                    sizeof(float) * (buffer->nbVerts + buffer->nbVerts) * 5);
+        data = buffer->interleavedArray + buffer->nbVerts * 5;
+    }
+
+    stash->glyphsXOffset = new float[ctx->nverts / N_GLYPH_VERTS];
+
+    int j = 0;
+    for(int i = 0; i < ctx->nverts * 2; i += N_GLYPH_VERTS * 2) {
+        stash->glyphsXOffset[j++] = ctx->verts[i];
+    }
+
+    float inf = std::numeric_limits<float>::infinity();
+    float x0 = inf, x1 = -inf, y0 = inf, y1 = -inf;
+    for(int i = 0, off = 0; i < ctx->nverts * 2; i += 2, off += 5) {
+        GLfloat x, y, u, v;
+
+        x = ctx->verts[i];
+        y = ctx->verts[i+1];
+        u = ctx->tcoords[i];
+        v = ctx->tcoords[i+1];
+
+        x0 = x < x0 ? x : x0;
+        x1 = x > x1 ? x : x1;
+        y0 = y < y0 ? y : y0;
+        y1 = y > y1 ? y : y1;
+
+        data[off] = x;
+        data[off+1] = y;
+        data[off+2] = u;
+        data[off+3] = v;
+        data[off+4] = float(textId);
+    }
+
+    stash->bbox[0] = x0; stash->bbox[1] = y0;
+    stash->bbox[2] = x1; stash->bbox[3] = y1;
+
+    stash->length = ctx->verts[(ctx->nverts*2)-2];
+
+    if(ctx->shaping != NULL && fons__getState(ctx)->useShaping) {
+        FONSshapingRes* res = ctx->shaping->shapingRes;
+        stash->nbGlyph = res->glyphCount;
+        fons__clearShaping(ctx);
+    } else {
+        stash->nbGlyph = (int)strlen(s);
+    }
+
+    buffer->nbVerts += ctx->nverts;
+
+    // hack : reset fontstash state
+    ctx->nverts = 0;
+
+    buffer->stashes->insert(std::pair<fsuint, GLFONSstash*>(textId, stash));
 }
 
-static void glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* data) {
-    GLFONScontext* gl = (GLFONScontext*)userPtr;
-    if (gl->tex == 0) return;
-    
-    int h = rect[3] - rect[1];
-    
-    glBindTexture(GL_TEXTURE_2D, gl->tex);
-    const unsigned char* subdata = data + rect[1] * gl->width;
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, rect[1], gl->width, h, GL_ALPHA, GL_UNSIGNED_BYTE, subdata);
+void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* id) {
+    if((texTransformRes & (texTransformRes-1)) != 0) {
+        *id = 0;
+        return;
+    }
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    GLFONSbuffer* buffer = new GLFONSbuffer;
+
+    *id = ++gl->idct;
+
+    buffer->idct = 0;
+    buffer->transformRes[0] = texTransformRes;
+    buffer->transformRes[1] = texTransformRes * 2;
+    buffer->maxId = pow(texTransformRes, 2);
+    buffer->transformData = new unsigned int[texTransformRes * texTransformRes * 2] ();
+    buffer->transformDirty = new unsigned char[texTransformRes * 2] ();
+    buffer->interleavedArray = nullptr;
+    buffer->id = *id;
+    buffer->stashes = new std::unordered_map<fsuint, GLFONSstash*>();
+
+    gl->params.createTexTransforms(gl->userPtr, buffer->transformRes[0], buffer->transformRes[1]);
+
+    gl->buffers->insert(std::pair<fsuint, GLFONSbuffer*>(*id, buffer));
 }
 
-static void glfons__renderDraw(void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts) {
-    // called by fontstash, but has nothing to do
+void glfonsDeleteBuffer(GLFONScontext* gl, GLFONSbuffer* buffer) {
+    delete[] buffer->transformData;
+    delete[] buffer->transformDirty;
+
+    for(auto& elt : *buffer->stashes) {
+        glfons__freeStash(elt.second);
+    }
+    buffer->stashes->clear();
+    delete buffer->stashes;
+
+    if(buffer->interleavedArray != nullptr) {
+        free(buffer->interleavedArray);
+    }
+
+    gl->buffers->erase(buffer->id);
+}
+
+void glfonsBindBuffer(FONScontext* ctx, fsuint id) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    gl->boundBuffer = id;
 }
 
 static void glfons__renderDelete(void* userPtr) {
     GLFONScontext* gl = (GLFONScontext*)userPtr;
-    
-    if (gl->tex != 0) {
-        glDeleteTextures(1, &gl->tex);
-    }
 
-    if(gl->texTransform != 0) {
-        glDeleteTextures(1, &gl->texTransform);
+    for(auto& elt : *gl->buffers) {
+        glfonsDeleteBuffer(gl, elt.second);
     }
-    
-    for(auto& elmt : *gl->stashes) {
-        GLStash* stash = elmt.second;
-        if(stash != NULL) {
-            delete[] stash->glyphsXOffset;
-            delete stash;
-        }
-    }
-    
-    glDeleteProgram(gl->defaultShaderProgram);
-    glDeleteProgram(gl->sdfShaderProgram);
-
-    glDeleteBuffers(1, &gl->vbo->buffer);
-    delete gl->vbo;
-    if(gl->interleavedArray) {
-        delete[] gl->interleavedArray;
-    }
-    delete[] gl->transformDirty;
-    delete[] gl->transformData;
-    
-    delete gl->stashes;
+    gl->buffers->clear();
+    delete gl->buffers;
     delete gl;
 }
 
@@ -413,15 +341,20 @@ void glfonsUpdateViewport(FONScontext* ctx, float width, float height) {
     gl->projectionMatrix[14] = -(f+n)/(f-n);
     gl->projectionMatrix[15] = 1.0;
 
-    gl->resolution[0] = width;
-    gl->resolution[1] = height;
+    gl->screenSize[0] = width;
+    gl->screenSize[1] = height;
 }
 
-FONScontext* glfonsCreate(int width, int height, int flags) {
+const float* glfonsGetProjectionMatrix(FONScontext* ctx) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    return &gl->projectionMatrix[0];
+}
+
+FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParams, void* userPtr) {
     FONSparams params;
     GLFONScontext* gl = new GLFONScontext;
-
-    gl->interleavedArray = nullptr;
+    gl->params = glParams;
+    gl->userPtr = userPtr;
 
     params.width = width;
     params.height = height;
@@ -444,206 +377,102 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
     return (r) | (g << 8) | (b << 16) | (a << 24);
 }
 
-void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectType effect) {
-    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    GLStash* stash = new GLStash;
-
-    *id = glctx->idct++;
-
-    if(*id > glctx->transformRes[0] * (glctx->transformRes[1]/2)) {
-        std::cerr << "No more texture transform data available" << std::endl;
-        std::cerr << "Consider resizing the transform texture" << std::endl;
-        return;
-    }
-    
-    fonsDrawText(ctx, 0, 0, s, NULL, 0);
-
-    float* data = nullptr;
-
-    if(glctx->interleavedArray == nullptr) {
-        glctx->interleavedArray = (float*) malloc(sizeof(float) * ctx->nverts * 5);
-        glctx->vbo = new GLFONSvbo;
-        glctx->vbo->nverts = 0;
-        data = glctx->interleavedArray;
-    } else {
-        // TODO : realloc can be expensive, improve
-        glctx->interleavedArray = (float*) realloc(glctx->interleavedArray, sizeof(float) * (glctx->vbo->nverts + ctx->nverts) * 5);
-        data = glctx->interleavedArray + glctx->vbo->nverts * 5;
-    }
-    
-    stash->effect = effect;
-    stash->glyphsXOffset = new float[ctx->nverts / N_GLYPH_VERTS];
-    
-    int j = 0;
-    for(int i = 0; i < ctx->nverts * 2; i += N_GLYPH_VERTS * 2) {
-        stash->glyphsXOffset[j++] = ctx->verts[i];
-    }
-    
-    float inf = std::numeric_limits<float>::infinity();
-    float x0 = inf, x1 = -inf, y0 = inf, y1 = -inf;
-    for(int i = 0, off = 0; i < ctx->nverts * 2; i += 2, off += 5) {
-        GLfloat x, y, u, v;
-
-        x = ctx->verts[i];
-        y = ctx->verts[i+1];
-        u = ctx->tcoords[i];
-        v = ctx->tcoords[i+1];
-
-        x0 = x < x0 ? x : x0;
-        x1 = x > x1 ? x : x1;
-        y0 = y < y0 ? y : y0;
-        y1 = y > y1 ? y : y1;
-
-        data[off] = x;
-        data[off+1] = y;
-        data[off+2] = u;
-        data[off+3] = v;
-        data[off+4] = float(*id);
-    }
-
-    if(ctx->shaping != NULL && fons__getState(ctx)->useShaping) {
-        FONSshapingRes* res = ctx->shaping->shapingRes;
-        stash->nbGlyph = res->glyphCount;
-        fons__clearShaping(ctx);
-    } else {
-        stash->nbGlyph = (int)strlen(s);
-    }
-    
-    stash->bbox[0] = x0; stash->bbox[1] = y0;
-    stash->bbox[2] = x1; stash->bbox[3] = y1;
-    
-    stash->length = ctx->verts[(ctx->nverts*2)-2];
-    
-    glctx->vbo->nverts += ctx->nverts;
-    
-    // hack : reset fontstash state
-    ctx->nverts = 0;
-    
-    glctx->stashes->insert(std::pair<fsuint, GLStash*>(*id, stash));
-}
-
 void glfonsUploadVertices(FONScontext* ctx) {
-    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    
-    glGenBuffers(1, &glctx->vbo->buffer);
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    GLFONSbuffer* buffer = glfons__bufferBound(gl);
 
-    glBindBuffer(GL_ARRAY_BUFFER, glctx->vbo->buffer);
-    glBufferData(GL_ARRAY_BUFFER, 5 * sizeof(float) * glctx->vbo->nverts, glctx->interleavedArray, GL_STATIC_DRAW);
+    gl->params.vertexData(gl->userPtr, buffer->nbVerts, buffer->interleavedArray);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    if(glctx->interleavedArray) {
-        free(glctx->interleavedArray);
-    }
+    free(buffer->interleavedArray);
+    buffer->interleavedArray = nullptr;
 }
 
+/*
+ * Data is stored in the texture as following :
+ *  | translation_x | translation_y | rotation | alpha | precision_tx | precision_ty | Ø | Ø |
+ *       1 byte
+ * Each texts id uses 8 bytes of GPU texture memory for its own transform
+ */
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a) {
-    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    glfons__updateTransform(glctx, id, tx, ty, r, a);
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    GLFONSbuffer* buffer = glfons__bufferBound(gl);
+
+    int i, j;
+
+    // TODO : manage out of screen translations
+
+    // get the i and j pixel index from an id
+    // every specific transform data for an id is contiguous in memory
+    // in order to update smaller part of textures later
+    glfons__id2ij(gl, id, &i, &j);
+
+    // scale between [0..resolution] to [0..255]
+    tx = (tx * 255.0) / gl->screenSize[0];
+    ty = (ty * 255.0) / gl->screenSize[1];
+
+    // scale between [0..2Pi] to [0..255]
+    r = (r / (2.0 * M_PI)) * 255.0;
+
+    a = a * 255.0;
+
+    // scale decimal part from [0..1] to [0..255] rounding to the closest value
+    // known floating point error here of 0.5/255 ~= 0.00196 due to rounding
+    float dx = floor((1.0 - ((int)(tx + 1) - tx)) * 255.0 + 0.5);
+    float dy = floor((1.0 - ((int)(ty + 1) - ty)) * 255.0 + 0.5);
+
+    // encode in an unsigned int
+    unsigned int data = glfonsRGBA(tx, ty, r, a);
+
+    // 2 bytes are not used here, can be used later for scaling
+    unsigned int fract = glfonsRGBA(dx, dy, /* bytes not used -> */ 0, 0);
+
+    unsigned int index = j*buffer->transformRes[0]+i;
+
+    // modify transforms only if it has changed from last frame
+    if(data != buffer->transformData[index] || fract != buffer->transformData[index+1]) {
+        buffer->transformData[index] = data;
+        buffer->transformData[index+1] = fract;
+
+        // make the whole texture line dirty
+        buffer->transformDirty[j] = 1;
+    }
 }
 
 int glfonsGetGlyphCount(FONScontext* ctx, fsuint id) {
-    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    
-    if(glctx->stashes->find(id) != glctx->stashes->end()) {
-        GLStash* stash = glctx->stashes->at(id);
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    GLFONSbuffer* buffer = glfons__bufferBound(gl);
+
+    if(buffer->stashes->find(id) != buffer->stashes->end()) {
+        GLFONSstash* stash = buffer->stashes->at(id);
         return stash->nbGlyph;
     }
     
     return -1;
 }
 
-void glfonsDraw(FONScontext* ctx) {
-    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-
-    if(glctx->tex == 0)
-        return;
-
-    // would be uploaded only if some transforms has been modified
-    glfons__uploadTransforms(glctx);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, glctx->tex);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, glctx->texTransform);
-
-    GLuint program = glctx->defaultShaderProgram;
-
-    glUseProgram(program);
-
-    glUniform1i(glGetUniformLocation(program, "u_transforms"), 1);
-    glUniform2f(glGetUniformLocation(program, "u_tresolution"), glctx->transformRes[0], glctx->transformRes[1]);
-    glUniform1i(glGetUniformLocation(program, "u_tex"), 0);
-    glUniform3f(glGetUniformLocation(program, "u_color"), glctx->color[0] / 255.0, glctx->color[1] / 255.0, glctx->color[2] / 255.0);
-    glUniform2f(glGetUniformLocation(program, "u_resolution"), glctx->resolution[0], glctx->resolution[1]);
-    glUniformMatrix4fv(glGetUniformLocation(program, "u_proj"), 1, GL_FALSE, &glctx->projectionMatrix[0]);
-
-    // TODO : add back sdf feature effects, not anymore by id, but by context
-
-    glBindBuffer(GL_ARRAY_BUFFER, glctx->vbo->buffer);
-
-    glVertexAttribPointer(glctx->posAttrib, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
-    glEnableVertexAttribArray(glctx->posAttrib);
-
-    glVertexAttribPointer(glctx->texCoordAttrib, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (const GLvoid*)(2 * sizeof(float)));
-    glEnableVertexAttribArray(glctx->texCoordAttrib);
-
-    glVertexAttribPointer(glctx->idAttrib, 1, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (const GLvoid*)(4 * sizeof(float)));
-    glEnableVertexAttribArray(glctx->idAttrib);
-
-    glDrawArrays(GL_TRIANGLES, 0, glctx->vbo->nverts);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glUseProgram(0);
-
-    glDisableVertexAttribArray(glctx->posAttrib);
-    glDisableVertexAttribArray(glctx->texCoordAttrib);
-}
-
-void glfonsSetColor(FONScontext* ctx, unsigned int r, unsigned int g, unsigned int b) {
-    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    glctx->color[0] = r;
-    glctx->color[1] = g;
-    glctx->color[2] = b;
-}
-
 float glfonsGetGlyphOffset(FONScontext* ctx, fsuint id, int i) {
-    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    GLStash* stash = glctx->stashes->at(id);
-    
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    GLFONSbuffer* buffer = glfons__bufferBound(gl);
+    GLFONSstash* stash = buffer->stashes->at(id);
+
     return stash->glyphsXOffset[i];
 }
 
 void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1, float* y1) {
-    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    GLStash* stash = glctx->stashes->at(id);
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    GLFONSbuffer* buffer = glfons__bufferBound(gl);
+    GLFONSstash* stash = buffer->stashes->at(id);
     
     *x0 = stash->bbox[0]; *y0 = stash->bbox[1];
     *x1 = stash->bbox[2]; *y1 = stash->bbox[3];
 }
 
 float glfonsGetLength(FONScontext* ctx, fsuint id) {
-    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    GLStash* stash = glctx->stashes->at(id);
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    GLFONSbuffer* buffer = glfons__bufferBound(gl);
+    GLFONSstash* stash = buffer->stashes->at(id);
     
     return stash->length;
-}
-
-void glfonsSetOutlineColor(FONScontext* ctx, unsigned int r, unsigned int g, unsigned int b) {
-    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    glctx->outlineColor[0] = r;
-    glctx->outlineColor[1] = g;
-    glctx->outlineColor[2] = b;
-}
-
-void glfonsSetSDFProperties(FONScontext* ctx, float minOutlineD, float maxOutlineD, float minInsideD, float maxInsideD, float mixFactor) {
-    GLFONScontext* glctx = (GLFONScontext*) ctx->params.userPtr;
-    
-    glctx->sdfProperties[0] = minOutlineD; glctx->sdfProperties[1] = maxOutlineD;
-    glctx->sdfProperties[2] = minInsideD;  glctx->sdfProperties[3] = maxInsideD;
-    
-    glctx->sdfMixFactor = mixFactor;
 }
 
 #endif

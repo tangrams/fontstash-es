@@ -110,7 +110,7 @@ static float x;
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_DEPTH_TEST);
     
-    glfonsSetColor(fs, 255, 255, 255);
+    /*glfonsSetColor(fs, 255, 255, 255);
 
     float xnorm = (sin(x) + 1.0) * 0.5;
 
@@ -121,6 +121,7 @@ static float x;
     glfonsTransform(fs, textfr1, 50 + 20 * xnorm, 550 + 20 * xnorm, xnorm * 2.0 * M_PI, 1.0);
 
     glfonsDraw(fs);
+    */
 
     glDisable(GL_BLEND);
     
@@ -175,7 +176,16 @@ static float x;
 
 - (void)createFontContext
 {
-    fs = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT);
+    GLFONSparams params;
+
+    params.errorCallback = errorCallback;
+    params.createAtlas = createAtlas;
+    params.createTexTransforms = createTexTransforms;
+    params.updateAtlas = updateAtlas;
+    params.updateTransforms = updateTransforms;
+    params.vertexData = vertexData;
+
+    fs = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT, params, NULL);
     
     if (fs == NULL) {
         NSLog(@"Could not create font context");
@@ -183,10 +193,15 @@ static float x;
     
     [self loadFonts];
 
+    glfonsBufferCreate(fs, 32, &buffer);
+    glfonsBindBuffer(fs, buffer);
+
+    glfonsGenText(fs, 5, texts);
+
     fonsSetFont(fs, han);
     fonsSetSize(fs, 100.0);
     fonsSetShaping(fs, "han", "TTB", "ch");
-    glfonsBufferText(fs, "緳 踥踕", &textch1, FONS_EFFECT_NONE);
+    glfonsRasterize(fs, texts[0], "緳 踥踕", FONS_EFFECT_NONE);
 
     fonsClearState(fs);
 
@@ -194,13 +209,13 @@ static float x;
 
     fonsSetSize(fs, 200.0);
     fonsSetShaping(fs, "arabic", "RTL", "ar");
-    glfonsBufferText(fs, "سنالى ما شاسعة وق", &textar1, FONS_EFFECT_NONE);
+    glfonsRasterize(fs, texts[1], "سنالى ما شاسعة وق", FONS_EFFECT_NONE);
 
     fonsClearState(fs);
 
     fonsSetSize(fs, 100.0);
     fonsSetShaping(fs, "arabic", "RTL", "ar");
-    glfonsBufferText(fs, "تسجّل يتكلّم", &textar2, FONS_EFFECT_NONE);
+    glfonsRasterize(fs, texts[2], "تسجّل يتكلّم", FONS_EFFECT_NONE);
 
     fonsClearState(fs);
 
@@ -208,17 +223,17 @@ static float x;
 
     fonsSetSize(fs, 50.0);
     fonsSetShaping(fs, "french", "left-to-right", "fr");
-    glfonsBufferText(fs, "ffffi", &textfr1, FONS_EFFECT_NONE);
+    glfonsRasterize(fs, texts[3], "ffffi", FONS_EFFECT_NONE);
 
     fonsClearState(fs);
 
     fonsSetFont(fs, hindi);
     fonsSetSize(fs, 200.0);
     fonsSetShaping(fs, "devanagari", "LTR", "hi");
-    glfonsBufferText(fs, "हालाँकि प्रचलित रूप पूजा", &texthi1, FONS_EFFECT_NONE);
+    glfonsRasterize(fs, texts[4], "हालाँकि प्रचलित रूप पूजा", FONS_EFFECT_NONE);
 
     glfonsUploadVertices(fs);
-
+    glfonsBindBuffer(fs, 0);
 }
 
 - (void)deleteFontContext
