@@ -30,7 +30,8 @@
     int hindi;
 
     fsuint texts[5];
-    fsuint buffer;
+    fsuint buffer1;
+    fsuint buffer2;
 }
 
 @end

@@ -193,8 +193,8 @@ static float x;
     
     [self loadFonts];
 
-    glfonsBufferCreate(fs, 32, &buffer);
-    glfonsBindBuffer(fs, buffer);
+    glfonsBufferCreate(fs, 32, &buffer1);
+    glfonsBindBuffer(fs, buffer1);
 
     glfonsGenText(fs, 5, texts);
 
@@ -212,6 +212,9 @@ static float x;
     glfonsRasterize(fs, texts[1], "سنالى ما شاسعة وق", FONS_EFFECT_NONE);
 
     fonsClearState(fs);
+
+    glfonsBufferCreate(fs, 32, &buffer2);
+    glfonsBindBuffer(fs, buffer2);
 
     fonsSetSize(fs, 100.0);
     fonsSetShaping(fs, "arabic", "RTL", "ar");
@@ -232,6 +235,9 @@ static float x;
     fonsSetShaping(fs, "devanagari", "LTR", "hi");
     glfonsRasterize(fs, texts[4], "हालाँकि प्रचलित रूप पूजा", FONS_EFFECT_NONE);
 
+    glfonsBindBuffer(fs, buffer1);
+    glfonsUploadVertices(fs);
+    glfonsBindBuffer(fs, buffer2);
     glfonsUploadVertices(fs);
     glfonsBindBuffer(fs, 0);
 }
