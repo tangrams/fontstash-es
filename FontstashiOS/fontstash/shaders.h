@@ -71,8 +71,7 @@ void main() {
 
     float precisionScale = 1.0/255.0;
 
-    // transforms from [0..1] to [0..resolution]
-    // also add the lost precision due to unsigned byte texture format
+    // transforms from [0..1] to [0..resolution] and add lost precision
     tx = u_resolution.x * (tx + txp * precisionScale);
     ty = u_resolution.y * (ty + typ * precisionScale);
 
@@ -83,9 +82,6 @@ void main() {
     float ct = cos(theta);
 
     // rotates first around +z-axis (0,0,1) and then translates by (tx,ty,0)
-    // same as performing the 4x4 matrix transform R.T.P, where R,T are
-    // respectively rotation and transform matrices and P the position in
-    // homogeneous coordinates
     vec4 p = vec4(
         a_position.x * ct - a_position.y * st + tx,
         a_position.x * st + a_position.y * ct + ty,

@@ -182,6 +182,8 @@ void glfonsUploadTransforms(FONScontext* ctx) {
         return;
     }
 
+    // interleaved array stored as following in texture :
+    // | x | y | rot | alpha | precision_x | precision_y | Ø | Ø |
     const unsigned int* subdata;
     subdata = buffer->transformData + min * buffer->transformRes[0];
     gl->params.updateTransforms(gl->userPtr, 0, min, buffer->transformRes[0], (max - min) + 1, subdata);
@@ -400,12 +402,6 @@ void glfonsUploadVertices(FONScontext* ctx) {
     buffer->interleavedArray = nullptr;
 }
 
-/*
- * Data is stored in the texture as following :
- *  | translation_x | translation_y | rotation | alpha | precision_tx | precision_ty | Ø | Ø |
- *       1 byte
- * Each texts id uses 8 bytes of GPU texture memory for its own transform
- */
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
@@ -414,18 +410,13 @@ void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, f
 
     // TODO : manage out of screen translations
 
-    // get the i and j pixel index from an id
-    // every specific transform data for an id is contiguous in memory
-    // in order to update smaller part of textures later
     glfons__id2ij(gl, id, &i, &j);
 
-    // scale between [0..resolution] to [0..255]
+    // scaling to [0..255]
     tx = (tx * 255.0) / gl->screenSize[0];
     ty = (ty * 255.0) / gl->screenSize[1];
 
-    // scale between [0..2Pi] to [0..255]
     r = (r / (2.0 * M_PI)) * 255.0;
-
     a = a * 255.0;
 
     // scale decimal part from [0..1] to [0..255] rounding to the closest value
@@ -433,20 +424,13 @@ void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, f
     float dx = floor((1.0 - ((int)(tx + 1) - tx)) * 255.0 + 0.5);
     float dy = floor((1.0 - ((int)(ty + 1) - ty)) * 255.0 + 0.5);
 
-    // encode in an unsigned int
     unsigned int data = glfonsRGBA(tx, ty, r, a);
-
-    // 2 bytes are not used here, can be used later for scaling
     unsigned int fract = glfonsRGBA(dx, dy, /* bytes not used -> */ 0, 0);
-
     unsigned int index = j*buffer->transformRes[0]+i;
 
-    // modify transforms only if it has changed from last frame
     if(data != buffer->transformData[index] || fract != buffer->transformData[index+1]) {
         buffer->transformData[index] = data;
         buffer->transformData[index+1] = fract;
-
-        // make the whole texture line dirty
         buffer->transformDirty[j] = 1;
     }
 }

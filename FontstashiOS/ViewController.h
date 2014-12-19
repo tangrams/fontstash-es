@@ -12,10 +12,6 @@
 #import <OpenGLES/ES1/gl.h>
 #import <OpenGLES/ES1/glext.h>
 
-#import <stdio.h>
-#import <string.h>
-#import <vector>
-
 #define FONS_USE_FREETYPE
 #define GLFONTSTASH_IMPLEMENTATION
 #define FONS_USE_HARFBUZZ
@@ -44,7 +40,10 @@
 
 @end
 
-void errorCallback(void* userPtr, GLFONSbuffer* buffer, GLFONSError fonsError) {
+#pragma mark glfontstash callbacks
+
+void errorCallback(void* userPtr, GLFONSbuffer* buffer, GLFONSError fonsError)
+{
     NSLog(@"Error callback");
 
     // callback on error
