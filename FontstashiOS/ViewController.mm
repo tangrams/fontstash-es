@@ -32,7 +32,7 @@
     if (!self.context) {
         NSLog(@"Failed to create ES context");
     }
-    
+
     GLKView *view = (GLKView *)self.view;
     view.context = self.context;
     view.drawableDepthFormat = GLKViewDrawableDepthFormat24;
@@ -185,7 +185,7 @@ static float x;
     params.updateTransforms = updateTransforms;
     params.vertexData = vertexData;
 
-    fs = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT, params, NULL);
+    fs = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT, params, (__bridge void*) self);
     
     if (fs == NULL) {
         NSLog(@"Could not create font context");
@@ -255,5 +255,45 @@ static float x;
 {
     glfonsDelete(fs);
 }
+
+#pragma mark GPU access
+
+- (void) uploadVBO:(const float*)data verticesNumber:(unsigned int)nVerts
+{
+    NSLog(@"Upload vertex data to GPU, %d", nVerts);
+
+    // creates a vertex buffer object, and send data to gpu
+}
+
+- (void) updateAtlas:(const unsigned int*)pixels xoff:(unsigned int)xoff
+                yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height
+{
+    NSLog(@"Update atlas %d %d %d %d", xoff, yoff, width, height);
+
+    // update the atlas texture
+}
+
+- (void) updateTransforms:(const unsigned int*)pixels xoff:(unsigned int)xoff
+                     yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height
+{
+    NSLog(@"Update transform %d %d %d %d", xoff, yoff, width, height);
+
+    // update the transform texture
+}
+
+- (void) createAtlasWithWidth:(unsigned int)width height:(unsigned int)height
+{
+    NSLog(@"Create texture atlas");
+
+    // create a texture for the atlas of width * height
+}
+
+- (void) createTextureTransformsWithWidth:(unsigned int)width height:(unsigned int)height
+{
+    NSLog(@"Create texture transforms");
+
+    // create a texture for the texture transforms data of width * heigth
+}
+
 
 @end

@@ -34,8 +34,15 @@
     fsuint buffer2;
 }
 
-@end
+- (void) uploadVBO:(const float*)data verticesNumber:(unsigned int)nVerts;
+- (void) updateAtlas:(const unsigned int*)pixels xoff:(unsigned int)xoff
+                yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height;
+- (void) updateTransforms:(const unsigned int*)pixels xoff:(unsigned int)xoff
+                yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height;
+- (void) createAtlasWithWidth:(unsigned int)width height:(unsigned int)height;
+- (void) createTextureTransformsWithWidth:(unsigned int)width height:(unsigned int)height;
 
+@end
 
 void errorCallback(void* userPtr, GLFONSbuffer* buffer, GLFONSError fonsError) {
     NSLog(@"Error callback");
@@ -50,35 +57,35 @@ void errorCallback(void* userPtr, GLFONSbuffer* buffer, GLFONSError fonsError) {
     }
 }
 
-void createTexTransforms(void* userPtr, unsigned int width, unsigned int height) {
-    NSLog(@"Create texture transforms");
-
-    // create a texture for the texture transforms data of width * heigth
+void createTexTransforms(void* userPtr, unsigned int width, unsigned int height)
+{
+    ViewController* view = (__bridge ViewController*) userPtr;
+    [view createTextureTransformsWithWidth:width height:height];
 }
 
-void createAtlas(void* userPtr, unsigned int width, unsigned int height) {
-    NSLog(@"Create texture atlas");
-
-    // create a texture for the atlas of width * height
+void createAtlas(void* userPtr, unsigned int width, unsigned int height)
+{
+    ViewController* view = (__bridge ViewController*) userPtr;
+    [view createAtlasWithWidth:width height:height];
 }
 
 void updateTransforms(void* userPtr, unsigned int xoff, unsigned int yoff,
-                      unsigned int width, unsigned int height, const unsigned int* pixels) {
-    NSLog(@"Update transform %d %d %d %d", xoff, yoff, width, height);
-
-    // update the transform texture
+                      unsigned int width, unsigned int height, const unsigned int* pixels)
+{
+    ViewController* view = (__bridge ViewController*) userPtr;
+    [view updateTransforms:pixels xoff:xoff yoff:yoff width:width height:height];
 }
 
 void updateAtlas(void* userPtr, unsigned int xoff, unsigned int yoff,
-                  unsigned int width, unsigned int height, const unsigned int* pixels) {
-    NSLog(@"Update atlas %d %d %d %d", xoff, yoff, width, height);
-
-    // update the atlas texture
+                  unsigned int width, unsigned int height, const unsigned int* pixels)
+{
+    ViewController* view = (__bridge ViewController*) userPtr;
+    [view updateAtlas:pixels xoff:xoff yoff:yoff width:width height:height];
 }
 
-void vertexData(void* userPtr, unsigned int nVerts, const float* data) {
-    NSLog(@"Upload vertex data to GPU, %d", nVerts);
-
-    // creates a vertex buffer object, and send data to gpu
+void vertexData(void* userPtr, unsigned int nVerts, const float* data)
+{
+    ViewController* view = (__bridge ViewController*) userPtr;
+    [view uploadVBO:data verticesNumber:nVerts];
 }
 

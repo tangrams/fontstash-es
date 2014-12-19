@@ -24,11 +24,11 @@
 #include "fontstash.h"
 #include "shaders.h"
 
-typedef struct GLFONScontext GLFONScontext;
 typedef unsigned int fsuint;
-typedef struct GLFONSbuffer GLFONSbuffer;
 
 #define N_GLYPH_VERTS 6
+
+typedef struct GLFONScontext GLFonscontext;
 
 FONScontext* glfonsCreate(int width, int height, int flags);
 void glfonsDelete(FONScontext* ctx);
@@ -42,7 +42,7 @@ void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, f
 void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId);
 
 void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* id);
-void glfonsBufferDelete(GLFONScontext* gl, GLFONSbuffer* buffer);
+void glfonsBufferDelete(FONScontext* gl, fsuint id);
 void glfonsBindBuffer(FONScontext* ctx, fsuint id);
 
 void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, FONSeffectType effect);
@@ -121,8 +121,6 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     gl->atlasRes[0] = width;
     gl->atlasRes[1] = height;
     gl->params.createAtlas(gl->userPtr, width, height);
-
-    // TODO : shader management
 
     for(int i = 0; i < 16; i++) {
         gl->projectionMatrix[i] = 0.0;
@@ -302,7 +300,9 @@ void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* 
     gl->buffers->insert(std::pair<fsuint, GLFONSbuffer*>(*id, buffer));
 }
 
-void glfonsBufferDelete(GLFONScontext* gl, GLFONSbuffer* buffer) {
+void glfonsBufferDelete(GLFONScontext* gl, fsuint id) {
+    GLFONSbuffer* buffer = gl->buffers->at(id);
+
     delete[] buffer->transformData;
     delete[] buffer->transformDirty;
 
@@ -328,7 +328,7 @@ static void glfons__renderDelete(void* userPtr) {
     GLFONScontext* gl = (GLFONScontext*)userPtr;
 
     for(auto& elt : *gl->buffers) {
-        glfonsBufferDelete(gl, elt.second);
+        glfonsBufferDelete(gl, elt.first);
     }
     gl->buffers->clear();
     delete gl->buffers;
