@@ -22,7 +22,6 @@
 #include <unordered_map>
 
 #include "fontstash.h"
-#include "shaders.h"
 
 typedef unsigned int fsuint;
 
@@ -32,9 +31,6 @@ typedef struct GLFONScontext GLFonscontext;
 
 FONScontext* glfonsCreate(int width, int height, int flags);
 void glfonsDelete(FONScontext* ctx);
-
-void glfonsUpdateViewport(FONScontext* ctx, float width, float height);
-const float* glfonsGetProjectionMatrix(FONScontext* ctx);
 
 void glfonsUploadTransforms(FONScontext* ctx);
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a);
@@ -100,7 +96,6 @@ struct GLFONScontext {
     GLFONSparams params;
     int atlasRes[2];
     float screenSize[2];
-    float projectionMatrix[16];
     fsuint idct;
     fsuint boundBuffer;
     std::unordered_map<fsuint, GLFONSbuffer*>* buffers;
@@ -121,10 +116,6 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     gl->atlasRes[0] = width;
     gl->atlasRes[1] = height;
     gl->params.createAtlas(gl->userPtr, width, height);
-
-    for(int i = 0; i < 16; i++) {
-        gl->projectionMatrix[i] = 0.0;
-    }
     
     return 1;
 }
@@ -335,34 +326,6 @@ static void glfons__renderDelete(void* userPtr) {
     gl->buffers->clear();
     delete gl->buffers;
     delete gl;
-}
-
-void glfonsUpdateViewport(FONScontext* ctx, float width, float height) {
-    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
-    
-    float r = width;
-    float l = 0.0;
-    float b = height;
-    float t = 0.0;
-    float n = -1.0;
-    float f = 1.0;
-
-    // could be simplified, exposing it like this for comprehension
-    gl->projectionMatrix[0] = 2.0 / (r-l);
-    gl->projectionMatrix[5] = 2.0 / (t-b);
-    gl->projectionMatrix[10] = 2.0 / (f-n);
-    gl->projectionMatrix[12] = -(r+l)/(r-l);
-    gl->projectionMatrix[13] = -(t+b)/(t-b);
-    gl->projectionMatrix[14] = -(f+n)/(f-n);
-    gl->projectionMatrix[15] = 1.0;
-
-    gl->screenSize[0] = width;
-    gl->screenSize[1] = height;
-}
-
-const float* glfonsGetProjectionMatrix(FONScontext* ctx) {
-    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
-    return gl->projectionMatrix;
 }
 
 FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParams, void* userPtr) {

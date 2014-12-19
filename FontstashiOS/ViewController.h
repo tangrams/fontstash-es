@@ -90,4 +90,3 @@ void vertexData(void* userPtr, unsigned int nVerts, const float* data)
     ViewController* view = (__bridge ViewController*) userPtr;
     [view uploadVBO:data verticesNumber:nVerts];
 }
-

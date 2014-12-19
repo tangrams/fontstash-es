@@ -75,8 +75,6 @@
     glClearColor(0.25f, 0.25f, 0.28f, 1.0f);
 
     [self createFontContext];
-
-    glfonsUpdateViewport(fs, screen.width, screen.height);
 }
 
 - (void)tearDownGL
@@ -95,7 +93,7 @@
 
 - (void)glkView:(GLKView *)view drawInRect:(CGRect)rect
 {
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     [self renderFont];
 }
@@ -130,6 +128,7 @@
     glfonsUploadTransforms(fs);
     glfonsBindBuffer(fs, buffer2);
     glfonsUploadTransforms(fs);
+    glfonsBindBuffer(fs, 0);
 
     // TODO : drawing
 
@@ -317,6 +316,5 @@
 
     // create a texture for the texture transforms data of width * heigth
 }
-
 
 @end
