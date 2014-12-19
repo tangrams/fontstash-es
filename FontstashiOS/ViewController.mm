@@ -240,6 +240,15 @@ static float x;
     glfonsBindBuffer(fs, buffer2);
     glfonsUploadVertices(fs);
     glfonsBindBuffer(fs, 0);
+
+    glfonsBindBuffer(fs, buffer2);
+    float x0, y0, x1, y1;
+    glfonsGetBBox(fs, texts[3], &x0, &y0, &x1, &y1);
+    NSLog(@"BBox %f %f %f %f", x0, y0, x1, y1);
+    NSLog(@"Glyph count %d", glfonsGetGlyphCount(fs, texts[3]));
+    NSLog(@"Glyph offset %f", glfonsGetGlyphOffset(fs, texts[3], 1));
+
+    glfonsBindBuffer(fs, 0);
 }
 
 - (void)deleteFontContext

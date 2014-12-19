@@ -209,7 +209,7 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, FONSeffectT
     } else {
         // TODO : realloc can be expensive, improve
         buffer->interleavedArray = (float*) realloc(buffer->interleavedArray,
-                                                    sizeof(float) * (buffer->nbVerts + buffer->nbVerts) * 5);
+                                                    sizeof(float) * (buffer->nbVerts + ctx->nverts) * 5);
         data = buffer->interleavedArray + buffer->nbVerts * 5;
     }
 
