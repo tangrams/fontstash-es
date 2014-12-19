@@ -88,11 +88,9 @@
 
 #pragma mark - GLKView and GLKViewController delegate methods
 
-static float x;
-
 - (void)update
 {
-    x += .05f;
+
 }
 
 - (void)glkView:(GLKView *)view drawInRect:(CGRect)rect
@@ -109,19 +107,31 @@ static float x;
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_DEPTH_TEST);
-    
-    /*glfonsSetColor(fs, 255, 255, 255);
 
-    float xnorm = (sin(x) + 1.0) * 0.5;
+    float x = 0.0f;
+    float y = 50.0f;
 
-    glfonsTransform(fs, textar1, 50, 150, 0, 1.0);
-    glfonsTransform(fs, textar2, 50, 350, 0, 1.0);
-    glfonsTransform(fs, textch1, 200, 500, 0, 1.0);
-    glfonsTransform(fs, texthi1, 50, 420, 0, 1.0);
-    glfonsTransform(fs, textfr1, 50 + 20 * xnorm, 550 + 20 * xnorm, xnorm * 2.0 * M_PI, 1.0);
+    for(NSNumber* textId in bufferByTextId) {
+        NSNumber* buffer = [bufferByTextId objectForKey:textId];
+        glfonsBindBuffer(fs, [buffer intValue]);
 
-    glfonsDraw(fs);
-    */
+        // transform the text ids
+        glfonsTransform(fs, [textId intValue], x, y, 0.0f, 1.0f);
+
+        NSLog(@"Buffer: %@, textId: %@", buffer, textId);
+
+        glfonsBindBuffer(fs, 0);
+
+        x += 20.0f;
+    }
+
+    // upload the transforms for each buffer (lazy upload)
+    glfonsBindBuffer(fs, buffer1);
+    glfonsUploadTransforms(fs);
+    glfonsBindBuffer(fs, buffer2);
+    glfonsUploadTransforms(fs);
+
+    // TODO : drawing
 
     glDisable(GL_BLEND);
     
@@ -176,6 +186,9 @@ static float x;
 
 - (void)createFontContext
 {
+    // keeping track of the buffer associated with each text id
+    bufferByTextId = [NSMutableDictionary dictionaryWithCapacity:TEXT_NUMBER];
+    NSNumber* key;
     GLFONSparams params;
 
     params.errorCallback = errorCallback;
@@ -202,6 +215,8 @@ static float x;
     fonsSetSize(fs, 100.0);
     fonsSetShaping(fs, "han", "TTB", "ch");
     glfonsRasterize(fs, texts[0], "緳 踥踕", FONS_EFFECT_NONE);
+    key = [NSNumber numberWithInt:texts[0]];
+    bufferByTextId[key] = [NSNumber numberWithInt:buffer1];
 
     fonsClearState(fs);
 
@@ -210,6 +225,8 @@ static float x;
     fonsSetSize(fs, 200.0);
     fonsSetShaping(fs, "arabic", "RTL", "ar");
     glfonsRasterize(fs, texts[1], "سنالى ما شاسعة وق", FONS_EFFECT_NONE);
+    key = [NSNumber numberWithInt:texts[1]];
+    bufferByTextId[key] = [NSNumber numberWithInt:buffer1];
 
     fonsClearState(fs);
 
@@ -219,6 +236,8 @@ static float x;
     fonsSetSize(fs, 100.0);
     fonsSetShaping(fs, "arabic", "RTL", "ar");
     glfonsRasterize(fs, texts[2], "تسجّل يتكلّم", FONS_EFFECT_NONE);
+    key = [NSNumber numberWithInt:texts[2]];
+    bufferByTextId[key] = [NSNumber numberWithInt:buffer2];
 
     fonsClearState(fs);
 
@@ -227,6 +246,8 @@ static float x;
     fonsSetSize(fs, 50.0);
     fonsSetShaping(fs, "french", "left-to-right", "fr");
     glfonsRasterize(fs, texts[3], "ffffi", FONS_EFFECT_NONE);
+    key = [NSNumber numberWithInt:texts[3]];
+    bufferByTextId[key] = [NSNumber numberWithInt:buffer2];
 
     fonsClearState(fs);
 
@@ -234,6 +255,8 @@ static float x;
     fonsSetSize(fs, 200.0);
     fonsSetShaping(fs, "devanagari", "LTR", "hi");
     glfonsRasterize(fs, texts[4], "हालाँकि प्रचलित रूप पूजा", FONS_EFFECT_NONE);
+    key = [NSNumber numberWithInt:texts[4]];
+    bufferByTextId[key] = [NSNumber numberWithInt:buffer2];
 
     glfonsBindBuffer(fs, buffer1);
     glfonsUploadVertices(fs);

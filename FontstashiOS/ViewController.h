@@ -17,7 +17,10 @@
 #define FONS_USE_HARFBUZZ
 #import "glfontstash.h"
 
+#define TEXT_NUMBER 5
+
 @interface ViewController : GLKViewController {
+    NSMutableDictionary* bufferByTextId;
     FONScontext* fs;
 
     int amiri;
@@ -25,7 +28,7 @@
     int han;
     int hindi;
 
-    fsuint texts[5];
+    fsuint texts[TEXT_NUMBER];
     fsuint buffer1;
     fsuint buffer2;
 }
