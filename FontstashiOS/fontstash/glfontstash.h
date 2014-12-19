@@ -26,21 +26,41 @@
 
 typedef struct GLFONScontext GLFONScontext;
 typedef unsigned int fsuint;
+typedef struct GLFONSbuffer GLFONSbuffer;
 
 #define N_GLYPH_VERTS 6
 
 FONScontext* glfonsCreate(int width, int height, int flags);
 void glfonsDelete(FONScontext* ctx);
-void glfonsUploadVertices(FONScontext* ctx);
-void glfonsDraw(FONScontext* ctx);
+
 void glfonsUpdateViewport(FONScontext* ctx, float width, float height);
+const float* glfonsGetProjectionMatrix(FONScontext* ctx);
+
+void glfonsUploadTransforms(FONScontext* ctx);
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a);
+
+void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId);
+
+void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* id);
+void glfonsBufferDelete(GLFONScontext* gl, GLFONSbuffer* buffer);
+void glfonsBindBuffer(FONScontext* ctx, fsuint id);
+
+void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, FONSeffectType effect);
+void glfonsUploadVertices(FONScontext* ctx);
+
 void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1, float* y1);
 float glfonsGetGlyphOffset(FONScontext* ctx, fsuint id, int i);
 float glfonsGetLength(FONScontext* ctx, fsuint id);
 int glfonsGetGlyphCount(FONScontext* ctx, fsuint id);
 
 unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
+
+#endif
+
+#ifdef GLFONTSTASH_IMPLEMENTATION
+
+#define FONTSTASH_IMPLEMENTATION
+#include "fontstash.h"
 
 enum class GLFONSError {
     ID_OVERFLOW
@@ -86,13 +106,6 @@ struct GLFONScontext {
     std::unordered_map<fsuint, GLFONSbuffer*>* buffers;
     void* userPtr;
 };
-
-#endif
-
-#ifdef GLFONTSTASH_IMPLEMENTATION
-
-#define FONTSTASH_IMPLEMENTATION
-#include "fontstash.h"
 
 void glfons__id2ij(GLFONScontext* gl, fsuint id, int* i, int* j) {
     int* res = gl->buffers->at(gl->boundBuffer)->transformRes;
@@ -289,7 +302,7 @@ void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* 
     gl->buffers->insert(std::pair<fsuint, GLFONSbuffer*>(*id, buffer));
 }
 
-void glfonsDeleteBuffer(GLFONScontext* gl, GLFONSbuffer* buffer) {
+void glfonsBufferDelete(GLFONScontext* gl, GLFONSbuffer* buffer) {
     delete[] buffer->transformData;
     delete[] buffer->transformDirty;
 
@@ -315,7 +328,7 @@ static void glfons__renderDelete(void* userPtr) {
     GLFONScontext* gl = (GLFONScontext*)userPtr;
 
     for(auto& elt : *gl->buffers) {
-        glfonsDeleteBuffer(gl, elt.second);
+        glfonsBufferDelete(gl, elt.second);
     }
     gl->buffers->clear();
     delete gl->buffers;
@@ -347,7 +360,7 @@ void glfonsUpdateViewport(FONScontext* ctx, float width, float height) {
 
 const float* glfonsGetProjectionMatrix(FONScontext* ctx) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
-    return &gl->projectionMatrix[0];
+    return gl->projectionMatrix;
 }
 
 FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParams, void* userPtr) {
