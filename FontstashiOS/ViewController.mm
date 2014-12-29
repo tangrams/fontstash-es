@@ -120,6 +120,11 @@ static float x;
     glfonsTransform(fs, texthi1, 50, 420, 0, 1.0);
     glfonsTransform(fs, textfr1, 50 + 20 * xnorm, 550 + 20 * xnorm, xnorm * 2.0 * M_PI, 1.0);
 
+    int i = 0;
+    for(auto id : texts) {
+        glfonsTransform(fs, id, 100, 100 + (i++) * 10, 0, 1.0);
+    }
+
     glfonsDraw(fs);
 
     glDisable(GL_BLEND);
@@ -217,8 +222,17 @@ static float x;
     fonsSetShaping(fs, "devanagari", "LTR", "hi");
     glfonsBufferText(fs, "हालाँकि प्रचलित रूप पूजा", &texthi1, FONS_EFFECT_NONE);
 
-    glfonsUploadVertices(fs);
+    fonsClearState(fs);
 
+    fonsSetFont(fs, dejavu);
+    fonsSetSize(fs, 100.0);
+    for(int i = 0; i < 40; ++i) {
+        fsuint id;
+        glfonsBufferText(fs, "text", &id, FONS_EFFECT_NONE);
+        texts.push_back(id);
+    }
+
+    glfonsUploadVertices(fs);
 }
 
 - (void)deleteFontContext

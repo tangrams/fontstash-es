@@ -34,6 +34,8 @@
     fsuint textfr1;
     fsuint textch1;
     fsuint texthi1;
+
+    std::vector<fsuint> texts;
 }
 
 @end

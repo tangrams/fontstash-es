@@ -204,8 +204,8 @@ static GLuint glfons__linkShaderProgram(const GLchar* vertexSrc, const GLchar* f
 
 void glfons__id2ij(GLFONScontext* gl, fsuint id, int* i, int* j) {
     int* res = gl->transformRes;
-    *i = (id*2) % (res[0]/2);
-    *j = (id*2) / (res[0]/2);
+    *i = (id*2) % res[0];
+    *j = (id*2) / res[0];
 }
 
 /*
