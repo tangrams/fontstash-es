@@ -20,19 +20,26 @@
 #define GLFONTSTASH_H
 
 #include <unordered_map>
+#include <vector>
 
 #include "fontstash.h"
 
 typedef unsigned int fsuint;
 
 #define N_GLYPH_VERTS 6
+#define INNER_DATA_OFFSET 5 // offset between vertices
 
 typedef struct GLFONScontext GLFonscontext;
+typedef struct GLFONSParams GLFONSParams;
 
-FONScontext* glfonsCreate(int width, int height, int flags);
+enum class GLFONSError {
+    ID_OVERFLOW
+};
+
+FONScontext* glfonsCreate(int width, int height, int flags, GLFONSParams glParams, void* userPtr);
 void glfonsDelete(FONScontext* ctx);
 
-void glfonsUploadTransforms(FONScontext* ctx);
+void glfonsUpdateTransforms(FONScontext* ctx, void* ownerPtr);
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a);
 
 void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId);
@@ -42,12 +49,14 @@ void glfonsBufferDelete(FONScontext* gl, fsuint id);
 void glfonsBindBuffer(FONScontext* ctx, fsuint id);
 
 void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, FONSeffectType effect);
-void glfonsUploadVertices(FONScontext* ctx);
+bool glfonsVertices(FONScontext* ctx, std::vector<float>* data);
 
 void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1, float* y1);
 float glfonsGetGlyphOffset(FONScontext* ctx, fsuint id, int i);
 float glfonsGetLength(FONScontext* ctx, fsuint id);
 int glfonsGetGlyphCount(FONScontext* ctx, fsuint id);
+void glfonsScreenSize(FONScontext* ctx, int screenWidth, int screenHeight);
+void glfonsProjection(FONScontext* ctx, float* projectionMatrix);
 
 unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
 
@@ -57,10 +66,6 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
 
 #define FONTSTASH_IMPLEMENTATION
 #include "fontstash.h"
-
-enum class GLFONSError {
-    ID_OVERFLOW
-};
 
 struct GLFONSstash {
     int nbGlyph;
@@ -82,14 +87,13 @@ struct GLFONSbuffer {
 };
 
 struct GLFONSparams {
-    void (*errorCallback)(void* usrPtr, GLFONSbuffer* buffer, GLFONSError error);
+    void (*errorCallback)(void* usrPtr, fsuint buffer, GLFONSError error);
     void (*createTexTransforms)(void* usrPtr, unsigned int width, unsigned int height);
     void (*createAtlas)(void* usrPtr, unsigned int width, unsigned int height);
-    void (*updateTransforms)(void* usrPtr, unsigned int xoff, unsigned int yoff,
-                             unsigned int width, unsigned int height, const unsigned int* pixels);
+    void (*updateTransforms)(void* usrPtr, unsigned int xoff, unsigned int yoff, unsigned int width,
+                             unsigned int height, const unsigned int* pixels, void* ownerPtr);
     void (*updateAtlas)(void* usrPtr, unsigned int xoff, unsigned int yoff,
                         unsigned int width, unsigned int height, const unsigned int* pixels);
-    void (*vertexData)(void* usrPtr, unsigned int nVerts, const float* data);
 };
 
 struct GLFONScontext {
@@ -104,8 +108,8 @@ struct GLFONScontext {
 
 void glfons__id2ij(GLFONScontext* gl, fsuint id, int* i, int* j) {
     int* res = gl->buffers->at(gl->boundBuffer)->transformRes;
-    *i = (id*2) % (res[0]/2);
-    *j = (id*2) / (res[0]/2);
+    *i = (id*2) % res[0];
+    *j = (id*2) / res[0];
 }
 
 static int glfons__renderCreate(void* userPtr, int width, int height) {
@@ -116,7 +120,7 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     gl->atlasRes[0] = width;
     gl->atlasRes[1] = height;
     gl->params.createAtlas(gl->userPtr, width, height);
-    
+
     return 1;
 }
 
@@ -126,7 +130,7 @@ static int glfons__renderResize(void* userPtr, int width, int height) {
 
 static void glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* data) {
     GLFONScontext* gl = (GLFONScontext*)userPtr;
-    
+
     int h = rect[3] - rect[1];
     const unsigned char* subdata = data + rect[1] * gl->atlasRes[0];
     gl->params.updateAtlas(gl->userPtr, 0, rect[1], gl->atlasRes[0], h, reinterpret_cast<const unsigned int*>(subdata));
@@ -149,7 +153,7 @@ GLFONSbuffer* glfons__bufferBound(GLFONScontext* gl) {
     return gl->buffers->at(gl->boundBuffer);
 }
 
-void glfonsUploadTransforms(FONScontext* ctx) {
+void glfonsUpdateTransforms(FONScontext* ctx, void* ownerPtr) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
 
@@ -177,7 +181,7 @@ void glfonsUploadTransforms(FONScontext* ctx) {
     // | x | y | rot | alpha | precision_x | precision_y | Ø | Ø |
     const unsigned int* subdata;
     subdata = buffer->transformData + min * buffer->transformRes[0];
-    gl->params.updateTransforms(gl->userPtr, 0, min, buffer->transformRes[0], (max - min) + 1, subdata);
+    gl->params.updateTransforms(gl->userPtr, 0, min, buffer->transformRes[0], (max - min) + 1, subdata, ownerPtr);
     std::fill(buffer->transformDirty, buffer->transformDirty + buffer->transformRes[1], 0);
 }
 
@@ -187,7 +191,7 @@ void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId) {
 
     if(buffer->idct + nb > buffer->maxId) {
         if(gl->params.errorCallback) {
-            gl->params.errorCallback(gl->userPtr, buffer, GLFONSError::ID_OVERFLOW);
+            gl->params.errorCallback(gl->userPtr, buffer->id, GLFONSError::ID_OVERFLOW);
         }
         return;
     }
@@ -207,14 +211,14 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, FONSeffectT
     float* data = nullptr;
 
     if(buffer->interleavedArray == nullptr) {
-        buffer->interleavedArray = (float*) malloc(sizeof(float) * ctx->nverts * 5);
+        buffer->interleavedArray = (float*) malloc(sizeof(float) * ctx->nverts * INNER_DATA_OFFSET);
         buffer->nbVerts = 0;
         data = buffer->interleavedArray;
     } else {
         // TODO : realloc can be expensive, improve
         buffer->interleavedArray = (float*) realloc(buffer->interleavedArray,
-                                                    sizeof(float) * (buffer->nbVerts + ctx->nverts) * 5);
-        data = buffer->interleavedArray + buffer->nbVerts * 5;
+                                                    sizeof(float) * (buffer->nbVerts + ctx->nverts) * INNER_DATA_OFFSET);
+        data = buffer->interleavedArray + buffer->nbVerts * INNER_DATA_OFFSET;
     }
 
     stash->glyphsXOffset = new float[ctx->nverts / N_GLYPH_VERTS];
@@ -226,8 +230,8 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, FONSeffectT
 
     float inf = std::numeric_limits<float>::infinity();
     float x0 = inf, x1 = -inf, y0 = inf, y1 = -inf;
-    for(int i = 0, off = 0; i < ctx->nverts * 2; i += 2, off += 5) {
-        GLfloat x, y, u, v;
+    for(int i = 0, off = 0; i < ctx->nverts * 2; i += 2, off += INNER_DATA_OFFSET) {
+        float x, y, u, v;
 
         x = ctx->verts[i];
         y = ctx->verts[i+1];
@@ -328,6 +332,12 @@ static void glfons__renderDelete(void* userPtr) {
     delete gl;
 }
 
+void glfonsScreenSize(FONScontext* ctx, int screenWidth, int screenHeight) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    gl->screenSize[0] = screenWidth;
+    gl->screenSize[1] = screenHeight;
+}
+
 FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParams, void* userPtr) {
     FONSparams params;
     GLFONScontext* gl = new GLFONScontext;
@@ -343,8 +353,31 @@ FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParam
     params.renderDraw = glfons__renderDraw;
     params.renderDelete = glfons__renderDelete;
     params.userPtr = gl;
-    
+
     return fonsCreateInternal(&params);
+}
+
+void glfonsProjection(FONScontext* ctx, float* projectionMatrix) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+
+    float width = gl->screenSize[0];
+    float height = gl->screenSize[1];
+
+    float r = width;
+    float l = 0.0;
+    float b = height;
+    float t = 0.0;
+    float n = -1.0;
+    float f = 1.0;
+
+    // could be simplified, exposing it like this for comprehension
+    projectionMatrix[0] = 2.0 / (r-l);
+    projectionMatrix[5] = 2.0 / (t-b);
+    projectionMatrix[10] = 2.0 / (f-n);
+    projectionMatrix[12] = -(r+l)/(r-l);
+    projectionMatrix[13] = -(t+b)/(t-b);
+    projectionMatrix[14] = -(f+n)/(f-n);
+    projectionMatrix[15] = 1.0;
 }
 
 void glfonsDelete(FONScontext* ctx) {
@@ -355,14 +388,22 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
     return (r) | (g << 8) | (b << 16) | (a << 24);
 }
 
-void glfonsUploadVertices(FONScontext* ctx) {
+bool glfonsVertices(FONScontext* ctx, std::vector<float>* data, int* nVerts) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
 
-    gl->params.vertexData(gl->userPtr, buffer->nbVerts, buffer->interleavedArray);
+    if(buffer->interleavedArray == nullptr) {
+        return false;
+    }
+
+    data->insert(data->end(), &buffer->interleavedArray[0], &buffer->interleavedArray[buffer->nbVerts * INNER_DATA_OFFSET]);
+
+    *nVerts = data->size() / INNER_DATA_OFFSET;
 
     free(buffer->interleavedArray);
     buffer->interleavedArray = nullptr;
+
+    return true;
 }
 
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a) {
@@ -371,14 +412,17 @@ void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, f
 
     int i, j;
 
-    // TODO : manage out of screen translations
-
     glfons__id2ij(gl, id, &i, &j);
+
+    // TODO : manage out of screen translations, the scaling step due to texture transform
+    // would happen to behave like a module width or height translation
 
     // scaling to [0..255]
     tx = (tx * 255.0) / gl->screenSize[0];
     ty = (ty * 255.0) / gl->screenSize[1];
 
+    r = fmod(r, 2.0 * M_PI);
+    r = (r < 0) ? r + 2.0 * M_PI : r;
     r = (r / (2.0 * M_PI)) * 255.0;
     a = a * 255.0;
 
@@ -406,7 +450,7 @@ int glfonsGetGlyphCount(FONScontext* ctx, fsuint id) {
         GLFONSstash* stash = buffer->stashes->at(id);
         return stash->nbGlyph;
     }
-    
+
     return -1;
 }
 
@@ -422,7 +466,7 @@ void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1,
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
     GLFONSstash* stash = buffer->stashes->at(id);
-    
+
     *x0 = stash->bbox[0]; *y0 = stash->bbox[1];
     *x1 = stash->bbox[2]; *y1 = stash->bbox[3];
 }

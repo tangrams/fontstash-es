@@ -125,9 +125,9 @@
 
     // upload the transforms for each buffer (lazy upload)
     glfonsBindBuffer(fs, buffer1);
-    glfonsUploadTransforms(fs);
+    glfonsUpdateTransforms(fs, nullptr);
     glfonsBindBuffer(fs, buffer2);
-    glfonsUploadTransforms(fs);
+    glfonsUpdateTransforms(fs, nullptr);
     glfonsBindBuffer(fs, 0);
 
     // TODO : drawing
@@ -195,7 +195,6 @@
     params.createTexTransforms = createTexTransforms;
     params.updateAtlas = updateAtlas;
     params.updateTransforms = updateTransforms;
-    params.vertexData = vertexData;
 
     fs = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT, params, (__bridge void*) self);
     
@@ -258,9 +257,7 @@
     bufferByTextId[key] = [NSNumber numberWithInt:buffer2];
 
     glfonsBindBuffer(fs, buffer1);
-    glfonsUploadVertices(fs);
     glfonsBindBuffer(fs, buffer2);
-    glfonsUploadVertices(fs);
     glfonsBindBuffer(fs, 0);
 
     glfonsBindBuffer(fs, buffer2);

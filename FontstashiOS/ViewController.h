@@ -45,12 +45,12 @@
 
 #pragma mark glfontstash callbacks
 
-void errorCallback(void* userPtr, GLFONSbuffer* buffer, GLFONSError fonsError)
+void errorCallback(void* usrPtr, fsuint buffer, GLFONSError error)
 {
     NSLog(@"Error callback");
 
     // callback on error
-    switch(fonsError) {
+    switch(error) {
         case GLFONSError::ID_OVERFLOW:
             NSLog(@"ID overflow");
             break;
@@ -72,7 +72,7 @@ void createAtlas(void* userPtr, unsigned int width, unsigned int height)
 }
 
 void updateTransforms(void* userPtr, unsigned int xoff, unsigned int yoff,
-                      unsigned int width, unsigned int height, const unsigned int* pixels)
+                      unsigned int width, unsigned int height, const unsigned int* pixels, void* ownerPtr)
 {
     ViewController* view = (__bridge ViewController*) userPtr;
     [view updateTransforms:pixels xoff:xoff yoff:yoff width:width height:height];
