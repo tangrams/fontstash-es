@@ -143,14 +143,14 @@
 		98603FF619E435AC00912F0C /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		9860400119E435AC00912F0C /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		9860401A19E4360E00912F0C /* Main_iPhone.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Main_iPhone.storyboard; sourceTree = "<group>"; };
-		9860418F19E4370000912F0C /* fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fontstash.h; sourceTree = "<group>"; };
-		9860419019E4370000912F0C /* glfontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glfontstash.h; sourceTree = "<group>"; };
-		9860419119E4370000912F0C /* stb_truetype.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stb_truetype.h; sourceTree = "<group>"; };
 		9860419219E4372E00912F0C /* ViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
 		9860419319E4372E00912F0C /* ViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ViewController.mm; sourceTree = "<group>"; };
-		9860A78119F556880094D9F0 /* sdf.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sdf.h; sourceTree = "<group>"; };
+		9869A1E91A6441320079D028 /* fontstash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = fontstash.h; path = fontstash/fontstash.h; sourceTree = SOURCE_ROOT; };
+		9869A1EA1A6441320079D028 /* glfontstash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = glfontstash.h; path = fontstash/glfontstash.h; sourceTree = SOURCE_ROOT; };
+		9869A1EB1A6441320079D028 /* sdf.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = sdf.h; path = fontstash/sdf.h; sourceTree = SOURCE_ROOT; };
+		9869A1EC1A6441320079D028 /* shaders.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = shaders.h; path = fontstash/shaders.h; sourceTree = SOURCE_ROOT; };
+		9869A1ED1A6441320079D028 /* stb_truetype.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = stb_truetype.h; path = fontstash/stb_truetype.h; sourceTree = SOURCE_ROOT; };
 		98852A8B1A23954800690529 /* fireflysung.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = fireflysung.ttf; sourceTree = "<group>"; };
-		98BAF1F91A40CBCC004AFF20 /* shaders.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = shaders.h; sourceTree = "<group>"; };
 		98D79D6619E45E85000C6D80 /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = System/Library/Frameworks/OpenGLES.framework; sourceTree = SDKROOT; };
 		98D79D6819E45E8F000C6D80 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		98D79D6A19E45EA6000C6D80 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
@@ -405,11 +405,11 @@
 		9860418E19E4370000912F0C /* fontstash */ = {
 			isa = PBXGroup;
 			children = (
-				9860418F19E4370000912F0C /* fontstash.h */,
-				9860419019E4370000912F0C /* glfontstash.h */,
-				9860419119E4370000912F0C /* stb_truetype.h */,
-				9860A78119F556880094D9F0 /* sdf.h */,
-				98BAF1F91A40CBCC004AFF20 /* shaders.h */,
+				9869A1E91A6441320079D028 /* fontstash.h */,
+				9869A1EA1A6441320079D028 /* glfontstash.h */,
+				9869A1EB1A6441320079D028 /* sdf.h */,
+				9869A1EC1A6441320079D028 /* shaders.h */,
+				9869A1ED1A6441320079D028 /* stb_truetype.h */,
 			);
 			name = fontstash;
 			path = FontstashiOS/fontstash;
