@@ -18,6 +18,9 @@
 - (void)deleteFontContext;
 - (void)renderFont;
 - (void)loadFonts;
+- (void)initShaders;
+- (void)pushVerticesForBuffer:(fsuint)buffer vbo:(GLuint*)vbo nVerts:(int*)nVerts;
+- (void)renderForVBO:(GLuint)vbo vboSize:(int)vboSize owner:(int)owner;
 
 @end
 
@@ -32,16 +35,55 @@
     if (!self.context) {
         NSLog(@"Failed to create ES context");
     }
-    
+
     GLKView *view = (GLKView *)self.view;
     view.context = self.context;
     view.drawableDepthFormat = GLKViewDrawableDepthFormat24;
     
+    transformTextures = [NSMutableDictionary dictionaryWithCapacity:2];
+    
     [self setupGL];
+    [self initShaders];
+}
+
+- (void)initShaders
+{
+    shaderProgram = glCreateProgram();
+    GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
+    GLuint vert = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(frag, 1, &glfs::defaultFragShaderSrc, NULL);
+    glShaderSource(vert, 1, &glfs::vertexShaderSrc, NULL);
+    glCompileShader(frag);
+    glCompileShader(vert);
+    glAttachShader(shaderProgram, frag);
+    glAttachShader(shaderProgram, vert);
+    glLinkProgram(shaderProgram);
+
+    GLint status;
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &status);
+    if (!status) {
+        NSLog(@"Program not linked");
+        glDeleteProgram(shaderProgram);
+    }
+
+    positionAttribLoc = glGetAttribLocation(shaderProgram, "a_position");
+    texCoordAttribLoc = glGetAttribLocation(shaderProgram, "a_texCoord");
+    fsidAttribLoc = glGetAttribLocation(shaderProgram, "a_fsid");
 }
 
 - (void)dealloc
-{    
+{
+    glDeleteProgram(shaderProgram);
+    glDeleteTextures(1, &atlas);
+
+    for(NSNumber* textureName in transformTextures) {
+        GLuint val = [textureName intValue];
+        glDeleteTextures(1, &val);
+    }
+
+    glDeleteBuffers(1, &vbo1);
+    glDeleteBuffers(1, &vbo2);
+
     [self tearDownGL];
     
     if ([EAGLContext currentContext] == self.context) {
@@ -75,8 +117,6 @@
     glClearColor(0.25f, 0.25f, 0.28f, 1.0f);
 
     [self createFontContext];
-
-    glfonsUpdateViewport(fs, screen.width, screen.height);
 }
 
 - (void)tearDownGL
@@ -88,44 +128,101 @@
 
 #pragma mark - GLKView and GLKViewController delegate methods
 
-static float x;
-
 - (void)update
 {
-    x += .05f;
+    pixelScale = [[UIScreen mainScreen] scale];
+    width = self.view.bounds.size.width * pixelScale;
+    height = self.view.bounds.size.height * pixelScale;
+
+    glfonsScreenSize(fs, width, height);
 }
 
 - (void)glkView:(GLKView *)view drawInRect:(CGRect)rect
 {
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     [self renderFont];
 }
 
 #pragma mark - Fontstash
 
+- (void)renderForVBO:(GLuint)vbo vboSize:(int)vboSize owner:(int)ownerId
+{
+    float projectionMatrix[16] = {0};
+
+    glfonsProjection(fs, projectionMatrix);
+
+    glActiveTexture(GL_TEXTURE1);
+    NSNumber* textureName = [transformTextures valueForKey:[NSString stringWithFormat:@"owner-%d", ownerId]];
+    glBindTexture(GL_TEXTURE_2D, [textureName intValue]);
+
+    glUseProgram(shaderProgram);
+
+    glUniform1i(glGetUniformLocation(shaderProgram, "u_tex"), 0); // atlas
+    glUniform1i(glGetUniformLocation(shaderProgram, "u_transforms"), 1); // transform texture
+    glUniform2f(glGetUniformLocation(shaderProgram, "u_tresolution"), 32, 64); // cf glfontstash for transform texture res
+    glUniform3f(glGetUniformLocation(shaderProgram, "u_color"), 1.0, 1.0, 1.0);
+    glUniform2f(glGetUniformLocation(shaderProgram, "u_resolution"), width, height);
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "u_proj"), 1, GL_FALSE, projectionMatrix);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    glVertexAttribPointer(positionAttribLoc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+    glEnableVertexAttribArray(positionAttribLoc);
+
+    glVertexAttribPointer(texCoordAttribLoc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (const GLvoid*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(texCoordAttribLoc);
+
+    glVertexAttribPointer(fsidAttribLoc, 1, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (const GLvoid*)(4 * sizeof(float)));
+    glEnableVertexAttribArray(fsidAttribLoc);
+
+    glDrawArrays(GL_TRIANGLES, 0, vboSize);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glUseProgram(0);
+}
+
 - (void)renderFont
 {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_DEPTH_TEST);
-    
-    glfonsSetColor(fs, 255, 255, 255);
 
-    float xnorm = (sin(x) + 1.0) * 0.5;
+    float x = 100.0f;
+    float y = 450.0f;
 
-    glfonsTransform(fs, textar1, 50, 150, 0, 1.0);
-    glfonsTransform(fs, textar2, 50, 350, 0, 1.0);
-    glfonsTransform(fs, textch1, 200, 500, 0, 1.0);
-    glfonsTransform(fs, texthi1, 50, 420, 0, 1.0);
-    glfonsTransform(fs, textfr1, 50 + 20 * xnorm, 550 + 20 * xnorm, xnorm * 2.0 * M_PI, 1.0);
+    for(NSNumber* textId in bufferByTextId) {
+        NSNumber* buffer = [bufferByTextId objectForKey:textId];
+        glfonsBindBuffer(fs, [buffer intValue]);
 
-    int i = 0;
-    for(auto id : texts) {
-        glfonsTransform(fs, id, 100, 100 + (i++) * 10, 0, 1.0);
+        // transform the text ids
+        glfonsTransform(fs, [textId intValue], x, y, 0.0f, 1.0f);
+
+        glfonsBindBuffer(fs, 0);
+
+        y += 150.0;
     }
 
-    glfonsDraw(fs);
+    // track the owner to have a keyvalue pair owner-texture id, should be a class or struct
+    int ownerId;
+
+    // upload the transforms for each buffer (lazy upload)
+    glfonsBindBuffer(fs, buffer1);
+    ownerId = 0;
+    glfonsUpdateTransforms(fs, &ownerId);
+
+    glfonsBindBuffer(fs, buffer2);
+    ownerId = 1;
+    glfonsUpdateTransforms(fs, &ownerId);
+    glfonsBindBuffer(fs, 0);
+
+    // Rendering
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, atlas);
+
+    [self renderForVBO:vbo1 vboSize:vbo1size owner:0];
+    [self renderForVBO:vbo2 vboSize:vbo2size owner:1];
 
     glDisable(GL_BLEND);
     
@@ -180,7 +277,18 @@ static float x;
 
 - (void)createFontContext
 {
-    fs = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT);
+    // keeping track of the buffer associated with each text id
+    bufferByTextId = [NSMutableDictionary dictionaryWithCapacity:TEXT_NUMBER];
+    NSNumber* key;
+    GLFONSparams params;
+
+    params.errorCallback = errorCallback;
+    params.createAtlas = createAtlas;
+    params.createTexTransforms = createTexTransforms;
+    params.updateAtlas = updateAtlas;
+    params.updateTransforms = updateTransforms;
+
+    fs = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT, params, (__bridge void*) self);
     
     if (fs == NULL) {
         NSLog(@"Could not create font context");
@@ -188,10 +296,19 @@ static float x;
     
     [self loadFonts];
 
+    owner = 0; // track ownership
+
+    glfonsBufferCreate(fs, 32, &buffer1);
+    glfonsBindBuffer(fs, buffer1);
+
+    glfonsGenText(fs, 5, texts);
+
     fonsSetFont(fs, han);
     fonsSetSize(fs, 100.0);
     fonsSetShaping(fs, "han", "TTB", "ch");
-    glfonsBufferText(fs, "緳 踥踕", &textch1, FONS_EFFECT_NONE);
+    glfonsRasterize(fs, texts[0], "緳 踥踕", FONS_EFFECT_NONE);
+    key = [NSNumber numberWithInt:texts[0]];
+    bufferByTextId[key] = [NSNumber numberWithInt:buffer1];
 
     fonsClearState(fs);
 
@@ -199,13 +316,20 @@ static float x;
 
     fonsSetSize(fs, 200.0);
     fonsSetShaping(fs, "arabic", "RTL", "ar");
-    glfonsBufferText(fs, "سنالى ما شاسعة وق", &textar1, FONS_EFFECT_NONE);
+    glfonsRasterize(fs, texts[1], "سنالى ما شاسعة وق", FONS_EFFECT_NONE);
+    key = [NSNumber numberWithInt:texts[1]];
+    bufferByTextId[key] = [NSNumber numberWithInt:buffer1];
 
     fonsClearState(fs);
 
+    glfonsBufferCreate(fs, 32, &buffer2);
+    glfonsBindBuffer(fs, buffer2);
+
     fonsSetSize(fs, 100.0);
     fonsSetShaping(fs, "arabic", "RTL", "ar");
-    glfonsBufferText(fs, "تسجّل يتكلّم", &textar2, FONS_EFFECT_NONE);
+    glfonsRasterize(fs, texts[2], "تسجّل يتكلّم", FONS_EFFECT_NONE);
+    key = [NSNumber numberWithInt:texts[2]];
+    bufferByTextId[key] = [NSNumber numberWithInt:buffer2];
 
     fonsClearState(fs);
 
@@ -213,31 +337,99 @@ static float x;
 
     fonsSetSize(fs, 50.0);
     fonsSetShaping(fs, "french", "left-to-right", "fr");
-    glfonsBufferText(fs, "ffffi", &textfr1, FONS_EFFECT_NONE);
+    glfonsRasterize(fs, texts[3], "ffffi", FONS_EFFECT_NONE);
+    key = [NSNumber numberWithInt:texts[3]];
+    bufferByTextId[key] = [NSNumber numberWithInt:buffer2];
 
     fonsClearState(fs);
 
     fonsSetFont(fs, hindi);
     fonsSetSize(fs, 200.0);
     fonsSetShaping(fs, "devanagari", "LTR", "hi");
-    glfonsBufferText(fs, "हालाँकि प्रचलित रूप पूजा", &texthi1, FONS_EFFECT_NONE);
+    glfonsRasterize(fs, texts[4], "हालाँकि प्रचलित रूप पूजा", FONS_EFFECT_NONE);
+    key = [NSNumber numberWithInt:texts[4]];
+    bufferByTextId[key] = [NSNumber numberWithInt:buffer2];
 
-    fonsClearState(fs);
+    glfonsBindBuffer(fs, buffer2);
+    float x0, y0, x1, y1;
+    glfonsGetBBox(fs, texts[3], &x0, &y0, &x1, &y1);
+    NSLog(@"BBox %f %f %f %f", x0, y0, x1, y1);
+    NSLog(@"Glyph count %d", glfonsGetGlyphCount(fs, texts[3]));
+    NSLog(@"Glyph offset %f", glfonsGetGlyphOffset(fs, texts[3], 1));
 
-    fonsSetFont(fs, dejavu);
-    fonsSetSize(fs, 100.0);
-    for(int i = 0; i < 40; ++i) {
-        fsuint id;
-        glfonsBufferText(fs, "text", &id, FONS_EFFECT_NONE);
-        texts.push_back(id);
+    [self pushVerticesForBuffer:buffer1 vbo:&vbo1 nVerts:&vbo1size];
+    [self pushVerticesForBuffer:buffer2 vbo:&vbo2 nVerts:&vbo2size];
+
+    glfonsBindBuffer(fs, 0);
+}
+
+- (void)pushVerticesForBuffer:(fsuint)buffer vbo:(GLuint*)vbo nVerts:(int*)nVerts {
+    glfonsBindBuffer(fs, buffer);
+    glGenBuffers(1, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, *vbo);
+
+    std::vector<float> vertices;
+
+    if(glfonsVertices(fs, &vertices, nVerts)) {
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
     }
 
-    glfonsUploadVertices(fs);
+    glfonsBindBuffer(fs, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 - (void)deleteFontContext
 {
     glfonsDelete(fs);
+}
+
+#pragma mark GPU access
+
+- (void) updateAtlas:(const unsigned int*)pixels xoff:(unsigned int)xoff
+                yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height
+{
+    NSLog(@"Update atlas %d %d %d %d", xoff, yoff, width, height);
+
+    glBindTexture(GL_TEXTURE_2D, atlas);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, xoff, yoff, width, height, GL_ALPHA, GL_UNSIGNED_BYTE, pixels);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+- (void) updateTransforms:(const unsigned int*)pixels xoff:(unsigned int)xoff
+                     yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height owner:(int)ownerId
+{
+    NSLog(@"Update transform %d %d %d %d", xoff, yoff, width, height);
+
+    NSNumber* textureName = [transformTextures valueForKey:[NSString stringWithFormat:@"owner-%d", ownerId]];
+
+    glBindTexture(GL_TEXTURE_2D, [textureName intValue]);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, xoff, yoff, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+- (void) createAtlasWithWidth:(unsigned int)width height:(unsigned int)height
+{
+    NSLog(@"Create texture atlas");
+
+    glGenTextures(1, &atlas);
+    glBindTexture(GL_TEXTURE_2D, atlas);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, width, height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+- (void) createTextureTransformsWithWidth:(unsigned int)width height:(unsigned int)height
+{
+    NSLog(@"Create texture transforms");
+
+    GLuint textureName;
+    glGenTextures(1, &textureName);
+    glBindTexture(GL_TEXTURE_2D, textureName);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    transformTextures[[NSString stringWithFormat:@"owner-%d", owner++]] = [NSNumber numberWithInt:textureName];
 }
 
 @end

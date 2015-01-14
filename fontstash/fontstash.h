@@ -1593,7 +1593,7 @@ float fonsDrawText(FONScontext* stash,
 
     if(useShaping) {
         FONSshaping* shaping = stash->shaping;
-        int i, j;
+        unsigned int i, j;
 
         shaping->shapingRes = (FONSshapingRes*) malloc(sizeof(FONSshapingRes));
 
