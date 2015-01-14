@@ -16,6 +16,7 @@
 #define GLFONTSTASH_IMPLEMENTATION
 #define FONS_USE_HARFBUZZ
 #import "glfontstash.h"
+#import "shaders.h"
 
 #define TEXT_NUMBER 5
 
@@ -31,12 +32,17 @@
     fsuint texts[TEXT_NUMBER];
     fsuint buffer1;
     fsuint buffer2;
+    int owner;
+
+    GLuint shaderProgram;
+    GLuint atlas;
+    NSMutableDictionary* transformTextures;
 }
 
 - (void) updateAtlas:(const unsigned int*)pixels xoff:(unsigned int)xoff
                 yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height;
 - (void) updateTransforms:(const unsigned int*)pixels xoff:(unsigned int)xoff
-                yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height;
+                yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height owner:(int)ownerId;
 - (void) createAtlasWithWidth:(unsigned int)width height:(unsigned int)height;
 - (void) createTextureTransformsWithWidth:(unsigned int)width height:(unsigned int)height;
 
@@ -74,7 +80,8 @@ void updateTransforms(void* userPtr, unsigned int xoff, unsigned int yoff,
                       unsigned int width, unsigned int height, const unsigned int* pixels, void* ownerPtr)
 {
     ViewController* view = (__bridge ViewController*) userPtr;
-    [view updateTransforms:pixels xoff:xoff yoff:yoff width:width height:height];
+    int* owner = (int*)ownerPtr;
+    [view updateTransforms:pixels xoff:xoff yoff:yoff width:width height:height owner:*owner];
 }
 
 void updateAtlas(void* userPtr, unsigned int xoff, unsigned int yoff,

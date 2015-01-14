@@ -18,6 +18,7 @@
 - (void)deleteFontContext;
 - (void)renderFont;
 - (void)loadFonts;
+- (void)initShaders;
 
 @end
 
@@ -37,11 +38,43 @@
     view.context = self.context;
     view.drawableDepthFormat = GLKViewDrawableDepthFormat24;
     
+    transformTextures = [NSMutableDictionary dictionaryWithCapacity:2];
+    
     [self setupGL];
+    [self initShaders];
+}
+
+- (void)initShaders
+{
+    shaderProgram = glCreateProgram();
+    GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
+    GLuint vert = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(frag, 1, &glfs::defaultFragShaderSrc, NULL);
+    glShaderSource(vert, 1, &glfs::vertexShaderSrc, NULL);
+    glCompileShader(frag);
+    glCompileShader(vert);
+    glAttachShader(shaderProgram, frag);
+    glAttachShader(shaderProgram, vert);
+    glLinkProgram(shaderProgram);
+
+    GLint status;
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &status);
+    if (!status) {
+        NSLog(@"Program not linked");
+        glDeleteProgram(shaderProgram);
+    }
 }
 
 - (void)dealloc
-{    
+{
+    glDeleteProgram(shaderProgram);
+    glDeleteTextures(1, &atlas);
+
+    for(NSNumber* textureName in transformTextures) {
+        GLuint val = [textureName intValue];
+        glDeleteTextures(1, &val);
+    }
+
     [self tearDownGL];
     
     if ([EAGLContext currentContext] == self.context) {
@@ -116,21 +149,27 @@
         // transform the text ids
         glfonsTransform(fs, [textId intValue], x, y, 0.0f, 1.0f);
 
-        NSLog(@"Buffer: %@, textId: %@", buffer, textId);
-
         glfonsBindBuffer(fs, 0);
 
         x += 20.0f;
     }
 
+    // track the owner to have a keyvalue pair owner-texture id
+    int ownerId;
+
     // upload the transforms for each buffer (lazy upload)
     glfonsBindBuffer(fs, buffer1);
-    glfonsUpdateTransforms(fs, nullptr);
+    ownerId = 0;
+    glfonsUpdateTransforms(fs, &ownerId);
+
     glfonsBindBuffer(fs, buffer2);
-    glfonsUpdateTransforms(fs, nullptr);
+    ownerId = 1;
+    glfonsUpdateTransforms(fs, &ownerId);
     glfonsBindBuffer(fs, 0);
 
-    // TODO : drawing
+    glUseProgram(shaderProgram);
+
+    glUseProgram(0);
 
     glDisable(GL_BLEND);
     
@@ -204,6 +243,8 @@
     
     [self loadFonts];
 
+    owner = 0; // track ownership
+
     glfonsBufferCreate(fs, 32, &buffer1);
     glfonsBindBuffer(fs, buffer1);
 
@@ -256,10 +297,6 @@
     key = [NSNumber numberWithInt:texts[4]];
     bufferByTextId[key] = [NSNumber numberWithInt:buffer2];
 
-    glfonsBindBuffer(fs, buffer1);
-    glfonsBindBuffer(fs, buffer2);
-    glfonsBindBuffer(fs, 0);
-
     glfonsBindBuffer(fs, buffer2);
     float x0, y0, x1, y1;
     glfonsGetBBox(fs, texts[3], &x0, &y0, &x1, &y1);
@@ -282,29 +319,46 @@
 {
     NSLog(@"Update atlas %d %d %d %d", xoff, yoff, width, height);
 
-    // update the atlas texture
+    glBindTexture(GL_TEXTURE_2D, atlas);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, xoff, yoff, width, height, GL_ALPHA, GL_UNSIGNED_BYTE, pixels);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 - (void) updateTransforms:(const unsigned int*)pixels xoff:(unsigned int)xoff
-                     yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height
+                     yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height owner:(int)ownerId
 {
     NSLog(@"Update transform %d %d %d %d", xoff, yoff, width, height);
 
-    // update the transform texture
+    NSNumber* textureName = [transformTextures valueForKey:[NSString stringWithFormat:@"owner-%d", ownerId]];
+
+    glBindTexture(GL_TEXTURE_2D, [textureName intValue]);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, xoff, yoff, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 - (void) createAtlasWithWidth:(unsigned int)width height:(unsigned int)height
 {
     NSLog(@"Create texture atlas");
 
-    // create a texture for the atlas of width * height
+    glGenTextures(1, &atlas);
+    glBindTexture(GL_TEXTURE_2D, atlas);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, width, height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 - (void) createTextureTransformsWithWidth:(unsigned int)width height:(unsigned int)height
 {
     NSLog(@"Create texture transforms");
 
-    // create a texture for the texture transforms data of width * heigth
+    GLuint textureName;
+    glGenTextures(1, &textureName);
+    glBindTexture(GL_TEXTURE_2D, textureName);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    transformTextures[[NSString stringWithFormat:@"owner-%d", owner++]] = [NSNumber numberWithInt:textureName];
 }
 
 @end

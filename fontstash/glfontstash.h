@@ -39,7 +39,7 @@ enum class GLFONSError {
 FONScontext* glfonsCreate(int width, int height, int flags, GLFONSParams glParams, void* userPtr);
 void glfonsDelete(FONScontext* ctx);
 
-void glfonsUpdateTransforms(FONScontext* ctx, void* ownerPtr);
+void glfonsUpdateTransforms(FONScontext* ctx, void* ownerPtr = nullptr);
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a);
 
 void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId);
