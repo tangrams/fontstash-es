@@ -30,6 +30,10 @@
     int han;
     int hindi;
 
+    int width;
+    int height;
+    float pixelScale;
+
     fsuint texts[TEXT_NUMBER];
     fsuint buffer1;
     fsuint buffer2;
@@ -37,9 +41,18 @@
 
     GLuint shaderProgram;
     GLuint atlas;
+    
     GLuint vbo1;
     GLuint vbo2;
+
+    int vbo1size;
+    int vbo2size;
+
     NSMutableDictionary* transformTextures;
+
+    GLuint positionAttribLoc;
+    GLuint texCoordAttribLoc;
+    GLuint fsidAttribLoc;
 }
 
 - (void) updateAtlas:(const unsigned int*)pixels xoff:(unsigned int)xoff

@@ -19,8 +19,8 @@
 - (void)renderFont;
 - (void)loadFonts;
 - (void)initShaders;
-- (void)pushVerticesForBuffer:(fsuint)buffer vbo:(GLuint*)vbo;
-- (void)renderForVBO:(GLuint)vbo;
+- (void)pushVerticesForBuffer:(fsuint)buffer vbo:(GLuint*)vbo nVerts:(int*)nVerts;
+- (void)renderForVBO:(GLuint)vbo vboSize:(int)vboSize owner:(int)owner;
 
 @end
 
@@ -65,6 +65,10 @@
         NSLog(@"Program not linked");
         glDeleteProgram(shaderProgram);
     }
+
+    positionAttribLoc = glGetAttribLocation(shaderProgram, "a_position");
+    texCoordAttribLoc = glGetAttribLocation(shaderProgram, "a_texCoord");
+    fsidAttribLoc = glGetAttribLocation(shaderProgram, "a_fsid");
 }
 
 - (void)dealloc
@@ -126,7 +130,11 @@
 
 - (void)update
 {
+    pixelScale = [[UIScreen mainScreen] scale];
+    width = self.view.bounds.size.width * pixelScale;
+    height = self.view.bounds.size.height * pixelScale;
 
+    glfonsScreenSize(fs, width, height);
 }
 
 - (void)glkView:(GLKView *)view drawInRect:(CGRect)rect
@@ -138,11 +146,37 @@
 
 #pragma mark - Fontstash
 
-- (void)renderForBuffer:(GLuint)vbo
+- (void)renderForVBO:(GLuint)vbo vboSize:(int)vboSize owner:(int)ownerId
 {
+    float projectionMatrix[16] = {0};
+
+    glfonsProjection(fs, projectionMatrix);
+
+    glActiveTexture(GL_TEXTURE1);
+    NSNumber* textureName = [transformTextures valueForKey:[NSString stringWithFormat:@"owner-%d", ownerId]];
+    glBindTexture(GL_TEXTURE_2D, [textureName intValue]);
+
     glUseProgram(shaderProgram);
 
+    glUniform1i(glGetUniformLocation(shaderProgram, "u_tex"), 0); // atlas
+    glUniform1i(glGetUniformLocation(shaderProgram, "u_transforms"), 1); // transform texture
+    glUniform2f(glGetUniformLocation(shaderProgram, "u_tresolution"), 32, 64); // cf glfontstash for transform texture res
+    glUniform3f(glGetUniformLocation(shaderProgram, "u_color"), 1.0, 1.0, 1.0);
+    glUniform2f(glGetUniformLocation(shaderProgram, "u_resolution"), width, height);
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "u_proj"), 1, GL_FALSE, projectionMatrix);
+
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    glVertexAttribPointer(positionAttribLoc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+    glEnableVertexAttribArray(positionAttribLoc);
+
+    glVertexAttribPointer(texCoordAttribLoc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (const GLvoid*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(texCoordAttribLoc);
+
+    glVertexAttribPointer(fsidAttribLoc, 1, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (const GLvoid*)(4 * sizeof(float)));
+    glEnableVertexAttribArray(fsidAttribLoc);
+
+    glDrawArrays(GL_TRIANGLES, 0, vboSize);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -155,8 +189,8 @@
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_DEPTH_TEST);
 
-    float x = 0.0f;
-    float y = 50.0f;
+    float x = 100.0f;
+    float y = 450.0f;
 
     for(NSNumber* textId in bufferByTextId) {
         NSNumber* buffer = [bufferByTextId objectForKey:textId];
@@ -167,7 +201,7 @@
 
         glfonsBindBuffer(fs, 0);
 
-        x += 20.0f;
+        y += 150.0;
     }
 
     // track the owner to have a keyvalue pair owner-texture id, should be a class or struct
@@ -183,8 +217,12 @@
     glfonsUpdateTransforms(fs, &ownerId);
     glfonsBindBuffer(fs, 0);
 
-    [self renderForVBO:vbo1];
-    [self renderForVBO:vbo2];
+    // Rendering
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, atlas);
+
+    [self renderForVBO:vbo1 vboSize:vbo1size owner:0];
+    [self renderForVBO:vbo2 vboSize:vbo2size owner:1];
 
     glDisable(GL_BLEND);
     
@@ -320,22 +358,21 @@
     NSLog(@"Glyph offset %f", glfonsGetGlyphOffset(fs, texts[3], 1));
 
 
-    [self pushVerticesForBuffer:buffer1 vbo:&vbo1];
-    [self pushVerticesForBuffer:buffer2 vbo:&vbo2];
+    [self pushVerticesForBuffer:buffer1 vbo:&vbo1 nVerts:&vbo1size];
+    [self pushVerticesForBuffer:buffer2 vbo:&vbo2 nVerts:&vbo2size];
 
     glfonsBindBuffer(fs, 0);
 }
 
-- (void)pushVerticesForBuffer:(fsuint)buffer vbo:(GLuint*)vbo {
+- (void)pushVerticesForBuffer:(fsuint)buffer vbo:(GLuint*)vbo nVerts:(int*)nVerts {
     glfonsBindBuffer(fs, buffer);
     glGenBuffers(1, vbo);
     glBindBuffer(GL_ARRAY_BUFFER, *vbo);
 
     std::vector<float> vertices;
-    int nVerts;
 
-    if(glfonsVertices(fs, &vertices, &nVerts)) {
-        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * nVerts, vertices.data(), GL_STATIC_DRAW);
+    if(glfonsVertices(fs, &vertices, nVerts)) {
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
     }
 
     glfonsBindBuffer(fs, 0);
