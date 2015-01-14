@@ -163,8 +163,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				98D79D6D19E45EAD000C6D80 /* GLKit.framework in Frameworks */,
 				984E014E1A1E3A07000B1797 /* libharfbuzz-sim.a in Frameworks */,
+				98D79D6D19E45EAD000C6D80 /* GLKit.framework in Frameworks */,
 				98D79D6B19E45EA6000C6D80 /* UIKit.framework in Frameworks */,
 				98D79D6919E45E8F000C6D80 /* CoreGraphics.framework in Frameworks */,
 				98D79D6719E45E85000C6D80 /* OpenGLES.framework in Frameworks */,
@@ -603,6 +603,8 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
+					"$(PROJECT_DIR)/harbuzz/**",
+					"$(PROJECT_DIR)/freetype/**",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -623,6 +625,8 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
+					"$(PROJECT_DIR)/harbuzz/**",
+					"$(PROJECT_DIR)/freetype/**",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

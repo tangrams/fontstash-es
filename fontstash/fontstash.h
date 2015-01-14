@@ -471,7 +471,7 @@ typedef struct FONSatlas FONSatlas;
 
 struct FONSshapingRes
 {
-    int glyphCount;
+    unsigned int glyphCount;
     uint32_t* codepoints;
     float* advance;
     float* offset;
@@ -1593,7 +1593,7 @@ float fonsDrawText(FONScontext* stash,
 
     if(useShaping) {
         FONSshaping* shaping = stash->shaping;
-        int i, j;
+        unsigned int i, j;
 
         shaping->shapingRes = (FONSshapingRes*) malloc(sizeof(FONSshapingRes));
 

@@ -277,13 +277,6 @@
 
 #pragma mark GPU access
 
-- (void) uploadVBO:(const float*)data verticesNumber:(unsigned int)nVerts
-{
-    NSLog(@"Upload vertex data to GPU, %d", nVerts);
-
-    // creates a vertex buffer object, and send data to gpu
-}
-
 - (void) updateAtlas:(const unsigned int*)pixels xoff:(unsigned int)xoff
                 yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height
 {

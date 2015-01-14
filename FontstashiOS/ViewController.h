@@ -33,7 +33,6 @@
     fsuint buffer2;
 }
 
-- (void) uploadVBO:(const float*)data verticesNumber:(unsigned int)nVerts;
 - (void) updateAtlas:(const unsigned int*)pixels xoff:(unsigned int)xoff
                 yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height;
 - (void) updateTransforms:(const unsigned int*)pixels xoff:(unsigned int)xoff
@@ -83,10 +82,4 @@ void updateAtlas(void* userPtr, unsigned int xoff, unsigned int yoff,
 {
     ViewController* view = (__bridge ViewController*) userPtr;
     [view updateAtlas:pixels xoff:xoff yoff:yoff width:width height:height];
-}
-
-void vertexData(void* userPtr, unsigned int nVerts, const float* data)
-{
-    ViewController* view = (__bridge ViewController*) userPtr;
-    [view uploadVBO:data verticesNumber:nVerts];
 }
