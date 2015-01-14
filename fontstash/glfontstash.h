@@ -195,7 +195,7 @@ void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId) {
         return;
     }
 
-    for(int i = 0; i < nb; ++i) {
+    for(unsigned int i = 0; i < nb; ++i) {
         textId[i] = buffer->idct++;
     }
 }

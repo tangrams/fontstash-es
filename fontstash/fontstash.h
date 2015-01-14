@@ -471,7 +471,7 @@ typedef struct FONSatlas FONSatlas;
 
 struct FONSshapingRes
 {
-    unsigned int glyphCount;
+    int glyphCount;
     uint32_t* codepoints;
     float* advance;
     float* offset;
