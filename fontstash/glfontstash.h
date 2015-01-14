@@ -49,7 +49,7 @@ void glfonsBufferDelete(FONScontext* gl, fsuint id);
 void glfonsBindBuffer(FONScontext* ctx, fsuint id);
 
 void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, FONSeffectType effect);
-bool glfonsVertices(FONScontext* ctx, std::vector<float>* data);
+bool glfonsVertices(FONScontext* ctx, std::vector<float>* data, int* nVerts);
 
 void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1, float* y1);
 float glfonsGetGlyphOffset(FONScontext* ctx, fsuint id, int i);

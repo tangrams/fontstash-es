@@ -19,6 +19,8 @@
 - (void)renderFont;
 - (void)loadFonts;
 - (void)initShaders;
+- (void)pushVerticesForBuffer:(fsuint)buffer vbo:(GLuint*)vbo;
+- (void)renderForVBO:(GLuint)vbo;
 
 @end
 
@@ -74,6 +76,9 @@
         GLuint val = [textureName intValue];
         glDeleteTextures(1, &val);
     }
+
+    glDeleteBuffers(1, &vbo1);
+    glDeleteBuffers(1, &vbo2);
 
     [self tearDownGL];
     
@@ -133,6 +138,17 @@
 
 #pragma mark - Fontstash
 
+- (void)renderForBuffer:(GLuint)vbo
+{
+    glUseProgram(shaderProgram);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glUseProgram(0);
+}
+
 - (void)renderFont
 {
     glEnable(GL_BLEND);
@@ -154,7 +170,7 @@
         x += 20.0f;
     }
 
-    // track the owner to have a keyvalue pair owner-texture id
+    // track the owner to have a keyvalue pair owner-texture id, should be a class or struct
     int ownerId;
 
     // upload the transforms for each buffer (lazy upload)
@@ -167,9 +183,8 @@
     glfonsUpdateTransforms(fs, &ownerId);
     glfonsBindBuffer(fs, 0);
 
-    glUseProgram(shaderProgram);
-
-    glUseProgram(0);
+    [self renderForVBO:vbo1];
+    [self renderForVBO:vbo2];
 
     glDisable(GL_BLEND);
     
@@ -304,7 +319,27 @@
     NSLog(@"Glyph count %d", glfonsGetGlyphCount(fs, texts[3]));
     NSLog(@"Glyph offset %f", glfonsGetGlyphOffset(fs, texts[3], 1));
 
+
+    [self pushVerticesForBuffer:buffer1 vbo:&vbo1];
+    [self pushVerticesForBuffer:buffer2 vbo:&vbo2];
+
     glfonsBindBuffer(fs, 0);
+}
+
+- (void)pushVerticesForBuffer:(fsuint)buffer vbo:(GLuint*)vbo {
+    glfonsBindBuffer(fs, buffer);
+    glGenBuffers(1, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, *vbo);
+
+    std::vector<float> vertices;
+    int nVerts;
+
+    if(glfonsVertices(fs, &vertices, &nVerts)) {
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * nVerts, vertices.data(), GL_STATIC_DRAW);
+    }
+
+    glfonsBindBuffer(fs, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 - (void)deleteFontContext

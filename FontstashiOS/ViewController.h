@@ -17,6 +17,7 @@
 #define FONS_USE_HARFBUZZ
 #import "glfontstash.h"
 #import "shaders.h"
+#import <vector>
 
 #define TEXT_NUMBER 5
 
@@ -36,6 +37,8 @@
 
     GLuint shaderProgram;
     GLuint atlas;
+    GLuint vbo1;
+    GLuint vbo2;
     NSMutableDictionary* transformTextures;
 }
 
