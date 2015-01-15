@@ -88,7 +88,7 @@ struct GLFONSbuffer {
 };
 
 struct GLFONSparams {
-    void (*errorCallback)(void* usrPtr, fsuint buffer, GLFONSError error);
+    bool (*errorCallback)(void* usrPtr, fsuint buffer, GLFONSError error);
     void (*createTexTransforms)(void* usrPtr, unsigned int width, unsigned int height);
     void (*createAtlas)(void* usrPtr, unsigned int width, unsigned int height);
     void (*updateTransforms)(void* usrPtr, unsigned int xoff, unsigned int yoff, unsigned int width,
@@ -192,9 +192,17 @@ void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
 
+    bool solved = false;
+
     if(buffer->idct + nb > buffer->maxId) {
         if(gl->params.errorCallback) {
-            gl->params.errorCallback(gl->userPtr, buffer->id, GLFONSError::ID_OVERFLOW);
+            solved = gl->params.errorCallback(gl->userPtr, buffer->id, GLFONSError::ID_OVERFLOW);
+        }
+    }
+
+    if(!solved) {
+        for(unsigned int i = 0; i < nb; ++i) {
+            textId[i] = -1;
         }
         return;
     }
@@ -305,7 +313,7 @@ void glfonsExpandTransform(FONScontext* ctx, fsuint bufferId, int newSize) {
         delete[] tmp;
 
         unsigned char* tmpDirty = buffer->transformDirty;
-        buffer->transformDirty = new unsigned char[newSize * 2];
+        buffer->transformDirty = new unsigned char[newSize * 2] ();
         for(int i = 0; i < maxDirtyLine; ++i) {
             buffer->transformDirty[i] = 1;
         }
