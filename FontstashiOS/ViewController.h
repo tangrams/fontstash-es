@@ -66,7 +66,7 @@
 
 #pragma mark glfontstash callbacks
 
-void errorCallback(void* usrPtr, fsuint buffer, GLFONSError error)
+bool errorCallback(void* usrPtr, fsuint buffer, GLFONSError error)
 {
     NSLog(@"Error callback");
 
@@ -78,6 +78,8 @@ void errorCallback(void* usrPtr, fsuint buffer, GLFONSError error)
         default:
             NSLog(@"Unknown error");
     }
+
+    return false;
 }
 
 void createTexTransforms(void* userPtr, unsigned int width, unsigned int height)
