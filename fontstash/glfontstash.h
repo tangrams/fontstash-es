@@ -315,7 +315,7 @@ void glfonsExpandTransform(FONScontext* ctx, fsuint bufferId, int newSize) {
 
         unsigned char* tmpDirty = buffer->transformDirty;
         buffer->transformDirty = new unsigned char[newSize * 2] ();
-        for(int i = 0; i < maxDirtyLine; ++i) {
+        for(int i = 0; i < maxDirtyLine + 1; ++i) {
             buffer->transformDirty[i] = 1;
         }
         delete[] tmpDirty;
