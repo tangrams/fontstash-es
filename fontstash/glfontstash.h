@@ -192,19 +192,20 @@ void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
 
-    bool solved = false;
 
     if(buffer->idct + nb > buffer->maxId) {
+        bool solved = false;
+
         if(gl->params.errorCallback) {
             solved = gl->params.errorCallback(gl->userPtr, buffer->id, GLFONSError::ID_OVERFLOW);
         }
-    }
 
-    if(!solved) {
-        for(unsigned int i = 0; i < nb; ++i) {
-            textId[i] = -1;
+        if(!solved) {
+            for(unsigned int i = 0; i < nb; ++i) {
+                textId[i] = -1;
+            }
+            return;
         }
-        return;
     }
 
     for(unsigned int i = 0; i < nb; ++i) {
