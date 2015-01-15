@@ -57,6 +57,7 @@ float glfonsGetLength(FONScontext* ctx, fsuint id);
 int glfonsGetGlyphCount(FONScontext* ctx, fsuint id);
 void glfonsScreenSize(FONScontext* ctx, int screenWidth, int screenHeight);
 void glfonsProjection(FONScontext* ctx, float* projectionMatrix);
+void glfonsExpandTransform(FONScontext* ctx, fsuint buffer, int size);
 
 unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
 
@@ -106,10 +107,13 @@ struct GLFONScontext {
     void* userPtr;
 };
 
-void glfons__id2ij(GLFONScontext* gl, fsuint id, int* i, int* j) {
-    int* res = gl->buffers.at(gl->boundBuffer)->transformRes;
-    *i = (id*2) % res[0];
-    *j = (id*2) / res[0];
+void glfons__id2ij(int res, fsuint id, int* i, int* j) {
+    *i = (id*2) % res;
+    *j = (id*2) / res;
+}
+
+void glfons__ij2id(int res, int i, int j, fsuint* id) {
+    *id = (i+1) % (res/2) + j * (res/2);
 }
 
 static int glfons__renderCreate(void* userPtr, int width, int height) {
@@ -270,6 +274,47 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, FONSeffectT
     buffer->stashes[textId] = stash;
 }
 
+void glfonsExpandTransform(FONScontext* ctx, fsuint bufferId, int newSize) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    GLFONSbuffer* buffer = gl->buffers.at(bufferId);
+
+    int oldSize = buffer->transformRes[0];
+
+    if(newSize > oldSize) {
+        buffer->transformRes[0] = newSize;
+        buffer->transformRes[1] = newSize * 2;
+
+        unsigned int* tmp = buffer->transformData;
+        buffer->transformData = new unsigned int[newSize * newSize * 2] ();
+
+        int maxDirtyLine = 0;
+        for(int j = 0; j < oldSize * 2; j++) {
+            for(int i = 0; i < oldSize; i+=2) {
+                fsuint id;
+                int ni, nj;
+
+                glfons__ij2id(oldSize, i, j, &id);
+                glfons__id2ij(newSize, id, &ni, &nj);
+
+                buffer->transformData[nj * newSize + ni] = tmp[j * oldSize + i];
+                buffer->transformData[nj * newSize + ni + 1] = tmp[j * oldSize + i + 1];
+
+                maxDirtyLine = nj;
+            }
+        }
+        delete[] tmp;
+
+        unsigned char* tmpDirty = buffer->transformDirty;
+        buffer->transformDirty = new unsigned char[newSize * 2];
+        for(int i = 0; i < maxDirtyLine; ++i) {
+            buffer->transformDirty[i] = 1;
+        }
+        delete[] tmpDirty;
+
+        buffer->maxId = pow(newSize, 2);
+    }
+}
+
 void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* id) {
     if((texTransformRes & (texTransformRes-1)) != 0) {
         *id = 0;
@@ -406,7 +451,7 @@ void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, f
 
     int i, j;
 
-    glfons__id2ij(gl, id, &i, &j);
+    glfons__id2ij(buffer->transformRes[0], id, &i, &j);
 
     // TODO : manage out of screen translations, the scaling step due to texture transform
     // would happen to behave like a module width or height translation
