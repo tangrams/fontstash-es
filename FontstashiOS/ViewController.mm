@@ -386,19 +386,19 @@
 #pragma mark GPU access
 
 - (void) updateAtlas:(const unsigned int*)pixels xoff:(unsigned int)xoff
-                yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height
+                yoff:(unsigned int)yoff width:(unsigned int)w height:(unsigned int)h
 {
-    NSLog(@"Update atlas %d %d %d %d", xoff, yoff, width, height);
+    NSLog(@"Update atlas %d %d %d %d", xoff, yoff, w, h);
 
     glBindTexture(GL_TEXTURE_2D, atlas);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, xoff, yoff, width, height, GL_ALPHA, GL_UNSIGNED_BYTE, pixels);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, xoff, yoff, w, h, GL_ALPHA, GL_UNSIGNED_BYTE, pixels);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 - (void) updateTransforms:(const unsigned int*)pixels xoff:(unsigned int)xoff
-                     yoff:(unsigned int)yoff width:(unsigned int)width height:(unsigned int)height owner:(int)ownerId
+                     yoff:(unsigned int)yoff width:(unsigned int)w height:(unsigned int)h owner:(int)ownerId
 {
-    NSLog(@"Update transform %d %d %d %d", xoff, yoff, width, height);
+    NSLog(@"Update transform %d %d %d %d", xoff, yoff, w, h);
 
     NSNumber* textureName = [transformTextures valueForKey:[NSString stringWithFormat:@"owner-%d", ownerId]];
 
@@ -407,25 +407,25 @@
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-- (void) createAtlasWithWidth:(unsigned int)width height:(unsigned int)height
+- (void) createAtlasWithWidth:(unsigned int)w height:(unsigned int)h
 {
     NSLog(@"Create texture atlas");
 
     glGenTextures(1, &atlas);
     glBindTexture(GL_TEXTURE_2D, atlas);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, width, height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, w, h, 0, GL_ALPHA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-- (void) createTextureTransformsWithWidth:(unsigned int)width height:(unsigned int)height
+- (void) createTextureTransformsWithWidth:(unsigned int)w height:(unsigned int)h
 {
     NSLog(@"Create texture transforms");
 
     GLuint textureName;
     glGenTextures(1, &textureName);
     glBindTexture(GL_TEXTURE_2D, textureName);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glBindTexture(GL_TEXTURE_2D, 0);
 

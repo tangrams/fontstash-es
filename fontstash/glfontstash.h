@@ -445,7 +445,7 @@ bool glfonsVertices(FONScontext* ctx, std::vector<float>* data, int* nVerts) {
 
     data->insert(data->end(), &buffer->interleavedArray[0], &buffer->interleavedArray[buffer->nbVerts * INNER_DATA_OFFSET]);
 
-    *nVerts = data->size() / INNER_DATA_OFFSET;
+    *nVerts = (int)data->size() / INNER_DATA_OFFSET;
 
     free(buffer->interleavedArray);
     buffer->interleavedArray = nullptr;
