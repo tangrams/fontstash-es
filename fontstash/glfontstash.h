@@ -313,12 +313,11 @@ void glfonsExpandTransform(FONScontext* ctx, fsuint bufferId, int newSize) {
         }
         delete[] tmp;
 
-        unsigned char* tmpDirty = buffer->transformDirty;
+        delete[] buffer->transformDirty;
         buffer->transformDirty = new unsigned char[newSize * 2] ();
         for(int i = 0; i < maxDirtyLine + 1; ++i) {
             buffer->transformDirty[i] = 1;
         }
-        delete[] tmpDirty;
 
         buffer->maxId = pow(newSize, 2);
     }
