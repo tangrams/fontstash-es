@@ -367,6 +367,7 @@ void glfonsBufferDelete(GLFONScontext* gl, fsuint id) {
 void glfonsBufferDelete(FONScontext* ctx, fsuint id) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     glfonsBufferDelete(gl, id);
+    gl->buffers.erase(id);
 }
 
 void glfonsBindBuffer(FONScontext* ctx, fsuint id) {
