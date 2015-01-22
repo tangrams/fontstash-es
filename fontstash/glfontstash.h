@@ -45,7 +45,7 @@ void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, f
 void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId);
 
 void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* id);
-void glfonsBufferDelete(FONScontext* gl, fsuint id);
+void glfonsBufferDelete(FONScontext* ctx, fsuint id);
 void glfonsBindBuffer(FONScontext* ctx, fsuint id);
 
 void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, FONSeffectType effect);
@@ -362,6 +362,11 @@ void glfonsBufferDelete(GLFONScontext* gl, fsuint id) {
     if(buffer->interleavedArray != nullptr) {
         free(buffer->interleavedArray);
     }
+}
+
+void glfonsBufferDelete(FONScontext* ctx, fsuint id) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    glfonsBufferDelete(gl, id);
 }
 
 void glfonsBindBuffer(FONScontext* ctx, fsuint id) {
