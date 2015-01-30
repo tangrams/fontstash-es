@@ -48,7 +48,7 @@ void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* 
 void glfonsBufferDelete(FONScontext* ctx, fsuint id);
 void glfonsBindBuffer(FONScontext* ctx, fsuint id);
 
-void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, FONSeffectType effect);
+void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s);
 bool glfonsVertices(FONScontext* ctx, std::vector<float>* data, int* nVerts);
 
 void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1, float* y1);
@@ -213,7 +213,7 @@ void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId) {
     }
 }
 
-void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, FONSeffectType effect) {
+void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
     GLFONSstash* stash = new GLFONSstash;
