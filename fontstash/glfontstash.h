@@ -430,6 +430,9 @@ void glfonsProjection(FONScontext* ctx, float* projectionMatrix) {
     float n = -1.0;
     float f = 1.0;
 
+    // ensure array is 0-filled
+    memset(projectionMatrix, 0, 16 * sizeof(float));
+
     // could be simplified, exposing it like this for comprehension
     projectionMatrix[0] = 2.0 / (r-l);
     projectionMatrix[5] = 2.0 / (t-b);
