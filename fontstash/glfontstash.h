@@ -80,8 +80,7 @@ struct GLFONSbuffer {
     fsuint idct;
     unsigned int* transformData;
     unsigned char* transformDirty;
-    float* interleavedArray;
-    unsigned int nbVerts;
+    std::vector<float> interleavedArray;
     unsigned int maxId;
     int transformRes[2];
     std::unordered_map<fsuint, GLFONSstash*> stashes;
@@ -220,19 +219,6 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s) {
 
     fonsDrawText(ctx, 0, 0, s, NULL, 0);
 
-    float* data = nullptr;
-
-    if(buffer->interleavedArray == nullptr) {
-        buffer->interleavedArray = (float*) malloc(sizeof(float) * ctx->nverts * INNER_DATA_OFFSET);
-        buffer->nbVerts = 0;
-        data = buffer->interleavedArray;
-    } else {
-        // TODO : realloc can be expensive, improve
-        buffer->interleavedArray = (float*) realloc(buffer->interleavedArray,
-                                                    sizeof(float) * (buffer->nbVerts + ctx->nverts) * INNER_DATA_OFFSET);
-        data = buffer->interleavedArray + buffer->nbVerts * INNER_DATA_OFFSET;
-    }
-
     stash->glyphsXOffset = new float[ctx->nverts / N_GLYPH_VERTS];
 
     int j = 0;
@@ -242,24 +228,22 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s) {
 
     float inf = std::numeric_limits<float>::infinity();
     float x0 = inf, x1 = -inf, y0 = inf, y1 = -inf;
-    for(int i = 0, off = 0; i < ctx->nverts * 2; i += 2, off += INNER_DATA_OFFSET) {
-        float x, y, u, v;
+    for(int i = 0; i < ctx->nverts * 2; i += 2) {
+        float x, y;
 
         x = ctx->verts[i];
         y = ctx->verts[i+1];
-        u = ctx->tcoords[i];
-        v = ctx->tcoords[i+1];
 
         x0 = x < x0 ? x : x0;
         x1 = x > x1 ? x : x1;
         y0 = y < y0 ? y : y0;
         y1 = y > y1 ? y : y1;
 
-        data[off] = x;
-        data[off+1] = y;
-        data[off+2] = u;
-        data[off+3] = v;
-        data[off+4] = float(textId);
+        buffer->interleavedArray.push_back(x);
+        buffer->interleavedArray.push_back(y);
+        buffer->interleavedArray.push_back(ctx->tcoords[i]);
+        buffer->interleavedArray.push_back(ctx->tcoords[i+1]);
+        buffer->interleavedArray.push_back(float(textId));
     }
 
     stash->bbox[0] = x0; stash->bbox[1] = y0;
@@ -274,8 +258,6 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s) {
     } else {
         stash->nbGlyph = (int)strlen(s);
     }
-
-    buffer->nbVerts += ctx->nverts;
 
     // hack : reset fontstash state
     ctx->nverts = 0;
@@ -340,7 +322,6 @@ void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* 
     buffer->maxId = pow(texTransformRes, 2);
     buffer->transformData = new unsigned int[texTransformRes * texTransformRes * 2] ();
     buffer->transformDirty = new unsigned char[texTransformRes * 2] ();
-    buffer->interleavedArray = nullptr;
     buffer->id = *id;
 
     gl->params.createTexTransforms(gl->userPtr, buffer->transformRes[0], buffer->transformRes[1]);
@@ -358,10 +339,7 @@ void glfonsBufferDelete(GLFONScontext* gl, fsuint id) {
         glfons__freeStash(elt.second);
     }
     buffer->stashes.clear();
-
-    if(buffer->interleavedArray != nullptr) {
-        free(buffer->interleavedArray);
-    }
+    buffer->interleavedArray.clear();
 }
 
 void glfonsBufferDelete(FONScontext* ctx, fsuint id) {
@@ -455,16 +433,15 @@ bool glfonsVertices(FONScontext* ctx, std::vector<float>* data, int* nVerts) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
 
-    if(buffer->interleavedArray == nullptr) {
+    if(buffer == nullptr) {
         return false;
     }
 
-    data->insert(data->end(), &buffer->interleavedArray[0], &buffer->interleavedArray[buffer->nbVerts * INNER_DATA_OFFSET]);
+    *data = buffer->interleavedArray;
 
     *nVerts = (int)data->size() / INNER_DATA_OFFSET;
 
-    free(buffer->interleavedArray);
-    buffer->interleavedArray = nullptr;
+    buffer->interleavedArray.clear();
 
     return true;
 }
