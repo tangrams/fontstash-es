@@ -78,12 +78,12 @@ struct GLFONSstash {
 struct GLFONSbuffer {
     fsuint id;
     fsuint idct;
+    unsigned int maxId;
+    int transformRes[2];
     unsigned int* transformData;
     unsigned char* transformDirty;
     std::vector<float> interleavedArray;
-    unsigned int maxId;
-    int transformRes[2];
-    std::unordered_map<fsuint, GLFONSstash*> stashes;
+    std::vector<GLFONSstash*> stashes;
 };
 
 struct GLFONSparams {
@@ -262,7 +262,7 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s) {
     // hack : reset fontstash state
     ctx->nverts = 0;
 
-    buffer->stashes[textId] = stash;
+    buffer->stashes.push_back(stash);
 }
 
 void glfonsExpandTransform(FONScontext* ctx, fsuint bufferId, int newSize) {
@@ -336,7 +336,7 @@ void glfonsBufferDelete(GLFONScontext* gl, fsuint id) {
     delete[] buffer->transformDirty;
 
     for(auto& elt : buffer->stashes) {
-        glfons__freeStash(elt.second);
+        glfons__freeStash(elt);
     }
     buffer->stashes.clear();
     buffer->interleavedArray.clear();
@@ -486,18 +486,14 @@ int glfonsGetGlyphCount(FONScontext* ctx, fsuint id) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
 
-    if(buffer->stashes.find(id) != buffer->stashes.end()) {
-        GLFONSstash* stash = buffer->stashes.at(id);
-        return stash->nbGlyph;
-    }
-
-    return -1;
+    GLFONSstash* stash = buffer->stashes[id];
+    return stash->nbGlyph;
 }
 
 float glfonsGetGlyphOffset(FONScontext* ctx, fsuint id, int i) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
-    GLFONSstash* stash = buffer->stashes.at(id);
+    GLFONSstash* stash = buffer->stashes[id];
 
     return stash->glyphsXOffset[i];
 }
@@ -505,7 +501,7 @@ float glfonsGetGlyphOffset(FONScontext* ctx, fsuint id, int i) {
 void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1, float* y1) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
-    GLFONSstash* stash = buffer->stashes.at(id);
+    GLFONSstash* stash = buffer->stashes[id];
 
     *x0 = stash->bbox[0]; *y0 = stash->bbox[1];
     *x1 = stash->bbox[2]; *y1 = stash->bbox[3];
@@ -514,7 +510,7 @@ void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1,
 float glfonsGetLength(FONScontext* ctx, fsuint id) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
-    GLFONSstash* stash = buffer->stashes.at(id);
+    GLFONSstash* stash = buffer->stashes[id];
     
     return stash->length;
 }
