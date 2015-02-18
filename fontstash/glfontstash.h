@@ -21,6 +21,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <climits>
 
 #include "fontstash.h"
 
