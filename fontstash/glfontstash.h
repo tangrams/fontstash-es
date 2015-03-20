@@ -181,7 +181,7 @@ void glfonsUpdateTransforms(FONScontext* ctx, void* ownerPtr) {
     }
 
     // interleaved array stored as following in texture :
-    // | x | y | rot | alpha | precision_x | precision_y | Ø | Ø |
+    // | x | y | rot | alpha | precision_x | precision_y | precision_r | Ø |
     const unsigned int* subdata;
     subdata = buffer->transformData + min * buffer->transformRes[0];
     gl->params.updateTransforms(gl->userPtr, 0, min, buffer->transformRes[0], (max - min) + 1, subdata, ownerPtr);
@@ -447,6 +447,10 @@ bool glfonsVertices(FONScontext* ctx, std::vector<float>* data, int* nVerts) {
     return true;
 }
 
+float glfons__precision(float value) {
+    return floor((1.0 - ((int)(value + 1) - value)) * 255.0 + 0.5);
+}
+
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
@@ -469,11 +473,12 @@ void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, f
 
     // scale decimal part from [0..1] to [0..255] rounding to the closest value
     // known floating point error here of 0.5/255 ~= 0.00196 due to rounding
-    float dx = floor((1.0 - ((int)(tx + 1) - tx)) * 255.0 + 0.5);
-    float dy = floor((1.0 - ((int)(ty + 1) - ty)) * 255.0 + 0.5);
+    float dx = glfons__precision(tx);
+    float dy = glfons__precision(ty);
+    float dr = glfons__precision(r);
 
     unsigned int data = glfonsRGBA(tx, ty, r, a);
-    unsigned int fract = glfonsRGBA(dx, dy, /* bytes not used -> */ 0, 0);
+    unsigned int fract = glfonsRGBA(dx, dy, dr, /* byte not used -> */ 0);
     unsigned int index = j*buffer->transformRes[0]+i;
 
     if(data != buffer->transformData[index] || fract != buffer->transformData[index+1]) {
@@ -512,7 +517,7 @@ float glfonsGetLength(FONScontext* ctx, fsuint id) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
     GLFONSstash* stash = buffer->stashes[id];
-    
+
     return stash->length;
 }
 
