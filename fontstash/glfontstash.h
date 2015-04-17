@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <vector>
 #include <climits>
+#include <cstdio>
 
 #include "fontstash.h"
 
@@ -50,7 +51,8 @@ void glfonsBufferDelete(FONScontext* ctx, fsuint id);
 void glfonsBindBuffer(FONScontext* ctx, fsuint id);
 
 void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s);
-bool glfonsVertices(FONScontext* ctx, std::vector<float>* data, int* nVerts);
+bool glfonsVertices(FONScontext* ctx, float* data);
+int glfonsVerticesSize(FONScontext* ctx);
 
 void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1, float* y1);
 float glfonsGetGlyphOffset(FONScontext* ctx, fsuint id, int i);
@@ -430,7 +432,18 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
     return (r) | (g << 8) | (b << 16) | (a << 24);
 }
 
-bool glfonsVertices(FONScontext* ctx, std::vector<float>* data, int* nVerts) {
+int glfonsVerticesSize(FONScontext* ctx) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    GLFONSbuffer* buffer = glfons__bufferBound(gl);
+    
+    if(buffer == nullptr) {
+        return 0;
+    }
+    
+    return (int) buffer->interleavedArray.size() / INNER_DATA_OFFSET;
+}
+
+bool glfonsVertices(FONScontext* ctx, float* data) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
 
@@ -438,10 +451,8 @@ bool glfonsVertices(FONScontext* ctx, std::vector<float>* data, int* nVerts) {
         return false;
     }
 
-    *data = buffer->interleavedArray;
-
-    *nVerts = (int)data->size() / INNER_DATA_OFFSET;
-
+    memcpy(data, buffer->interleavedArray.data(), buffer->interleavedArray.size() * sizeof(float));
+    
     buffer->interleavedArray.clear();
 
     return true;
