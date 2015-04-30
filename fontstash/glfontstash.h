@@ -220,7 +220,7 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s) {
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
     GLFONSstash* stash = new GLFONSstash;
 
-    fonsDrawText(ctx, 0, 0, s, NULL, 0);
+    int length = fonsDrawText(ctx, 0, 0, s, NULL, 0);
 
     stash->glyphsXOffset = new float[ctx->nverts / N_GLYPH_VERTS];
 
@@ -249,10 +249,11 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s) {
         buffer->interleavedArray.push_back(float(textId));
     }
 
-    stash->bbox[0] = x0; stash->bbox[1] = y0;
-    stash->bbox[2] = x1; stash->bbox[3] = y1;
+    // remove extra-offset used for interpolation in fontstash
+    stash->bbox[0] = x0 + 3; stash->bbox[1] = y0 - 3;
+    stash->bbox[2] = x1 + 3; stash->bbox[3] = y1 - 3;
 
-    stash->length = ctx->verts[(ctx->nverts*2)-2];
+    stash->length = length - 6;
 
     if(ctx->shaping != NULL && fons__getState(ctx)->useShaping) {
         FONSshapingRes* res = ctx->shaping->shapingRes;
@@ -435,11 +436,11 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
 int glfonsVerticesSize(FONScontext* ctx) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
-    
+
     if(buffer == nullptr) {
         return 0;
     }
-    
+
     return (int) buffer->interleavedArray.size() / INNER_DATA_OFFSET;
 }
 
@@ -452,7 +453,7 @@ bool glfonsVertices(FONScontext* ctx, float* data) {
     }
 
     memcpy(data, buffer->interleavedArray.data(), buffer->interleavedArray.size() * sizeof(float));
-    
+
     buffer->interleavedArray.clear();
 
     return true;
