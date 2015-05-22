@@ -90,6 +90,7 @@ struct GLFONSbuffer {
 };
 
 struct GLFONSparams {
+    bool useGLBackend;
     bool (*errorCallback)(void* usrPtr, fsuint buffer, GLFONSError error);
     void (*createTexTransforms)(void* usrPtr, unsigned int width, unsigned int height);
     void (*createAtlas)(void* usrPtr, unsigned int width, unsigned int height);
@@ -327,6 +328,7 @@ void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* 
     buffer->transformData = new unsigned int[texTransformRes * texTransformRes * 2] ();
     buffer->transformDirty = new unsigned char[texTransformRes * 2] ();
     buffer->id = *id;
+    gl->boundBuffer = *id;
 
     gl->params.createTexTransforms(gl->userPtr, buffer->transformRes[0], buffer->transformRes[1]);
 
@@ -380,6 +382,46 @@ void glfonsScreenSize(FONScontext* ctx, int screenWidth, int screenHeight) {
     gl->screenSize[1] = screenHeight;
 }
 
+void glfons__createTexTransform(void* usrPtr, unsigned int width, unsigned int height) {
+    GLFONScontext* gl = (GLFONScontext*) userPtr;
+    GLFONSbuffer* buffer = glfons__bufferBound(gl);
+
+    GLuint textureName;
+    glGenTextures(1, &textureName);
+    glBindTexture(GL_TEXTURE_2D, textureName);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+    
+void glfons__createAtlas(void* usrPtr, unsigned int width, unsigned int height) {
+    GLuint atlas;
+
+    glGenTextures(1, &atlas);
+    glBindTexture(GL_TEXTURE_2D, atlas);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, w, h, 0, GL_ALPHA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+    
+void glfons__updateTransforms(void* usrPtr, unsigned int xoff, unsigned int yoff, unsigned int width,
+                             unsigned int height, const unsigned int* pixels, void* ownerPtr) {\
+    GLFONScontext* gl = (GLFONScontext*) userPtr;
+    GLFONSbuffer* buffer = glfons__bufferBound(gl);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, xoff, yoff, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void glfons__udpateAtas(void* usrPtr, unsigned int xoff, unsigned int yoff,
+                        unsigned int width, unsigned int height, const unsigned int* pixels) {
+    GLFONScontext* gl = (GLFONScontext*) userPtr;
+    glBindTexture(GL_TEXTURE_2D, atlas);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, xoff, yoff, w, h, GL_ALPHA, GL_UNSIGNED_BYTE, pixels);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParams, void* userPtr) {
     FONSparams params;
     GLFONScontext* gl = new GLFONScontext;
@@ -389,11 +431,20 @@ FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParam
     params.width = width;
     params.height = height;
     params.flags = (unsigned char)flags;
+
     params.renderCreate = glfons__renderCreate;
     params.renderResize = glfons__renderResize;
     params.renderUpdate = glfons__renderUpdate;
     params.renderDraw = glfons__renderDraw;
     params.renderDelete = glfons__renderDelete;
+
+    if(glParams.useGLBackend) {
+        glParams.createTexTransforms = glfons__createTexTransform;
+        glParams.createAtlas = glfons__createAtlas;
+        glParams.updateTransforms = glfons__updateTransforms;
+        glParams.updateAtlas = glfons__udpateAtas;
+    }
+
     params.userPtr = gl;
 
     return fonsCreateInternal(&params);
