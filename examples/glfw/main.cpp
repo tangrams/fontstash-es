@@ -44,6 +44,9 @@ void render() {
         update();
 
         glViewport(0, 0, width * dpiRatio, height * dpiRatio);
+        
+        glfonsScreenSize(ftCtx, width * dpiRatio, height * dpiRatio);
+        
         glClearColor(0.18f, 0.18f, 0.22f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -59,6 +62,9 @@ void initFontContext() {
     params.useGLBackend = true;
     
     ftCtx = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT, params, nullptr);
+    
+    fonsSetSize(ftCtx, 20.0);
+    fonsAddFont(ftCtx, "Arial", "/Library/Fonts/Arial.ttf");
 }
 
 int main() {
@@ -66,6 +72,8 @@ int main() {
     init();
     initFontContext();
     render();
+    
+    glfonsDelete(ftCtx);
 
     return 0;
 }
