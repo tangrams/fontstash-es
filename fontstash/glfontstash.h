@@ -61,6 +61,7 @@ int glfonsGetGlyphCount(FONScontext* ctx, fsuint id);
 void glfonsScreenSize(FONScontext* ctx, int screenWidth, int screenHeight);
 void glfonsProjection(FONScontext* ctx, float* projectionMatrix);
 void glfonsExpandTransform(FONScontext* ctx, fsuint buffer, int size);
+void glfonsUpload(FONScontext* ctx, int size);
 
 unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
 
@@ -82,6 +83,7 @@ struct GLFONSbuffer {
     fsuint id;
     fsuint idct;
     GLuint transform;
+    GLuint vbo;
     unsigned int maxId;
     int transformRes[2];
     unsigned int* transformData;
@@ -127,7 +129,7 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     gl->idct = 0;
     gl->atlasRes[0] = width;
     gl->atlasRes[1] = height;
-    gl->params.createAtlas(gl->userPtr, width, height);
+    gl->params.createAtlas(gl, width, height);
 
     return 1;
 }
@@ -253,8 +255,10 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s) {
     }
 
     // remove extra-offset used for interpolation in fontstash
-    stash->bbox[0] = x0 + 3; stash->bbox[1] = y0 - 3;
-    stash->bbox[2] = x1 + 3; stash->bbox[3] = y1 - 3;
+    stash->bbox[0] = x0 + 3; 
+    stash->bbox[1] = y0 - 3;
+    stash->bbox[2] = x1 + 3; 
+    stash->bbox[3] = y1 - 3;
 
     stash->length = length - 6;
 
@@ -301,7 +305,6 @@ void glfonsExpandTransform(FONScontext* ctx, fsuint bufferId, int newSize) {
             }
         }
         delete[] tmp;
-
         delete[] buffer->transformDirty;
         buffer->transformDirty = new unsigned char[newSize * 2] ();
         for(int i = 0; i < maxDirtyLine + 1; ++i) {
@@ -340,6 +343,15 @@ void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* 
 void glfonsBufferDelete(GLFONScontext* gl, fsuint id) {
     GLFONSbuffer* buffer = gl->buffers.at(id);
 
+    if(gl->params.useGLBackend) {
+        if(buffer->vbo != 0) {
+            glDeleteBuffers(1, &buffer->vbo);    
+        }
+        if(buffer->transform != 0) {
+            glDeleteTextures(1, &buffer->transform);
+        }
+    }
+
     delete[] buffer->transformData;
     delete[] buffer->transformDirty;
 
@@ -368,6 +380,29 @@ void glfonsBindBuffer(FONScontext* ctx, fsuint id) {
     gl->boundBuffer = id;
 }
 
+void glfonsUpload(FONScontext* ctx, int size) {
+    GLFONScontext* gl = (GLFONScontext*)ctx->params.userPtr;
+
+    if(!gl->params.useGLBackend) {
+        return;
+    }
+
+    GLFONSbuffer* buffer = glfons__bufferBound(gl);
+
+    std::vector<float> vertices;
+    int nVerts = glfonsVerticesSize(ctx);
+    vertices.resize(nVerts);
+    glfonsVertices(ctx, reinterpret_cast<float*>(vertices.data()));
+
+    if(buffer->vbo == 0) {
+        glGenBuffers(1, &buffer->vbo);
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo);
+    glBufferData(GL_ARRAY_BUFFER, INNER_DATA_OFFSET * sizeof(float) * nVerts, vertices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
 static void glfons__renderDelete(void* userPtr) {
     GLFONScontext* gl = (GLFONScontext*)userPtr;
 
@@ -375,6 +410,12 @@ static void glfons__renderDelete(void* userPtr) {
         glfonsBufferDelete(gl, elt.first);
     }
     gl->buffers.clear();
+
+    if(gl->params.useGLBackend) {
+        if(gl->atlas != 0) {
+            glDeleteTextures(1, &gl->atlas);
+        }
+    }
     delete gl;
 }
 
