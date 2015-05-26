@@ -6,75 +6,66 @@
 #include <stack>
 #include <GLFW/glfw3.h>
 
+#define GLFONS_DEBUG
 #define GLFONTSTASH_IMPLEMENTATION
 #import "glfontstash.h"
 
 GLFWwindow* window;
-float width = 800;
-float height = 600;
-float dpiRatio = 1;
+float width = 800, height = 600, dpiRatio = 1;
+
+#define NB_TEXT 5
+#define TEXT_TRANSFORM_RESOLUTION 32
 
 FONScontext* ftCtx;
-
-void update() {
-    double time = glfwGetTime();
-}
-
-void init() {
-    glfwInit();
-
-    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-    glfwWindowHint(GLFW_SAMPLES, 4);
-    window = glfwCreateWindow(width, height, "isect2d", NULL, NULL);
-
-    if (!window) {
-        glfwTerminate();
-    }
-
-    int fbWidth, fbHeight;
-    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
-
-    dpiRatio = fbWidth / width;
-
-    glfwMakeContextCurrent(window);
-}
-
-void render() {
-    while (!glfwWindowShouldClose(window)) {
-        update();
-
-        glViewport(0, 0, width * dpiRatio, height * dpiRatio);
-        
-        glfonsScreenSize(ftCtx, width * dpiRatio, height * dpiRatio);
-        
-        glClearColor(0.18f, 0.18f, 0.22f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glfwSwapBuffers(window);
-
-        glfwPollEvents();
-    }
-}
-
-void initFontContext() {
-    GLFONSparams params;
-
-    params.useGLBackend = true;
-    
-    ftCtx = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT, params, nullptr);
-    
-    fonsSetSize(ftCtx, 20.0);
-    fonsAddFont(ftCtx, "Arial", "/Library/Fonts/Arial.ttf");
-}
+fsuint textBuffer, textIds[NB_TEXT];
 
 int main() {
-
-    init();
-    initFontContext();
-    render();
+    int fbWidth, fbHeight;
     
-    glfonsDelete(ftCtx);
+    // context init
+    glfwInit();
+    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+    glfwWindowHint(GLFW_SAMPLES, 2);
+    window = glfwCreateWindow(width, height, "fontstash-es", NULL, NULL);
+    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+    dpiRatio = fbWidth / width;
+    glfwMakeContextCurrent(window);
+    
+    GLFONSparams params;
+    params.useGLBackend = true;
+    ftCtx = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT, params, nullptr);
+    
+    // init font
+    fonsSetSize(ftCtx, 20.0);
+    fonsAddFont(ftCtx, "Arial", "/Library/Fonts/Arial.ttf");
+    
+    glfonsBufferCreate(ftCtx, TEXT_TRANSFORM_RESOLUTION, &textBuffer);
+    glfonsBindBuffer(ftCtx, textBuffer);
+    glfonsGenText(ftCtx, NB_TEXT, textIds);
+    
+    for(int i = 0; i < NB_TEXT; ++i) {
+        glfonsRasterize(ftCtx, textIds[i], "Some text");
+    }
+    
+    glfonsUpload(ftCtx);
+    glfonsBindBuffer(ftCtx, 0);
 
+    while (!glfwWindowShouldClose(window)) {
+        glViewport(0, 0, width * dpiRatio, height * dpiRatio);
+        glfonsScreenSize(ftCtx, width * dpiRatio, height * dpiRatio);
+        glClearColor(0.18f, 0.18f, 0.22f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        // render text
+        glfonsDraw(ftCtx);
+        
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+    
+    // release font resources
+    glfonsDelete(ftCtx);
+    
     return 0;
 }
 

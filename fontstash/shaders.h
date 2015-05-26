@@ -115,10 +115,10 @@ precision mediump float;
 #else
 #define LOWP
 #endif
-
-#ifdef GL_OES_standard_derivatives
-    #extension GL_OES_standard_derivatives : enable
-#else
+    
+//#ifdef GL_OES_standard_derivatives
+//    #extension GL_OES_standard_derivatives : enable
+//#else
 
 uniform sampler2D u_tex;
 uniform LOWP vec3 u_color;
@@ -141,18 +141,18 @@ float sample(in vec2 uv, float w, in float off) {
 float sampleAlpha(in vec2 uv, float distance, in float off) {
     float alpha = contour(distance, distance, off);
 
-#ifdef GL_OES_standard_derivatives
-    float dscale = 0.354; // 1 / sqrt(2)
-    vec2 duv = dscale * (dFdx(uv) + dFdy(uv));
-    vec4 box = vec4(uv - duv, uv + duv);
-
-    float asum = sample(box.xy, distance, off)
-               + sample(box.zw, distance, off)
-               + sample(box.xw, distance, off)
-               + sample(box.zy, distance, off);
-
-    alpha = (alpha + 0.5 * asum) / 2.0;
-#endif      
+//#ifdef GL_OES_standard_derivatives
+//    float dscale = 0.354; // 1 / sqrt(2)
+//    vec2 duv = dscale * (dFdx(uv) + dFdy(uv));
+//    vec4 box = vec4(uv - duv, uv + duv);
+//
+//    float asum = sample(box.xy, distance, off)
+//               + sample(box.zw, distance, off)
+//               + sample(box.xw, distance, off)
+//               + sample(box.zy, distance, off);
+//
+//    alpha = (alpha + 0.5 * asum) / 2.0;
+//#endif
 
     return alpha;
 }
