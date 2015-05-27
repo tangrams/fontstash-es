@@ -1,5 +1,6 @@
 #define GLFW_INCLUDE_ES2
 #include <GLFW/glfw3.h>
+#include <cmath>
 
 //#define GLFONS_DEBUG
 #define GLFONTSTASH_IMPLEMENTATION
@@ -9,10 +10,13 @@ GLFWwindow* window;
 float width = 800, height = 600, dpiRatio = 1;
 
 #define NB_TEXT 5
-#define TEXT_TRANSFORM_RESOLUTION 32
 
 FONScontext* ftCtx;
 fsuint textBuffer, textIds[NB_TEXT];
+
+int nextPowerOf2(int value) {
+    return pow(2, ceil(log(value)/log(2)));
+}
 
 int main() {
     int fbWidth, fbHeight;
@@ -29,7 +33,7 @@ int main() {
     
     // init font context
     GLFONSparams params;
-    params.useGLBackend = true;
+    params.useGLBackend = true; // if not set to true, you must provide your own gl backend
     ftCtx = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT, params, nullptr);
     fonsAddFont(ftCtx, "Arial", "/Library/Fonts/Arial.ttf");
     
@@ -37,7 +41,7 @@ int main() {
     glfonsScreenSize(ftCtx, width * dpiRatio, height * dpiRatio);
 
     // create and bind buffer
-    glfonsBufferCreate(ftCtx, TEXT_TRANSFORM_RESOLUTION, &textBuffer);
+    glfonsBufferCreate(ftCtx, nextPowerOf2(NB_TEXT), &textBuffer);
 
     // generate text ids for the currently bound text buffer
     glfonsGenText(ftCtx, NB_TEXT, textIds);
