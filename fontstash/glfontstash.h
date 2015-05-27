@@ -22,7 +22,6 @@
 #include <unordered_map>
 #include <vector>
 #include <climits>
-#include <cstdio>
 
 #include "fontstash.h"
 #include "shaders.h"

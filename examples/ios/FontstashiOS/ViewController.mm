@@ -67,6 +67,9 @@
     [EAGLContext setCurrentContext:self.context];
 
     CGSize screen = [UIScreen mainScreen].bounds.size;
+    dpiRatio = [[UIScreen mainScreen] scale];
+    width = self.view.bounds.size.width * dpiRatio;
+    height = self.view.bounds.size.height * dpiRatio;
     
     glViewport(0, 0, screen.width, screen.height);
     glClearColor(1.f, 1.f, 1.f, 1.f);
