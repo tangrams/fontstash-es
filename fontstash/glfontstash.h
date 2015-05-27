@@ -208,11 +208,12 @@ GLuint glfons__compileShader(const GLchar* src, GLenum type) {
 void glfons__enableVertexLayout(GLFONScontext* gl) {
     GLFONSVertexLayout layout = gl->vertexLayout;
     
-    int stride = 0;
+    size_t offset = 0;
+    size_t stride = INNER_DATA_OFFSET * sizeof(float);
     for(int i = 0; i < GLFONSVertexLayout::NB_ATTRIBUTES; ++i) {
+        GLFONS_GL_CHECK(glVertexAttribPointer(layout.attributes[i], layout.sizes[i], GL_FLOAT, GL_FALSE, stride, (const GLvoid *) offset));
         GLFONS_GL_CHECK(glEnableVertexAttribArray(layout.attributes[i]));
-        GLFONS_GL_CHECK(glVertexAttribPointer(layout.attributes[i], layout.sizes[i], GL_FLOAT, GL_FALSE, stride, (const GLvoid*) (INNER_DATA_OFFSET * sizeof(float))));
-        stride += 2 * sizeof(float);
+        offset += 2 * sizeof(float);
     }
 }
 
@@ -251,7 +252,7 @@ void glfons__initShaders(GLFONScontext* gl) {
 
 void glfons__bindUniforms(GLFONScontext* gl, GLFONSbuffer* buffer) {
     GLFONS_GL_CHECK(glUniform1i(glGetUniformLocation(gl->program, "u_transforms"), 1));
-    GLFONS_GL_CHECK(glUniform2f(glGetUniformLocation(gl->program, "u_tresolution"), buffer->size, buffer->size * 2));
+    GLFONS_GL_CHECK(glUniform2f(glGetUniformLocation(gl->program, "u_tresolution"), buffer->transformRes[0], buffer->transformRes[1]));
 }
 
 void glfons__projection(GLFONScontext* gl, float* projectionMatrix) {
@@ -286,24 +287,22 @@ void glfons__draw(GLFONScontext* gl) {
     GLFONS_GL_CHECK(glUseProgram(gl->program));
     GLFONS_GL_CHECK(glUniform1i(glGetUniformLocation(gl->program, "u_tex"), 0));
     GLFONS_GL_CHECK(glUniform2f(glGetUniformLocation(gl->program, "u_resolution"), gl->screenSize[0], gl->screenSize[1]));
-    GLFONS_GL_CHECK(glUniform3f(glGetUniformLocation(gl->program, "u_color"), 1.0, 1.0, 1.0));
+    GLFONS_GL_CHECK(glUniform3f(glGetUniformLocation(gl->program, "u_color"), 0.0, 0.0, 0.0));
     GLFONS_GL_CHECK(glUniformMatrix4fv(glGetUniformLocation(gl->program, "u_proj"), 1, GL_FALSE, projectionMatrix));
     
     glActiveTexture(GL_TEXTURE0);
     GLFONS_GL_CHECK(glBindTexture(GL_TEXTURE_2D, gl->atlas));
     
-    glfons__enableVertexLayout(gl);
-    
     for(auto& pair : gl->buffers) {
         GLFONSbuffer* buffer = pair.second;
         GLFONS_GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo));
+        glfons__enableVertexLayout(gl);
         glfons__bindUniforms(gl, buffer);
         glActiveTexture(GL_TEXTURE1);
         GLFONS_GL_CHECK(glBindTexture(GL_TEXTURE_2D, buffer->transform));
-        GLFONS_GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, buffer->size / INNER_DATA_OFFSET));
+        GLFONS_GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, buffer->size));
+        glfons__disableVertexLayout(gl);
     }
-    
-    glfons__disableVertexLayout(gl);
 }
 
 void glfonsUpdateTransforms(FONScontext* ctx, void* ownerPtr) {
@@ -543,7 +542,7 @@ void glfonsUpload(FONScontext* ctx) {
     }
     
     GLFONS_GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo));
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * nVerts, vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
@@ -761,7 +760,7 @@ void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, f
     int i, j;
 
     glfons__id2ij(buffer->transformRes[0], id, &i, &j);
-
+    
     // TODO : manage out of screen translations, the scaling step due to texture transform
     // would happen to behave like a module width or height translation
 
