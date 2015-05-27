@@ -1,7 +1,7 @@
 #define GLFW_INCLUDE_ES2
 #include <GLFW/glfw3.h>
 
-#define GLFONS_DEBUG
+//#define GLFONS_DEBUG
 #define GLFONTSTASH_IMPLEMENTATION
 #import "glfontstash.h"
 
@@ -70,20 +70,12 @@ int main() {
         glfonsScreenSize(ftCtx, width * dpiRatio, height * dpiRatio);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
-        // render the text
-        glfonsDraw(ftCtx);
         glfonsTransform(ftCtx, textIds[0], (width / 2.0) * dpiRatio, (height / 2.0) * dpiRatio, cos(t) * 0.5, cos(t) * 0.5 + 0.5);
         glfonsTransform(ftCtx, textIds[4], (width / 2.0) * dpiRatio, (height / 2.0 - 200.0 + cos(t) * 20.0) * dpiRatio, 0.0, 1.0);
-        
         // push transforms to gpu
         glfonsUpdateTransforms(ftCtx);
-        
+        // render the text
         glfonsDraw(ftCtx);
-        glfonsTransform(ftCtx, textIds[0], (width / 2.0) * dpiRatio, (height - (height / 2.0)) * dpiRatio, cos(t) * 0.5, cos(t) * 0.5 + 0.5);
-        glfonsTransform(ftCtx, textIds[4], (width / 2.0) * dpiRatio, (height - (height / 2.0 - 200.0 + cos(t) * 20.0)) * dpiRatio, 0.0, 1.0);
-        
-        // push transforms to gpu
-        glfonsUpdateTransforms(ftCtx);
         
         glfwSwapBuffers(window);
         glfwPollEvents();
