@@ -88,11 +88,7 @@
 
 - (void)update
 {
-    dpiRatio = [[UIScreen mainScreen] scale];
-    width = self.view.bounds.size.width * dpiRatio;
-    height = self.view.bounds.size.height * dpiRatio;
-
-    glfonsScreenSize(fs, width, height);
+    
 }
 
 - (void)glkView:(GLKView *)view drawInRect:(CGRect)rect
@@ -100,13 +96,12 @@
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     static double t;
-    t += 0.01;
+    t += 0.1;
     
-    glViewport(0, 0, width * dpiRatio, height * dpiRatio);
-    glfonsScreenSize(fs, width * dpiRatio, height * dpiRatio);
+    glViewport(0, 0, width, height);
     
-    glfonsTransform(fs, textIds[0], (width / 2.0) * dpiRatio, (height / 2.0) * dpiRatio, cos(t) * 0.5, cos(t) * 0.5 + 0.5);
-    glfonsTransform(fs, textIds[4], (width / 2.0) * dpiRatio, (height / 2.0 - 200.0 + cos(t) * 20.0) * dpiRatio, 0.0, 1.0);
+    glfonsTransform(fs, textIds[0], width / 2.0, height / 2.0, cos(t) * 0.5, cos(t) * 0.5 + 0.5);
+    glfonsTransform(fs, textIds[4], width / 2.0, height / 2.0 - 200.0 + cos(t) * 20.0, 0.0, 1.0);
     // push transforms to gpu
     glfonsUpdateTransforms(fs);
     // render the text
@@ -172,7 +167,7 @@
     fonsSetFont(fs, amiri);
     
     // set the screen size for font context transformations
-    glfonsScreenSize(fs, width * dpiRatio, height * dpiRatio);
+    glfonsScreenSize(fs, width, height);
     
     // create and bind buffer
     glfonsBufferCreate(fs, nextPowerOf2(NB_TEXT), &textBuffer);
@@ -190,11 +185,11 @@
     glfonsRasterize(fs, textIds[1], "jumps over the lazy dog");
     fonsSetSize(fs, 60.0 * dpiRatio);
     glfonsRasterize(fs, textIds[2], "the quick brown fox jumps over the lazy dog");
-    glfonsRasterize(fs, textIds[3], "конец konéts");
+    glfonsRasterize(fs, textIds[3], "0123456789");
     glfonsRasterize(fs, textIds[4], "fontstash-es");
     
     for(int i = 0; i < NB_TEXT; ++i) {
-        glfonsTransform(fs, textIds[i], (100.0 + i * 10.0) * dpiRatio, (100.0 + i * 50.0) * dpiRatio, 0.0, 0.6 + (NB_TEXT / 0.5) * i);
+        glfonsTransform(fs, textIds[i], 100.0 + i * 10.0, 100.0 + i * 50.0, 0.0, 1.0);
     }
     
     // push transforms of currently bound buffer buffer to gpu

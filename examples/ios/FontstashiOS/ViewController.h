@@ -12,7 +12,7 @@
 #import <OpenGLES/ES2/gl.h>
 #import <OpenGLES/ES2/glext.h>
 
-//#define GLFONS_DEBUG
+#define GLFONS_DEBUG
 #define GLFONTSTASH_IMPLEMENTATION
 #import "glfontstash.h"
 
