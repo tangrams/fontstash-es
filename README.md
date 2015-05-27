@@ -1,6 +1,8 @@
 fontstash-es
 ============
 
+![00](img/capture.png)
+
 This project is based on [fontstash](https://github.com/memononen/fontstash), it is using OpenGL ES 2.0 in order to be used on mobile devices. 
 
 You can use the following features:
