@@ -116,6 +116,11 @@ precision mediump float;
 #define LOWP
 #endif
     
+#ifdef GL_OES_standard_derivatives
+#extension GL_OES_standard_derivatives : enable
+#define SDF_AA
+#endif
+
 uniform sampler2D u_tex;
 uniform LOWP vec3 u_color;
 
@@ -137,6 +142,7 @@ float sample(in vec2 uv, float w, in float off) {
 float sampleAlpha(in vec2 uv, float distance, in float off) {
     float alpha = contour(distance, distance, off);
 
+#ifdef SDF_AA
     float dscale = 0.354; // 1 / sqrt(2)
     vec2 duv = dscale * (dFdx(uv) + dFdy(uv));
     vec4 box = vec4(uv - duv, uv + duv);
@@ -147,6 +153,8 @@ float sampleAlpha(in vec2 uv, float distance, in float off) {
                + sample(box.zy, distance, off);
 
     alpha = (alpha + 0.5 * asum) / 2.0;
+    return 0.0;
+#endif
 
     return alpha;
 }

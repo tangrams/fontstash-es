@@ -209,7 +209,7 @@ void glfons__enableVertexLayout(GLFONScontext* gl) {
     GLFONSVertexLayout layout = gl->vertexLayout;
     
     size_t offset = 0;
-    size_t stride = INNER_DATA_OFFSET * sizeof(float);
+    int stride = INNER_DATA_OFFSET * sizeof(float);
     for(int i = 0; i < GLFONSVertexLayout::NB_ATTRIBUTES; ++i) {
         GLFONS_GL_CHECK(glVertexAttribPointer(layout.attributes[i], layout.sizes[i], GL_FLOAT, GL_FALSE, stride, (const GLvoid *) offset));
         GLFONS_GL_CHECK(glEnableVertexAttribArray(layout.attributes[i]));
@@ -415,7 +415,7 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s) {
     ctx->nverts = 0;
 
     buffer->stashes.push_back(stash);
-    buffer->size = buffer->interleavedArray.size() / INNER_DATA_OFFSET;
+    buffer->size = (unsigned int) buffer->interleavedArray.size() / INNER_DATA_OFFSET;
 }
 
 void glfonsExpandTransform(FONScontext* ctx, fsuint bufferId, int newSize) {
@@ -554,7 +554,6 @@ void glfonsDraw(FONScontext* ctx) {
     }
     
     GLboolean blending;
-    GLint blendFuncSrc, blendFuncDst;
     glGetBooleanv(GL_BLEND, &blending);
     GLboolean depthTest;
     glGetBooleanv(GL_DEPTH_TEST, &depthTest);
@@ -577,8 +576,6 @@ void glfonsDraw(FONScontext* ctx) {
     
     if(!blending) {
         glEnable(GL_BLEND);
-        glGetIntegerv(GL_BLEND_SRC, (GLint*) &blendFuncSrc);
-        glGetIntegerv(GL_BLEND_DST, (GLint*) &blendFuncDst);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
     
@@ -589,8 +586,6 @@ void glfonsDraw(FONScontext* ctx) {
     if(!blending) {
         glDisable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-    } else {
-        glBlendFunc(blendFuncSrc, blendFuncDst);
     }
     
     if(depthTest) {
