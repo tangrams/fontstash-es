@@ -124,33 +124,6 @@
     if (amiri == FONS_INVALID) {
         NSLog(@"Could not add font normal");
     }
-
-    resourcePath = (char*)[[bundle pathForResource:@"DejaVuSerif"
-                                            ofType:@"ttf"] UTF8String];
-
-    dejavu = fonsAddFont(fs, "droid-serif", resourcePath);
-
-    if(dejavu == FONS_INVALID) {
-        NSLog(@"Could not add font droid serif");
-    }
-
-    resourcePath = (char*)[[bundle pathForResource:@"fireflysung"
-                                            ofType:@"ttf"] UTF8String];
-
-    han = fonsAddFont(fs, "fireflysung", resourcePath);
-
-    if(han == FONS_INVALID) {
-        NSLog(@"Could not add font droid sans japanese");
-    }
-
-    resourcePath = (char*)[[bundle pathForResource:@"Sanskrit2003"
-                                            ofType:@"ttf"] UTF8String];
-
-    hindi = fonsAddFont(fs, "Sanskrit2003", resourcePath);
-
-    if(hindi == FONS_INVALID) {
-        NSLog(@"Could not add font Sanskrit2003");
-    }
 }
 
 - (void)createFontContext
