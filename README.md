@@ -30,3 +30,24 @@ The text-shaping feature creates a lot of dependencies and uses some static libr
 If you're not planning to use the text-shaping engine, simply add the fontstash-es/include headers in your project. 
 
 If you want to use the text-shaping engine you would need the header files from harfbuzz, freetype2 and the static libraries for these two + [ucdn](https://github.com/grigorig/ucdn) for unicode database and normalization; this for each of the different architectures you would be targetting. This project has these static libraries only for the iPhone simulator architecture (i386, x86_64).
+
+Building examples
+-----------------
+
+For iOS, simply use the provided X-code project.
+
+If you want to build the GLFW examples, you will need to install _GLFW_ and _CMake_, you can download it [here](http://www.cmake.org/download/) or use [homebrew](http://brew.sh/) to download everything.
+
+```bash
+brew install cmake
+brew tap homebrew/versions
+brew install glfw3 pkg-config
+```
+
+Then build and run the examples:
+```
+cd examples/glfw
+cmake . && make
+./glfw.out
+./particles.out
+```
