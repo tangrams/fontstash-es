@@ -15,7 +15,7 @@ FONScontext* ftCtx;
 fsuint textBuffer, textIds[NB_TEXT];
 
 int nextPowerOf2(int value) {
-    return pow(2, ceil(log(value)/log(2)));
+    return pow(2, ceil(log(value) / log(2)));
 }
 
 int main() {

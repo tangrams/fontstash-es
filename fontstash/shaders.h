@@ -108,15 +108,14 @@ void main() {
 )END";
 
 static const GLchar* sdfFragShaderSrc = R"END(
-
+#extension GL_OES_standard_derivatives : enable
+    
 #ifdef GL_ES
 precision mediump float;
 #define LOWP lowp
 #else
 #define LOWP
 #endif
-    
-#extension GL_OES_standard_derivatives : enable
 
 uniform sampler2D u_tex;
 uniform LOWP vec3 u_color;
@@ -143,12 +142,14 @@ float sampleAlpha(in vec2 uv, float distance, in float off) {
     vec2 duv = dscale * (dFdx(uv) + dFdy(uv));
     vec4 box = vec4(uv - duv, uv + duv);
 
+#ifdef GL_OES_standard_derivatives
     float asum = sample(box.xy, distance, off)
                + sample(box.zw, distance, off)
                + sample(box.xw, distance, off)
                + sample(box.zy, distance, off);
 
     alpha = (alpha + 0.5 * asum) / 2.0;
+#endif
 
     return alpha;
 }

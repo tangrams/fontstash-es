@@ -562,6 +562,7 @@ void glfonsDraw(FONScontext* ctx) {
     GLuint boundProgram = 0;
     GLuint boundBuffer = 0;
     
+    // save states
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, (GLint*) &boundBuffer);
     glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*) &boundProgram);
     glActiveTexture(GL_TEXTURE0);

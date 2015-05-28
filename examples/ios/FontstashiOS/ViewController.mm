@@ -88,23 +88,24 @@
 
 - (void)update
 {
-    
 }
 
 - (void)glkView:(GLKView *)view drawInRect:(CGRect)rect
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
+    glViewport(0, 0, width, height);
     static double t;
     t += 0.1;
     
-    glViewport(0, 0, width, height);
-    
+    glfonsBindBuffer(fs, textBuffer);
     glfonsTransform(fs, textIds[0], width / 2.0, height / 2.0, cos(t) * 0.5, cos(t) * 0.5 + 0.5);
     glfonsTransform(fs, textIds[4], width / 2.0, height / 2.0 - 200.0 + cos(t) * 20.0, 0.0, 1.0);
     // push transforms to gpu
     glfonsUpdateTransforms(fs);
-    // render the text
+    glfonsBindBuffer(fs, textBuffer);
+    
+    // render the text for all buffers
     glfonsDraw(fs);
 }
 
@@ -178,10 +179,10 @@
     // rasterize some text
     fonsSetBlur(fs, 2.5);
     fonsSetBlurType(fs, FONS_EFFECT_DISTANCE_FIELD);
-    fonsSetSize(fs, 20.0 * dpiRatio);
+    fonsSetSize(fs, 40.0 * dpiRatio);
     
     glfonsRasterize(fs, textIds[0], "the quick brown fox");
-    fonsSetSize(fs, 40.0 * dpiRatio);
+    fonsSetSize(fs, 50.0 * dpiRatio);
     glfonsRasterize(fs, textIds[1], "jumps over the lazy dog");
     fonsSetSize(fs, 60.0 * dpiRatio);
     glfonsRasterize(fs, textIds[2], "the quick brown fox jumps over the lazy dog");
