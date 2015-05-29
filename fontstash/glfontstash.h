@@ -514,6 +514,7 @@ void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* 
     buffer->id = *id;
     buffer->vbo = 0;
     buffer->transform = 0;
+    buffer->size = 0;
 
     gl->boundBuffer = *id;
     gl->buffers[*id] = buffer;
@@ -787,7 +788,6 @@ float glfons__precision(float value) {
     return floor((1.0 - ((int)(value + 1) - value)) * 255.0 + 0.5);
 }
 
-#include <iostream>
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
