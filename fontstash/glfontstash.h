@@ -63,6 +63,7 @@ void glfonsProjection(FONScontext* ctx, float* projectionMatrix);
 void glfonsExpandTransform(FONScontext* ctx, fsuint buffer, int size);
 void glfonsUpload(FONScontext* ctx);
 void glfonsDraw(FONScontext* ctx);
+void glfonsSetColor(FONScontext* ctx, unsigned int color);
 
 unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
 
@@ -79,6 +80,9 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
 #define GLFONS_GL_CHECK(stmt) stmt
 #endif
 
+#define ATLAS_TEXTURE_SLOT      0
+#define TRANSFORM_TEXTURE_SLOT  1
+
 struct GLFONSstash {
     int nbGlyph;
     float bbox[4];
@@ -93,6 +97,7 @@ struct GLFONSVertexLayout {
 };
 
 struct GLFONSbuffer {
+    unsigned int color = 0xffffff;
     fsuint id;
     fsuint idct;
     GLuint transform;
@@ -127,6 +132,8 @@ struct GLFONScontext {
     fsuint idct;
     fsuint boundBuffer;
     std::unordered_map<fsuint, GLFONSbuffer*> buffers;
+    bool resolutionDirty;
+    float projectionMatrix[16];
     void* userPtr;
 };
 
@@ -189,24 +196,24 @@ GLFONSbuffer* glfons__bufferBound(GLFONScontext* gl) {
 
 GLuint glfons__compileShader(const GLchar* src, GLenum type) {
     GLuint shader = glCreateShader(type);
-    
+
     GLFONS_GL_CHECK(glShaderSource(shader, 1, &src, NULL));
     GLFONS_GL_CHECK(glCompileShader(shader));
-    
+
     GLint isCompiled;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
-    
+
     if (isCompiled == GL_FALSE) {
         glDeleteShader(shader);
         return -1;
     }
-    
+
     return shader;
 }
 
 void glfons__enableVertexLayout(GLFONScontext* gl) {
     GLFONSVertexLayout layout = gl->vertexLayout;
-    
+
     size_t offset = 0;
     int stride = INNER_DATA_OFFSET * sizeof(float);
     for(int i = 0; i < GLFONSVertexLayout::NB_ATTRIBUTES; ++i) {
@@ -218,7 +225,7 @@ void glfons__enableVertexLayout(GLFONScontext* gl) {
 
 void glfons__disableVertexLayout(GLFONScontext* gl) {
     GLFONSVertexLayout layout = gl->vertexLayout;
-    
+
     for(int i = 0; i < GLFONSVertexLayout::NB_ATTRIBUTES; ++i) {
         glDisableVertexAttribArray(layout.attributes[i]);
     }
@@ -228,80 +235,111 @@ void glfons__initShaders(GLFONScontext* gl) {
     GLuint program = glCreateProgram();
     GLuint vertex = glfons__compileShader(glfs::vertexShaderSrc, GL_VERTEX_SHADER);
     GLuint fragment = glfons__compileShader(glfs::sdfFragShaderSrc, GL_FRAGMENT_SHADER);
-    
+
     GLFONS_GL_CHECK(glAttachShader(program, vertex));
     GLFONS_GL_CHECK(glAttachShader(program, fragment));
     GLFONS_GL_CHECK(glLinkProgram(program));
-    
+
     glDeleteShader(vertex);
     glDeleteShader(fragment);
-    
+
     GLFONSVertexLayout layout;
-    
+
     layout.attributes[0] = glGetAttribLocation(program, "a_position");
     layout.attributes[1] = glGetAttribLocation(program, "a_texCoord");
     layout.attributes[2] = glGetAttribLocation(program, "a_fsid");
-    
+
     layout.sizes[0] = layout.sizes[1] = 2;
     layout.sizes[2] = 1;
-    
+
     gl->vertexLayout = layout;
     gl->program = program;
+
+    GLuint boundProgram;
+    glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*) &boundProgram);
+    GLFONS_GL_CHECK(glUseProgram(program));
+    GLFONS_GL_CHECK(glUniform1i(glGetUniformLocation(gl->program, "u_tex"), ATLAS_TEXTURE_SLOT));
+    GLFONS_GL_CHECK(glUniform1i(glGetUniformLocation(gl->program, "u_transforms"), TRANSFORM_TEXTURE_SLOT));
+    glUseProgram(boundProgram);
 }
 
 void glfons__bindUniforms(GLFONScontext* gl, GLFONSbuffer* buffer) {
-    GLFONS_GL_CHECK(glUniform1i(glGetUniformLocation(gl->program, "u_transforms"), 1));
+    float r = (buffer->color & 0xff) / 255.0;
+    float g = (buffer->color >> 8 & 0xff) / 255.0;
+    float b = (buffer->color >> 16 & 0xff) / 255.0;
+
     GLFONS_GL_CHECK(glUniform2f(glGetUniformLocation(gl->program, "u_tresolution"), buffer->transformRes[0], buffer->transformRes[1]));
+    GLFONS_GL_CHECK(glUniform3f(glGetUniformLocation(gl->program, "u_color"), r, g, b));
+}
+
+void glfons__updateProjection(GLFONScontext* gl) {
+    if(gl->resolutionDirty) {
+        float width = gl->screenSize[0];
+        float height = gl->screenSize[1];
+
+        float r = width;
+        float l = 0.0;
+        float b = height;
+        float t = 0.0;
+        float n = -1.0;
+        float f = 1.0;
+
+        // ensure array is 0-filled
+        std::memset(gl->projectionMatrix, 0, 16 * sizeof(float));
+
+        // could be simplified, exposing it like this for comprehension
+        gl->projectionMatrix[0]  = 2.0 / (r - l);
+        gl->projectionMatrix[5]  = 2.0 / (t - b);
+        gl->projectionMatrix[10] = 2.0 / (f - n);
+        gl->projectionMatrix[12] = -(r + l) / (r - l);
+        gl->projectionMatrix[13] = -(t + b) / (t - b);
+        gl->projectionMatrix[14] = -(f + n) / (f - n);
+        gl->projectionMatrix[15] = 1.0;
+        gl->resolutionDirty = false;
+    }
 }
 
 void glfons__projection(GLFONScontext* gl, float* projectionMatrix) {
-    float width = gl->screenSize[0];
-    float height = gl->screenSize[1];
-    
-    float r = width;
-    float l = 0.0;
-    float b = height;
-    float t = 0.0;
-    float n = -1.0;
-    float f = 1.0;
-    
-    // ensure array is 0-filled
-    memset(projectionMatrix, 0, 16 * sizeof(float));
-    
-    // could be simplified, exposing it like this for comprehension
-    projectionMatrix[0]  = 2.0 / (r - l);
-    projectionMatrix[5]  = 2.0 / (t - b);
-    projectionMatrix[10] = 2.0 / (f - n);
-    projectionMatrix[12] = -(r + l) / (r - l);
-    projectionMatrix[13] = -(t + b) / (t - b);
-    projectionMatrix[14] = -(f + n) / (f - n);
-    projectionMatrix[15] = 1.0;
+    glfons__updateProjection(gl);
+    std::memcpy(projectionMatrix, gl->projectionMatrix, 16 * sizeof(float));
 }
 
-void glfons__draw(GLFONScontext* gl) {
-    float projectionMatrix[16];
-    
-    glfons__projection(gl, projectionMatrix);
-    
+void glfons__draw(GLFONScontext* gl, bool bindAtlas) {
     GLFONS_GL_CHECK(glUseProgram(gl->program));
-    GLFONS_GL_CHECK(glUniform1i(glGetUniformLocation(gl->program, "u_tex"), 0));
-    GLFONS_GL_CHECK(glUniform2f(glGetUniformLocation(gl->program, "u_resolution"), gl->screenSize[0], gl->screenSize[1]));
-    GLFONS_GL_CHECK(glUniform3f(glGetUniformLocation(gl->program, "u_color"), 0.0, 0.0, 0.0));
-    GLFONS_GL_CHECK(glUniformMatrix4fv(glGetUniformLocation(gl->program, "u_proj"), 1, GL_FALSE, projectionMatrix));
-    
-    glActiveTexture(GL_TEXTURE0);
-    GLFONS_GL_CHECK(glBindTexture(GL_TEXTURE_2D, gl->atlas));
-    
+
+    if(gl->resolutionDirty) {
+        glfons__updateProjection(gl);
+        GLFONS_GL_CHECK(glUniform2f(glGetUniformLocation(gl->program, "u_resolution"), gl->screenSize[0], gl->screenSize[1]));
+        GLFONS_GL_CHECK(glUniformMatrix4fv(glGetUniformLocation(gl->program, "u_proj"), 1, GL_FALSE, gl->projectionMatrix));
+    }
+
+    if(bindAtlas) {
+        glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
+        GLFONS_GL_CHECK(glBindTexture(GL_TEXTURE_2D, gl->atlas));
+    }
+
     for(auto& pair : gl->buffers) {
         GLFONSbuffer* buffer = pair.second;
         GLFONS_GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo));
         glfons__enableVertexLayout(gl);
         glfons__bindUniforms(gl, buffer);
-        glActiveTexture(GL_TEXTURE1);
+        glActiveTexture(GL_TEXTURE0 + TRANSFORM_TEXTURE_SLOT);
         GLFONS_GL_CHECK(glBindTexture(GL_TEXTURE_2D, buffer->transform));
         GLFONS_GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, buffer->size));
         glfons__disableVertexLayout(gl);
     }
+}
+
+void glfonsSetColor(FONScontext* ctx, unsigned int color) {
+    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
+    GLFONSbuffer* buffer = glfons__bufferBound(gl);
+
+    if(!gl->params.useGLBackend) {
+        // should be directly sent to shader in from own gl-backend
+        return;
+    }
+
+    buffer->color = color;
 }
 
 void glfonsUpdateTransforms(FONScontext* ctx, void* ownerPtr) {
@@ -395,9 +433,9 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s) {
     }
 
     // remove extra-offset used for interpolation in fontstash
-    stash->bbox[0] = x0 + 3; 
+    stash->bbox[0] = x0 + 3;
     stash->bbox[1] = y0 - 3;
-    stash->bbox[2] = x1 + 3; 
+    stash->bbox[2] = x1 + 3;
     stash->bbox[3] = y1 - 3;
 
     stash->length = length - 6;
@@ -476,7 +514,7 @@ void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* 
     buffer->id = *id;
     buffer->vbo = 0;
     buffer->transform = 0;
-    
+
     gl->boundBuffer = *id;
     gl->buffers[*id] = buffer;
     gl->params.createTexTransforms(gl->userPtr, buffer->transformRes[0], buffer->transformRes[1]);
@@ -487,7 +525,7 @@ void glfonsBufferDelete(GLFONScontext* gl, fsuint id) {
 
     if(gl->params.useGLBackend) {
         if(buffer->vbo != 0) {
-            glDeleteBuffers(1, &buffer->vbo);    
+            glDeleteBuffers(1, &buffer->vbo);
         }
         if(buffer->transform != 0) {
             glDeleteTextures(1, &buffer->transform);
@@ -524,7 +562,7 @@ void glfonsBindBuffer(FONScontext* ctx, fsuint id) {
 
 void glfonsUpload(FONScontext* ctx) {
     GLFONScontext* gl = (GLFONScontext*)ctx->params.userPtr;
-    
+
     if(!gl->params.useGLBackend) {
         return;
     }
@@ -535,11 +573,11 @@ void glfonsUpload(FONScontext* ctx) {
     int nVerts = glfonsVerticesSize(ctx);
     vertices.resize(nVerts * INNER_DATA_OFFSET);
     glfonsVertices(ctx, reinterpret_cast<float*>(vertices.data()));
-    
+
     if(buffer->vbo == 0) {
         glGenBuffers(1, &buffer->vbo);
     }
-    
+
     GLFONS_GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo));
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -547,54 +585,54 @@ void glfonsUpload(FONScontext* ctx) {
 
 void glfonsDraw(FONScontext* ctx) {
     GLFONScontext* gl = (GLFONScontext*)ctx->params.userPtr;
-    
+
     if(!gl->params.useGLBackend) {
         return;
     }
-    
+
     GLboolean blending;
     glGetBooleanv(GL_BLEND, &blending);
     GLboolean depthTest;
     glGetBooleanv(GL_DEPTH_TEST, &depthTest);
-    
+
     GLuint textureUnit0 = 0;
     GLuint textureUnit1 = 0;
     GLuint boundProgram = 0;
     GLuint boundBuffer = 0;
-    
+
     // save states
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, (GLint*) &boundBuffer);
     glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*) &boundProgram);
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
     glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*) &textureUnit0);
-    glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(GL_TEXTURE0 + TRANSFORM_TEXTURE_SLOT);
     glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*) &textureUnit1);
 
     if(depthTest) {
         glDisable(GL_DEPTH_TEST);
     }
-    
+
     if(!blending) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
-    
-    glfons__draw(gl);
-    
+
+    glfons__draw(gl, gl->atlas != textureUnit0);
+
     glBindBuffer(GL_ARRAY_BUFFER, boundBuffer);
-    
+
     if(!blending) {
         glDisable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
     }
-    
+
     if(depthTest) {
         glEnable(GL_DEPTH_TEST);
     }
-    
-    glActiveTexture(GL_TEXTURE0);
+
+    glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
     glBindTexture(GL_TEXTURE_2D, textureUnit0);
-    glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(GL_TEXTURE0 + TRANSFORM_TEXTURE_SLOT);
     glBindTexture(GL_TEXTURE_2D, textureUnit1);
     glUseProgram(boundProgram);
 }
@@ -622,37 +660,38 @@ void glfonsScreenSize(FONScontext* ctx, int screenWidth, int screenHeight) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     gl->screenSize[0] = screenWidth;
     gl->screenSize[1] = screenHeight;
+    gl->resolutionDirty = true;
 }
 
 void glfons__createTexTransform(void* usrPtr, unsigned int width, unsigned int height) {
     GLFONScontext* gl = (GLFONScontext*) usrPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
 
-    glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(GL_TEXTURE0 + TRANSFORM_TEXTURE_SLOT);
     glGenTextures(1, &buffer->transform);
     glBindTexture(GL_TEXTURE_2D, buffer->transform);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
-    
+
 void glfons__createAtlas(void* usrPtr, unsigned int width, unsigned int height) {
     GLFONScontext* gl = (GLFONScontext*) usrPtr;
 
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
     glGenTextures(1, &gl->atlas);
     glBindTexture(GL_TEXTURE_2D, gl->atlas);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, width, height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
-    
+
 void glfons__updateTransforms(void* usrPtr, unsigned int xoff, unsigned int yoff, unsigned int width,
                              unsigned int height, const unsigned int* pixels, void* ownerPtr) {
     GLFONScontext* gl = (GLFONScontext*) usrPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
-    
-    glActiveTexture(GL_TEXTURE1);
+
+    glActiveTexture(GL_TEXTURE0 + TRANSFORM_TEXTURE_SLOT);
     glBindTexture(GL_TEXTURE_2D, buffer->transform);
     glTexSubImage2D(GL_TEXTURE_2D, 0, xoff, yoff, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -662,7 +701,7 @@ void glfons__udpateAtas(void* usrPtr, unsigned int xoff, unsigned int yoff,
                         unsigned int width, unsigned int height, const unsigned int* pixels) {
     GLFONScontext* gl = (GLFONScontext*) usrPtr;
 
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE0 + ATLAS_TEXTURE_SLOT);
     glBindTexture(GL_TEXTURE_2D, gl->atlas);
     glTexSubImage2D(GL_TEXTURE_2D, 0, xoff, yoff, width, height, GL_ALPHA, GL_UNSIGNED_BYTE, pixels);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -673,7 +712,7 @@ FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParam
     GLFONScontext* gl = new GLFONScontext;
 
     gl->program = 0;
-    
+
     if(glParams.useGLBackend) {
         glParams.createTexTransforms = glfons__createTexTransform;
         glParams.createAtlas = glfons__createAtlas;
@@ -738,7 +777,7 @@ bool glfonsVertices(FONScontext* ctx, float* data) {
     }
 
     memcpy(data, buffer->interleavedArray.data(), buffer->interleavedArray.size() * sizeof(float));
-    
+
     buffer->interleavedArray.clear();
 
     return true;
@@ -748,25 +787,25 @@ float glfons__precision(float value) {
     return floor((1.0 - ((int)(value + 1) - value)) * 255.0 + 0.5);
 }
 
+#include <iostream>
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
-
     int i, j;
 
     glfons__id2ij(buffer->transformRes[0], id, &i, &j);
-    
+
     // TODO : manage out of screen translations, the scaling step due to texture transform
     // would happen to behave like a module width or height translation
 
     // scaling to [0..255]
-    tx = (tx * 255.0) / gl->screenSize[0];
-    ty = (ty * 255.0) / gl->screenSize[1];
+    tx = (tx * 255.f) / gl->screenSize[0];
+    ty = (ty * 255.f) / gl->screenSize[1];
 
     r = fmod(r, 2.0 * M_PI);
-    r = (r < 0) ? r + 2.0 * M_PI : r;
-    r = (r / (2.0 * M_PI)) * 255.0;
-    a = a * 255.0;
+    r = (r < 0) ? r + 2.f * M_PI : r;
+    r = (r / (2.f * M_PI)) * 255.f;
+    a = a * 255.f;
 
     // scale decimal part from [0..1] to [0..255] rounding to the closest value
     // known floating point error here of 0.5/255 ~= 0.00196 due to rounding
