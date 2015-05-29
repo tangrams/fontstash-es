@@ -105,6 +105,8 @@
     glfonsUpdateTransforms(fs);
     glfonsBindBuffer(fs, textBuffer);
     
+    glfonsSetColor(fs, glfonsRGBA(0.0, 0.0, 100.0 * (cos(t) * 0.5 + 0.5), 255.0));
+    
     // render the text for all buffers
     glfonsDraw(fs);
 }

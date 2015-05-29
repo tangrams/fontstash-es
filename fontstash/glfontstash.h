@@ -152,7 +152,7 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     gl->idct = 0;
     gl->atlasRes[0] = width;
     gl->atlasRes[1] = height;
-    gl->params.createAtlas(gl, width, height);
+    gl->params.createAtlas(gl->userPtr, width, height);
 
     return 1;
 }
