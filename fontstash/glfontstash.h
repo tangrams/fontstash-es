@@ -32,13 +32,13 @@ typedef unsigned int fsuint;
 #define INNER_DATA_OFFSET 5 // offset between vertices
 
 typedef struct GLFONScontext GLFonscontext;
-typedef struct GLFONSParams GLFONSParams;
+typedef struct GLFONSparams GLFONSparams;
 
 enum class GLFONSError {
     ID_OVERFLOW
 };
 
-FONScontext* glfonsCreate(int width, int height, int flags, GLFONSParams glParams, void* userPtr);
+FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParams, void* userPtr);
 void glfonsDelete(FONScontext* ctx);
 
 void glfonsUpdateTransforms(FONScontext* ctx, void* ownerPtr = nullptr);
