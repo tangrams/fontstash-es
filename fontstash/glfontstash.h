@@ -38,6 +38,17 @@ enum class GLFONSError {
     ID_OVERFLOW
 };
 
+struct GLFONSparams {
+    bool useGLBackend;
+    bool (*errorCallback)(void* usrPtr, fsuint buffer, GLFONSError error);
+    void (*createTexTransforms)(void* usrPtr, unsigned int width, unsigned int height);
+    void (*createAtlas)(void* usrPtr, unsigned int width, unsigned int height);
+    void (*updateTransforms)(void* usrPtr, unsigned int xoff, unsigned int yoff, unsigned int width,
+                             unsigned int height, const unsigned int* pixels, void* ownerPtr);
+    void (*updateAtlas)(void* usrPtr, unsigned int xoff, unsigned int yoff,
+                        unsigned int width, unsigned int height, const unsigned int* pixels);
+};
+
 FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParams, void* userPtr);
 void glfonsDelete(FONScontext* ctx);
 
@@ -109,17 +120,6 @@ struct GLFONSbuffer {
     unsigned char* transformDirty;
     std::vector<float> interleavedArray;
     std::vector<GLFONSstash*> stashes;
-};
-
-struct GLFONSparams {
-    bool useGLBackend;
-    bool (*errorCallback)(void* usrPtr, fsuint buffer, GLFONSError error);
-    void (*createTexTransforms)(void* usrPtr, unsigned int width, unsigned int height);
-    void (*createAtlas)(void* usrPtr, unsigned int width, unsigned int height);
-    void (*updateTransforms)(void* usrPtr, unsigned int xoff, unsigned int yoff, unsigned int width,
-                             unsigned int height, const unsigned int* pixels, void* ownerPtr);
-    void (*updateAtlas)(void* usrPtr, unsigned int xoff, unsigned int yoff,
-                        unsigned int width, unsigned int height, const unsigned int* pixels);
 };
 
 struct GLFONScontext {
@@ -615,8 +615,9 @@ void glfonsDraw(FONScontext* ctx) {
 
     if(!blending) {
         glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glfons__draw(gl, gl->atlas != textureUnit0);
 
@@ -624,7 +625,6 @@ void glfonsDraw(FONScontext* ctx) {
 
     if(!blending) {
         glDisable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
     }
 
     if(depthTest) {
