@@ -63,7 +63,7 @@ int main() {
     }
 
     // push transforms of currently bound buffer buffer to gpu
-    glfonsUpdateTransforms(ftCtx);
+    //glfonsUpdateTransforms(ftCtx);
 
     // upload rasterized data of currently bound buffer to gpu
     glfonsUpload(ftCtx);
@@ -77,7 +77,7 @@ int main() {
         glfonsTransform(ftCtx, textIds[0], (width / 2.0) * dpiRatio, (height / 2.0) * dpiRatio, cos(t) * 0.5, cos(t) * 0.5 + 0.5);
         glfonsTransform(ftCtx, textIds[4], (width / 2.0) * dpiRatio, (height / 2.0 - 200.0 + cos(t) * 20.0) * dpiRatio, 0.0, 1.0);
         // push transforms to gpu
-        glfonsUpdateTransforms(ftCtx);
+        //glfonsUpdateTransforms(ftCtx);
 
         glfonsSetColor(ftCtx, 0x000000);
         // render the text

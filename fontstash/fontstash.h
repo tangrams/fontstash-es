@@ -152,9 +152,6 @@ int fonsTextIterNext(FONScontext* stash, FONStextIter* iter, struct FONSquad* qu
 const unsigned char* fonsGetTextureData(FONScontext* stash, int* width, int* height);
 int fonsValidateTexture(FONScontext* s, int* dirty);
 
-// Draws the stash texture for debugging
-void fonsDrawDebug(FONScontext* s, float x, float y, const char clear);
-
 // Font shaping
 void fonsSetShaping(FONScontext* stash, const char* script, const char* direction, const char* language);
 
@@ -1730,54 +1727,6 @@ int fonsTextIterNext(FONScontext* stash, FONStextIter* iter, FONSquad* quad)
     iter->next = str;
 
     return 1;
-}
-
-void fonsDrawDebug(FONScontext* stash, float x, float y, const char clear)
-{
-    int i;
-    int w = stash->params.width;
-    int h = stash->params.height;
-    float u = w == 0 ? 0 : (1.0f / w);
-    float v = h == 0 ? 0 : (1.0f / h);
-
-    if (stash->nverts+6+6 > FONS_VERTEX_COUNT)
-        fons__flush(stash, clear);
-
-    // Draw background
-    fons__vertex(stash, x+0, y+0, u, v, 0x0fffffff);
-    fons__vertex(stash, x+w, y+h, u, v, 0x0fffffff);
-    fons__vertex(stash, x+w, y+0, u, v, 0x0fffffff);
-
-    fons__vertex(stash, x+0, y+0, u, v, 0x0fffffff);
-    fons__vertex(stash, x+0, y+h, u, v, 0x0fffffff);
-    fons__vertex(stash, x+w, y+h, u, v, 0x0fffffff);
-
-    // Draw texture
-    fons__vertex(stash, x+0, y+0, 0, 0, 0xffffffff);
-    fons__vertex(stash, x+w, y+h, 1, 1, 0xffffffff);
-    fons__vertex(stash, x+w, y+0, 1, 0, 0xffffffff);
-
-    fons__vertex(stash, x+0, y+0, 0, 0, 0xffffffff);
-    fons__vertex(stash, x+0, y+h, 0, 1, 0xffffffff);
-    fons__vertex(stash, x+w, y+h, 1, 1, 0xffffffff);
-
-    // Drawbug draw atlas
-    for (i = 0; i < stash->atlas->nnodes; i++) {
-        FONSatlasNode* n = &stash->atlas->nodes[i];
-
-        if (stash->nverts+6 > FONS_VERTEX_COUNT)
-            fons__flush(stash, 1);
-
-        fons__vertex(stash, x+n->x+0, y+n->y+0, u, v, 0xc00000ff);
-        fons__vertex(stash, x+n->x+n->width, y+n->y+1, u, v, 0xc00000ff);
-        fons__vertex(stash, x+n->x+n->width, y+n->y+0, u, v, 0xc00000ff);
-
-        fons__vertex(stash, x+n->x+0, y+n->y+0, u, v, 0xc00000ff);
-        fons__vertex(stash, x+n->x+0, y+n->y+1, u, v, 0xc00000ff);
-        fons__vertex(stash, x+n->x+n->width, y+n->y+1, u, v, 0xc00000ff);
-    }
-
-    fons__flush(stash, clear);
 }
 
 float fonsTextBounds(FONScontext* stash,
