@@ -73,11 +73,8 @@ int main() {
         glfonsTransform(ftCtx, texts.id[i], texts.x[i], texts.y[i], 0.0, 1.0);
     }
 
-    // push transforms of currently bound buffer buffer to gpu
-    glfonsUpdateTransforms(ftCtx);
-
     // upload rasterized data of currently bound buffer to gpu
-    glfonsUpload(ftCtx);
+    glfonsUpdateBuffer(ftCtx);
 
     while (!glfwWindowShouldClose(window)) {
         double t = glfwGetTime();
@@ -85,23 +82,22 @@ int main() {
         glfonsScreenSize(ftCtx, width * dpiRatio, height * dpiRatio);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        
         clock_t begin = clock();
-
-        // push transforms to gpu
-        glfonsUpdateTransforms(ftCtx);
-
         for (int i = 0; i < NB_TEXT; ++i) {
             glfonsTransform(ftCtx, texts.id[i], texts.x[i], texts.y[i] + cos(t + i), cos(t + i), cos(t + i) * 0.5 + 0.5);
         }
+        clock_t end = clock();
+        std::cout << "Frame time: " << float(end - begin) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 
         // set rendering color for current buffer
         glfonsSetColor(ftCtx, 0x000000);
-
+        
+        glfonsUpdateBuffer(ftCtx);
+        
         // render the text
         glfonsDraw(ftCtx);
 
-        clock_t end = clock();
-        std::cout << "Frame time: " << float(end - begin) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 
         glfwSwapBuffers(window);
         glfwPollEvents();

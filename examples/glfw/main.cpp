@@ -2,7 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <cmath>
 
-//#define GLFONS_DEBUG
+#define GLFONS_DEBUG
 #define GLFONTSTASH_IMPLEMENTATION
 #import "glfontstash.h"
 
@@ -59,14 +59,11 @@ int main() {
     glfonsRasterize(ftCtx, textIds[4], "fontstash-es");
 
     for(int i = 0; i < NB_TEXT; ++i) {
-        glfonsTransform(ftCtx, textIds[i], (100.0 + i * 10.0) * dpiRatio, (100.0 + i * 50.0) * dpiRatio, 0.0, 0.6 + (NB_TEXT / 0.5) * i);
+        glfonsTransform(ftCtx, textIds[i], -(100.0 + i * 10.0) * dpiRatio, (100.0 + i * 50.0) * dpiRatio, 0.0, 0.6 + (NB_TEXT / 0.5) * i);
     }
 
-    // push transforms of currently bound buffer buffer to gpu
-    //glfonsUpdateTransforms(ftCtx);
-
     // upload rasterized data of currently bound buffer to gpu
-    glfonsUpload(ftCtx);
+    glfonsUpdateBuffer(ftCtx);
 
     while (!glfwWindowShouldClose(window)) {
         double t = glfwGetTime();
@@ -76,11 +73,10 @@ int main() {
 
         glfonsTransform(ftCtx, textIds[0], (width / 2.0) * dpiRatio, (height / 2.0) * dpiRatio, cos(t) * 0.5, cos(t) * 0.5 + 0.5);
         glfonsTransform(ftCtx, textIds[4], (width / 2.0) * dpiRatio, (height / 2.0 - 200.0 + cos(t) * 20.0) * dpiRatio, 0.0, 1.0);
-        // push transforms to gpu
-        //glfonsUpdateTransforms(ftCtx);
 
         glfonsSetColor(ftCtx, 0x000000);
-        // render the text
+
+        glfonsUpdateBuffer(ftCtx);
         glfonsDraw(ftCtx);
 
         glfwSwapBuffers(window);
