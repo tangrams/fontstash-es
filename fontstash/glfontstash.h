@@ -680,7 +680,7 @@ void glfons__updateInterleavedArray(GLFONScontext* gl, GLFONSbuffer* buffer, GLF
     float* start = &buffer->interleavedArray[0] + stash->offset;
     int stride = gl->layout.nbComponents;
     
-    glfons__setDirty(buffer, stash->offset + index + offset, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents);
+    glfons__setDirty(buffer, stash->offset + index + offset, stash->nbGlyph * GLYPH_VERTS * stride);
     
     for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
         start[i * stride + index + offset] = value;
@@ -712,6 +712,31 @@ void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, f
 int glfonsGetGlyphCount(FONScontext* ctx, fsuint id) {
     GLFONS_LOAD_STASH
     return stash->nbGlyph;
+}
+
+void glfons__bCurveP4(float t, float p0x, float p0y, float p1x, float p1y, float p2x, float p2y, float p3x, float p3y, float* x, float* y) {
+    // compute the basis of the cubic bézier curve
+    float it = 1 - t;
+    float f0 = pow(it, 3.f);
+    float f1 = 3 * t * powf(it, 2.f);
+    float f2 = 3 * powf(t, 2.f) * it;
+    float f3 = powf(t, 3.f);
+    
+    *x = f0 * p0x + f1 * p1x + f2 * p2x + f3 * p3x;
+    *x = f0 * p0y + f1 * p1y + f2 * p2y + f3 * p3y;
+}
+
+void glfonsCurveText(FONScontext* ctx, fsuint id) {
+    GLFONS_LOAD_STASH
+    int index = glfons__layoutIndex(gl, "a_position");
+    float* start = &buffer->interleavedArray[0] + stash->offset;
+    int stride = gl->layout.nbComponents;
+    
+    glfons__setDirty(buffer, stash->offset + index, stash->nbGlyph * GLYPH_VERTS * stride);
+    
+    for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i += GLYPH_VERTS) {
+        //start[i * stride + index + 1] += 10.0;
+    }
 }
 
 void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1, float* y1) {
