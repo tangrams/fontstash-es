@@ -70,7 +70,7 @@ int main() {
         glfonsRasterize(ftCtx, texts.id[i], str.c_str());
         texts.x[i] = xDistribution(generator);
         texts.y[i] = yDistribution(generator);
-        glfonsTransform(ftCtx, texts.id[i], texts.x[i], texts.y[i], 0.0, 1.0);
+        glfonsTransform(ftCtx, texts.id[i], texts.x[i], texts.y[i], 0.0, 0.0);
     }
 
     // upload rasterized data of currently bound buffer to gpu
@@ -87,8 +87,6 @@ int main() {
         for (int i = 0; i < NB_TEXT; ++i) {
             glfonsTransform(ftCtx, texts.id[i], texts.x[i], texts.y[i] + cos(t + i), cos(t + i), cos(t + i) * 0.5 + 0.5);
         }
-        clock_t end = clock();
-        std::cout << "Frame time: " << float(end - begin) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 
         // set rendering color for current buffer
         glfonsSetColor(ftCtx, 0x000000);
@@ -97,6 +95,8 @@ int main() {
         
         // render the text
         glfonsDraw(ftCtx);
+        clock_t end = clock();
+        std::cout << "Frame time: " << float(end - begin) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 
 
         glfwSwapBuffers(window);

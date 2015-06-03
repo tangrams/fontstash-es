@@ -59,7 +59,7 @@ int main() {
     glfonsRasterize(ftCtx, textIds[4], "fontstash-es");
 
     for(int i = 0; i < NB_TEXT; ++i) {
-        glfonsTransform(ftCtx, textIds[i], -(100.0 + i * 10.0) * dpiRatio, (100.0 + i * 50.0) * dpiRatio, 0.0, 0.6 + (NB_TEXT / 0.5) * i);
+        glfonsTransform(ftCtx, textIds[i], -(100.0 + i * 10.0) * dpiRatio, (100.0 + i * 50.0) * dpiRatio, 0.0, 1.0);
     }
 
     // upload rasterized data of currently bound buffer to gpu

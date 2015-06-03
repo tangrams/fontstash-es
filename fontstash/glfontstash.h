@@ -344,23 +344,10 @@ void glfons__setDirty(GLFONSbuffer* buffer, intptr_t start, size_t size) {
     buffer->dirtySize = std::min<float>(buffer->dirtySize, buffer->interleavedArray.size() * sizeof(float));
 }
 
-void glfons__updateInterleavedArray(GLFONScontext* gl, GLFONSbuffer* buffer, GLFONSstash* stash, const char* attribute, int offset, float value) {
-    int index = glfons__layoutIndex(gl, attribute);
-    float* start = &buffer->interleavedArray[0] + stash->offset;
-    int stride = gl->layout.nbComponents;
-    
-    glfons__setDirty(buffer, stash->offset + index + offset, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents);
-    
-    for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
-        start[i * stride + index + offset] = value;
-    }
-}
-
 void glfons__updateBuffer(void* usrPtr, intptr_t offset, size_t size, float* newData) {
     GLFONScontext* gl = (GLFONScontext*) usrPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
     glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo);
-    float s = size / sizeof(float);
     if(offset == 0 && size / sizeof(float) == buffer->interleavedArray.size()) {
         GLFONS_GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * buffer->interleavedArray.size(), newData, GL_DYNAMIC_DRAW));
     } else {
@@ -506,8 +493,6 @@ void glfonsBufferDelete(GLFONScontext* gl, fsuint id) {
     for(auto& elt : buffer->stashes) {
         glfons__freeStash(elt);
     }
-    buffer->stashes.clear();
-    buffer->interleavedArray.clear();
     
     std::vector<float> vertices;
     std::swap(buffer->interleavedArray, vertices);
@@ -688,6 +673,18 @@ bool glfonsVertices(FONScontext* ctx, float* data) {
     GLFONS_LOAD_BUFFER
     memcpy(data, buffer->interleavedArray.data(), buffer->interleavedArray.size() * sizeof(float));
     return true;
+}
+
+void glfons__updateInterleavedArray(GLFONScontext* gl, GLFONSbuffer* buffer, GLFONSstash* stash, const char* attribute, int offset, float value) {
+    int index = glfons__layoutIndex(gl, attribute);
+    float* start = &buffer->interleavedArray[0] + stash->offset;
+    int stride = gl->layout.nbComponents;
+    
+    glfons__setDirty(buffer, stash->offset + index + offset, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents);
+    
+    for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
+        start[i * stride + index + offset] = value;
+    }
 }
 
 void glfonsSetAlpha(FONScontext* ctx, fsuint id, float a) {
