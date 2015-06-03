@@ -723,7 +723,7 @@ void glfons__bCurveP4(float t, float p0x, float p0y, float p1x, float p1y, float
     float f3 = powf(t, 3.f);
     
     *x = f0 * p0x + f1 * p1x + f2 * p2x + f3 * p3x;
-    *x = f0 * p0y + f1 * p1y + f2 * p2y + f3 * p3y;
+    *y = f0 * p0y + f1 * p1y + f2 * p2y + f3 * p3y;
 }
 
 void glfonsCurveText(FONScontext* ctx, fsuint id) {
@@ -731,11 +731,29 @@ void glfonsCurveText(FONScontext* ctx, fsuint id) {
     int index = glfons__layoutIndex(gl, "a_position");
     float* start = &buffer->interleavedArray[0] + stash->offset;
     int stride = gl->layout.nbComponents;
-    
+    // mark all text vertices as dirty
     glfons__setDirty(buffer, stash->offset + index, stash->nbGlyph * GLYPH_VERTS * stride);
     
-    for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i += GLYPH_VERTS) {
-        //start[i * stride + index + 1] += 10.0;
+    int n = stash->nbGlyph * GLYPH_VERTS;
+    for(int i = 0; i < n; i += GLYPH_VERTS) {
+        float t = (float) i / n;
+        float x, y;
+        
+        float p0x = 0.0;
+        float p0y = 0.0;
+        float p1x = 0.0;
+        float p1y = 1.0;
+        float p2x = 1.0;
+        float p2y = 1.0;
+        float p3x = 1.0;
+        float p3y = 0.0;
+        
+        glfons__bCurveP4(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y, &x, &y);
+        
+        for(int j = 0; j < GLYPH_VERTS; j++) {
+            start[i * stride + index + j * stride] += x * 40.;
+            start[i * stride + index + j * stride + 1] += y * 40.0;
+        }
     }
 }
 
