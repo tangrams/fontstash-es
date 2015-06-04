@@ -92,6 +92,12 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
     GLFONS_LOAD_BUFFER \
     GLFONSstash* stash = buffer->stashes[id]; \
 
+template<class T>
+inline void takeOver(T& vec) {
+    T v;
+    std::swap(vec, v);
+}
+
 struct GLFONSstash {
     int nbGlyph;
     float bbox[4];
@@ -105,20 +111,23 @@ struct GLFONSvertexAttrib {
     GLboolean normalized;
     GLvoid* offset;
     GLint location;
+    bool dynamic;
 };
 
 struct GLFONSVertexLayout {
-    size_t nbComponents;
-    GLsizei stride;
+    size_t nbComponents = 0;
+    GLsizei stride = 0;
     std::vector<GLFONSvertexAttrib> attributes;
 };
 
 struct GLFONSbuffer {
     fsuint id;
     fsuint textIdCount;
-    GLuint vbo;
+    GLuint staticVbo;
+    GLuint dynamicVbo;
     unsigned int nVerts, maxId, color = 0xffffff;
-    std::vector<float> interleavedArray;
+    std::vector<float> staticData;
+    std::vector<float> dynamicData;
     std::vector<GLFONSstash*> stashes;
     intptr_t dirtyOffset;
     size_t dirtySize;
@@ -126,7 +135,8 @@ struct GLFONSbuffer {
 };
 
 struct GLFONScontext {
-    GLFONSVertexLayout layout;
+    GLFONSVertexLayout dynamicLayout;
+    GLFONSVertexLayout staticLayout;
     GLFONSparams params;
     int atlasRes[2];
     GLuint atlas;
@@ -166,30 +176,18 @@ static void glfons__renderDraw(void* userPtr, const float* verts, const float* t
     // called by fontstash, but has nothing to do
 }
 
-void glfons__initVertexLayout(GLFONScontext* gl, GLuint shaderProgram) {
-    GLFONSVertexLayout layout;
-    
-    layout.attributes.push_back({"a_position", 2, false, 0, -1});
-    layout.attributes.push_back({"a_uvs", 2, false, 0, -1});
-    layout.attributes.push_back({"a_screenPosition", 2, false, 0, -1});
-    layout.attributes.push_back({"a_alpha", 1, false, 0, -1});
-    layout.attributes.push_back({"a_rotation", 1, false, 0, -1});
-    layout.nbComponents = 0;
-    layout.stride = 0;
-    
-    for(auto& attribute : layout.attributes) {
-        attribute.offset = (GLvoid *) (layout.nbComponents * sizeof(float));
-        layout.nbComponents += attribute.size;
-        layout.stride += attribute.size * sizeof(float);
+void glfons__initVertexLayout(GLFONSVertexLayout* layout, GLuint shaderProgram) {
+    for(auto& attribute : layout->attributes) {
+        attribute.offset = (GLvoid *) (layout->nbComponents * sizeof(float));
+        layout->nbComponents += attribute.size;
+        layout->stride += attribute.size * sizeof(float);
         attribute.location = glGetAttribLocation(shaderProgram, attribute.name.c_str());
     }
-    
-    gl->layout = layout;
 }
 
-int glfons__layoutIndex(GLFONScontext* gl, std::string attributeName) {
-    for(int i = 0, index = 0; i < gl->layout.attributes.size(); index += gl->layout.attributes[i].size, ++i) {
-        if(gl->layout.attributes[i].name == attributeName) {
+int glfons__layoutIndex(std::string attributeName, GLFONSVertexLayout* layout) {
+    for(int i = 0, index = 0; i < layout->attributes.size(); index += layout->attributes[i].size, ++i) {
+        if(layout->attributes[i].name == attributeName) {
             return index;
         }
     }
@@ -233,15 +231,15 @@ GLuint glfons__compileShader(const GLchar* src, GLenum type) {
     return shader;
 }
 
-void glfons__enableVertexLayout(GLFONScontext* gl) {
-    for(auto& attribute : gl->layout.attributes) {
-        GLFONS_GL_CHECK(glVertexAttribPointer(attribute.location, attribute.size, GL_FLOAT, attribute.normalized, gl->layout.stride, (const GLvoid *) attribute.offset));
+void glfons__enableVertexLayout(GLFONSVertexLayout* layout) {
+    for(auto& attribute : layout->attributes) {
+        GLFONS_GL_CHECK(glVertexAttribPointer(attribute.location, attribute.size, GL_FLOAT, attribute.normalized, layout->stride, (const GLvoid *) attribute.offset));
         GLFONS_GL_CHECK(glEnableVertexAttribArray(attribute.location));
     }
 }
 
-void glfons__disableVertexLayout(GLFONScontext* gl) {
-    for(auto& attribute : gl->layout.attributes) {
+void glfons__disableVertexLayout(GLFONSVertexLayout* layout) {
+    for(auto& attribute : layout->attributes) {
         glDisableVertexAttribArray(attribute.location);
     }
 }
@@ -263,7 +261,17 @@ void glfons__initShaders(GLFONScontext* gl) {
     glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*) &boundProgram);
     GLFONS_GL_CHECK(glUseProgram(program));
     GLFONS_GL_CHECK(glUniform1i(glGetUniformLocation(gl->program, "u_tex"), ATLAS_TEXTURE_SLOT));
-    glfons__initVertexLayout(gl, program);
+    
+    gl->staticLayout.attributes.push_back({"a_position", 2, false, 0, -1});
+    gl->staticLayout.attributes.push_back({"a_uvs", 2, false, 0, -1});
+    
+    gl->dynamicLayout.attributes.push_back({"a_screenPosition", 2, false, 0, -1});
+    gl->dynamicLayout.attributes.push_back({"a_alpha", 1, false, 0, -1});
+    gl->dynamicLayout.attributes.push_back({"a_rotation", 1, false, 0, -1});
+    
+    glfons__initVertexLayout(&gl->dynamicLayout, program);
+    glfons__initVertexLayout(&gl->staticLayout, program);
+    
     glUseProgram(boundProgram);
 }
 
@@ -322,11 +330,14 @@ void glfons__draw(GLFONScontext* gl, bool bindAtlas) {
 
     for(auto& pair : gl->buffers) {
         GLFONSbuffer* buffer = pair.second;
-        GLFONS_GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo));
-        glfons__enableVertexLayout(gl);
+        GLFONS_GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, buffer->dynamicVbo));
+        glfons__enableVertexLayout(&gl->dynamicLayout);
+        GLFONS_GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, buffer->staticVbo));
+        glfons__enableVertexLayout(&gl->staticLayout);
         glfons__bindUniforms(gl, buffer);
         GLFONS_GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, buffer->nVerts));
-        glfons__disableVertexLayout(gl);
+        glfons__disableVertexLayout(&gl->staticLayout);
+        glfons__disableVertexLayout(&gl->dynamicLayout);
     }
 }
 
@@ -341,15 +352,15 @@ void glfons__setDirty(GLFONSbuffer* buffer, intptr_t start, size_t size) {
         buffer->dirtySize = buffer->dirtyOffset - byteOffset + buffer->dirtySize;
     }
 
-    buffer->dirtySize = std::min<float>(buffer->dirtySize, buffer->interleavedArray.size() * sizeof(float));
+    buffer->dirtySize = std::min<float>(buffer->dirtySize, buffer->dynamicData.size() * sizeof(float));
 }
 
 void glfons__updateBuffer(void* usrPtr, intptr_t offset, size_t size, float* newData) {
     GLFONScontext* gl = (GLFONScontext*) usrPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo);
-    if(offset == 0 && size / sizeof(float) == buffer->interleavedArray.size()) {
-        GLFONS_GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * buffer->interleavedArray.size(), newData, GL_DYNAMIC_DRAW));
+    glBindBuffer(GL_ARRAY_BUFFER, buffer->dynamicVbo);
+    if(offset == 0 && size / sizeof(float) == buffer->dynamicData.size()) {
+        GLFONS_GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * buffer->dynamicData.size(), newData, GL_DYNAMIC_DRAW));
     } else {
         GLFONS_GL_CHECK(glBufferSubData(GL_ARRAY_BUFFER, offset, size, newData));
     }
@@ -409,11 +420,12 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned in
 
     int length = fonsDrawText(ctx, 0, 0, s, NULL, 0);
     
-    stash->offset = buffer->interleavedArray.size();
+    stash->offset = buffer->dynamicData.size();
     
     // pre-allocate data for this text id
-    int oldSize = buffer->interleavedArray.size();
-    buffer->interleavedArray.resize(oldSize + gl->layout.nbComponents * ctx->nverts, 0);
+    int oldSize = buffer->staticData.size();
+    buffer->staticData.resize(oldSize + gl->staticLayout.nbComponents * ctx->nverts, 0);
+    buffer->dynamicData.resize(buffer->dynamicData.size() + gl->dynamicLayout.nbComponents * ctx->nverts, 0);
 
     float inf = std::numeric_limits<float>::infinity();
     float x0 = inf, x1 = -inf, y0 = inf, y1 = -inf;
@@ -429,11 +441,10 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned in
         y0 = y < y0 ? y : y0;
         y1 = y > y1 ? y : y1;
 
-        buffer->interleavedArray[index++] = x;
-        buffer->interleavedArray[index++] = y;
-        buffer->interleavedArray[index++] = ctx->tcoords[i];
-        buffer->interleavedArray[index++] = ctx->tcoords[i + 1];
-        index += 4; // skip screenPos / alpha / rotation
+        buffer->staticData[index++] = x;
+        buffer->staticData[index++] = y;
+        buffer->staticData[index++] = ctx->tcoords[i];
+        buffer->staticData[index++] = ctx->tcoords[i + 1];
     }
 
     // remove extra-offset used for interpolation in fontstash
@@ -473,7 +484,8 @@ void glfonsBufferCreate(FONScontext* ctx, unsigned int maxSize, fsuint* id) {
     buffer->dirtySize = 0;
     
     if(gl->params.useGLBackend) {
-        glGenBuffers(1, &buffer->vbo);
+        glGenBuffers(1, &buffer->staticVbo);
+        glGenBuffers(1, &buffer->dynamicVbo);
         // data not initialized
         buffer->vboInitialized = false;
     }
@@ -486,18 +498,22 @@ void glfonsBufferCreate(FONScontext* ctx, unsigned int maxSize, fsuint* id) {
 void glfonsBufferDelete(GLFONScontext* gl, fsuint id) {
     GLFONSbuffer* buffer = gl->buffers.at(id);
 
-    if(gl->params.useGLBackend && buffer->vbo != 0) {
-        glDeleteBuffers(1, &buffer->vbo);
+    if(gl->params.useGLBackend) {
+        if(buffer->staticVbo != 0) {
+            glDeleteBuffers(1, &buffer->staticVbo);
+        }
+        if(buffer->dynamicVbo != 0) {
+            glDeleteBuffers(1, &buffer->dynamicVbo);
+        }
     }
 
     for(auto& elt : buffer->stashes) {
         glfons__freeStash(elt);
     }
     
-    std::vector<float> vertices;
-    std::swap(buffer->interleavedArray, vertices);
-    std::vector<GLFONSstash*> stashes;
-    std::swap(buffer->stashes, stashes);
+    takeOver<std::vector<float>>(buffer->dynamicData);
+    takeOver<std::vector<float>>(buffer->staticData);
+    takeOver<std::vector<GLFONSstash*>>(buffer->stashes);
 }
 
 void glfonsBufferDelete(FONScontext* ctx, fsuint id) {
@@ -523,8 +539,10 @@ void glfonsUpdateBuffer(FONScontext* ctx) {
     
     if(gl->params.useGLBackend) {
         if(!buffer->vboInitialized) {
-            glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo);
-            GLFONS_GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * buffer->interleavedArray.size(), reinterpret_cast<float*>(buffer->interleavedArray.data()), GL_DYNAMIC_DRAW));
+            glBindBuffer(GL_ARRAY_BUFFER, buffer->dynamicVbo);
+            GLFONS_GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * buffer->dynamicData.size(), reinterpret_cast<float*>(buffer->dynamicData.data()), GL_DYNAMIC_DRAW));
+            glBindBuffer(GL_ARRAY_BUFFER, buffer->staticVbo);
+            GLFONS_GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * buffer->staticData.size(), reinterpret_cast<float*>(buffer->staticData.data()), GL_STATIC_DRAW));
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             buffer->vboInitialized = true;
             return;
@@ -532,7 +550,7 @@ void glfonsUpdateBuffer(FONScontext* ctx) {
     }
     
     size_t offset = buffer->dirtyOffset * sizeof(float);
-    glfons__updateBuffer(gl, buffer->dirtyOffset, buffer->dirtySize, reinterpret_cast<float*>(buffer->interleavedArray.data() + offset));
+    glfons__updateBuffer(gl, buffer->dirtyOffset, buffer->dirtySize, reinterpret_cast<float*>(buffer->dynamicData.data() + offset));
 }
 
 void glfonsDraw(FONScontext* ctx) {
@@ -671,16 +689,16 @@ int glfonsVerticesSize(FONScontext* ctx) {
 
 bool glfonsVertices(FONScontext* ctx, float* data) {
     GLFONS_LOAD_BUFFER
-    memcpy(data, buffer->interleavedArray.data(), buffer->interleavedArray.size() * sizeof(float));
+    memcpy(data, buffer->dynamicData.data(), buffer->dynamicData.size() * sizeof(float));
     return true;
 }
 
 void glfons__updateInterleavedArray(GLFONScontext* gl, GLFONSbuffer* buffer, GLFONSstash* stash, const char* attribute, int offset, float value) {
-    int index = glfons__layoutIndex(gl, attribute);
-    float* start = &buffer->interleavedArray[0] + stash->offset;
-    int stride = gl->layout.nbComponents;
+    int index = glfons__layoutIndex(attribute, &gl->dynamicLayout);
+    float* start = &buffer->dynamicData[0] + stash->offset;
+    int stride = gl->dynamicLayout.nbComponents;
     
-    glfons__setDirty(buffer, stash->offset + index + offset, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents);
+    glfons__setDirty(buffer, stash->offset + index + offset, stash->nbGlyph * GLYPH_VERTS * gl->dynamicLayout.nbComponents);
     
     for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
         start[i * stride + index + offset] = value;
