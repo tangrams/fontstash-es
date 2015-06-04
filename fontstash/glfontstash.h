@@ -1,3 +1,4 @@
+
 //
 // Copyright (c) 2009-2013 Mikko Mononen memon@inside.org
 // Copyright (c) 2014 Mapzen karim@mapzen.com
@@ -34,7 +35,12 @@ typedef struct GLFONScontext GLFonscontext;
 typedef struct GLFONSparams GLFONSparams;
 
 enum class GLFONSError {
-    ID_OVERFLOW
+    GLFONS_ID_OVERFLOW
+};
+
+enum class GLFONSDataType {
+    GLFONS_DYNAMIC_DATA,
+    GLFONS_STATIC_DATA
 };
 
 struct GLFONSparams {
@@ -56,7 +62,7 @@ void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* 
 void glfonsBufferDelete(FONScontext* ctx, fsuint id);
 void glfonsBindBuffer(FONScontext* ctx, fsuint id);
 void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned int color = 0x000000);
-bool glfonsVertices(FONScontext* ctx, float* data);
+void glfonsVertices(FONScontext* ctx, float* data, GLFONSDataType type);
 int glfonsVerticesSize(FONScontext* ctx);
 void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1, float* y1);
 float glfonsGetLength(FONScontext* ctx, fsuint id);
@@ -128,7 +134,7 @@ struct GLFONSbuffer {
     unsigned int nVerts, maxId, color = 0xffffff;
     std::vector<float> staticData;
     std::vector<float> dynamicData;
-    std::vector<GLFONSstash*> stashes;
+    std::unordered_map<fsuint, GLFONSstash*> stashes;
     intptr_t dirtyOffset;
     size_t dirtySize;
     bool vboInitialized;
@@ -397,7 +403,7 @@ void glfonsGenText(FONScontext* ctx, int nb, fsuint* textId) {
         bool solved = false;
 
         if(gl->params.errorCallback) {
-            solved = gl->params.errorCallback(gl->userPtr, buffer->id, GLFONSError::ID_OVERFLOW);
+            solved = gl->params.errorCallback(gl->userPtr, buffer->id, GLFONSError::GLFONS_ID_OVERFLOW);
         }
 
         if(!solved) {
@@ -414,60 +420,68 @@ void glfonsGenText(FONScontext* ctx, int nb, fsuint* textId) {
 }
 
 void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned int color) {
-    GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
-    GLFONSbuffer* buffer = glfons__bufferBound(gl);
-    GLFONSstash* stash = new GLFONSstash;
-
-    int length = fonsDrawText(ctx, 0, 0, s, NULL, 0);
+    GLFONS_LOAD_BUFFER
     
-    stash->offset = buffer->dynamicData.size();
+    auto it = buffer->stashes.find(textId);
     
-    // pre-allocate data for this text id
-    int oldSize = buffer->staticData.size();
-    buffer->staticData.resize(oldSize + gl->staticLayout.nbComponents * ctx->nverts, 0);
-    buffer->dynamicData.resize(buffer->dynamicData.size() + gl->dynamicLayout.nbComponents * ctx->nverts, 0);
-
-    float inf = std::numeric_limits<float>::infinity();
-    float x0 = inf, x1 = -inf, y0 = inf, y1 = -inf;
-
-    for(int i = 0, index = oldSize; i < ctx->nverts * 2; i += 2) {
-        float x, y;
-
-        x = ctx->verts[i];
-        y = ctx->verts[i + 1];
-
-        x0 = x < x0 ? x : x0;
-        x1 = x > x1 ? x : x1;
-        y0 = y < y0 ? y : y0;
-        y1 = y > y1 ? y : y1;
-
-        buffer->staticData[index++] = x;
-        buffer->staticData[index++] = y;
-        buffer->staticData[index++] = ctx->tcoords[i];
-        buffer->staticData[index++] = ctx->tcoords[i + 1];
-    }
-
-    // remove extra-offset used for interpolation in fontstash
-    stash->bbox[0] = x0 + 3;
-    stash->bbox[1] = y0 - 3;
-    stash->bbox[2] = x1 + 3;
-    stash->bbox[3] = y1 - 3;
-
-    stash->length = length - 6;
-
-    if(ctx->shaping != NULL && fons__getState(ctx)->useShaping) {
-        FONSshapingRes* res = ctx->shaping->shapingRes;
-        stash->nbGlyph = res->glyphCount;
-        fons__clearShaping(ctx);
+    if(it != buffer->stashes.end()) {
+        // TODO : re-rasterization, shift all other stashes
+        glfons__freeStash(it->second);
+        buffer->stashes.erase(it);
     } else {
-        stash->nbGlyph = (int)strlen(s);
+        GLFONSstash* stash = new GLFONSstash;
+
+        int length = fonsDrawText(ctx, 0, 0, s, NULL, 0);
+        
+        stash->offset = buffer->dynamicData.size();
+        
+        // pre-allocate data for this text id
+        int oldSize = buffer->staticData.size();
+        buffer->staticData.resize(oldSize + gl->staticLayout.nbComponents * ctx->nverts, 0);
+        buffer->dynamicData.resize(buffer->dynamicData.size() + gl->dynamicLayout.nbComponents * ctx->nverts, 0);
+
+        float inf = std::numeric_limits<float>::infinity();
+        float x0 = inf, x1 = -inf, y0 = inf, y1 = -inf;
+
+        for(int i = 0, index = oldSize; i < ctx->nverts * 2; i += 2) {
+            float x, y;
+
+            x = ctx->verts[i];
+            y = ctx->verts[i + 1];
+
+            x0 = x < x0 ? x : x0;
+            x1 = x > x1 ? x : x1;
+            y0 = y < y0 ? y : y0;
+            y1 = y > y1 ? y : y1;
+
+            buffer->staticData[index++] = x;
+            buffer->staticData[index++] = y;
+            buffer->staticData[index++] = ctx->tcoords[i];
+            buffer->staticData[index++] = ctx->tcoords[i + 1];
+        }
+
+        // remove extra-offset used for interpolation in fontstash
+        stash->bbox[0] = x0 + 3;
+        stash->bbox[1] = y0 - 3;
+        stash->bbox[2] = x1 + 3;
+        stash->bbox[3] = y1 - 3;
+
+        stash->length = length - 6;
+
+        if(ctx->shaping != NULL && fons__getState(ctx)->useShaping) {
+            FONSshapingRes* res = ctx->shaping->shapingRes;
+            stash->nbGlyph = res->glyphCount;
+            fons__clearShaping(ctx);
+        } else {
+            stash->nbGlyph = (int)strlen(s);
+        }
+
+        // hack : reset fontstash state
+        buffer->nVerts += ctx->nverts;
+        ctx->nverts = 0;
+
+        buffer->stashes[textId] = stash;
     }
-
-    // hack : reset fontstash state
-    buffer->nVerts += ctx->nverts;
-    ctx->nverts = 0;
-
-    buffer->stashes.push_back(stash);
 }
 
 void glfonsBufferCreate(FONScontext* ctx, unsigned int maxSize, fsuint* id) {
@@ -508,12 +522,12 @@ void glfonsBufferDelete(GLFONScontext* gl, fsuint id) {
     }
 
     for(auto& elt : buffer->stashes) {
-        glfons__freeStash(elt);
+        glfons__freeStash(elt.second);
     }
     
     takeOver<std::vector<float>>(buffer->dynamicData);
     takeOver<std::vector<float>>(buffer->staticData);
-    takeOver<std::vector<GLFONSstash*>>(buffer->stashes);
+    takeOver<std::unordered_map<fsuint, GLFONSstash*>>(buffer->stashes);
 }
 
 void glfonsBufferDelete(FONScontext* ctx, fsuint id) {
@@ -682,15 +696,21 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
     return (r) | (g << 8) | (b << 16) | (a << 24);
 }
 
-int glfonsVerticesSize(FONScontext* ctx) {
+int glfonsVertices(FONScontext* ctx) {
     GLFONS_LOAD_BUFFER
     return buffer->nVerts;
 }
 
-bool glfonsVertices(FONScontext* ctx, float* data) {
+void glfonsVertices(FONScontext* ctx, float* data, GLFONSDataType type) {
     GLFONS_LOAD_BUFFER
-    memcpy(data, buffer->dynamicData.data(), buffer->dynamicData.size() * sizeof(float));
-    return true;
+    switch (type) {
+        case GLFONSDataType::GLFONS_DYNAMIC_DATA:
+                memcpy(data, buffer->dynamicData.data(), buffer->dynamicData.size() * sizeof(float));
+            break;
+        case GLFONSDataType::GLFONS_STATIC_DATA:
+                memcpy(data, buffer->staticData.data(), buffer->staticData.size() * sizeof(float));
+            break;
+    }
 }
 
 void glfons__updateInterleavedArray(GLFONScontext* gl, GLFONSbuffer* buffer, GLFONSstash* stash, const char* attribute, int offset, float value) {
