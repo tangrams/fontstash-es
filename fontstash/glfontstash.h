@@ -717,13 +717,24 @@ int glfonsGetGlyphCount(FONScontext* ctx, fsuint id) {
 void glfons__bCurveP4(float t, float p0x, float p0y, float p1x, float p1y, float p2x, float p2y, float p3x, float p3y, float* x, float* y) {
     // compute the basis of the cubic bézier curve
     float it = 1 - t;
-    float f0 = pow(it, 3.f);
+    float f0 = powf(it, 3.f);
     float f1 = 3 * t * powf(it, 2.f);
     float f2 = 3 * powf(t, 2.f) * it;
     float f3 = powf(t, 3.f);
     
     *x = f0 * p0x + f1 * p1x + f2 * p2x + f3 * p3x;
     *y = f0 * p0y + f1 * p1y + f2 * p2y + f3 * p3y;
+}
+
+void glfons__bCurveP4Derivative(float t, float p0x, float p0y, float p1x, float p1y, float p2x, float p2y, float p3x, float p3y, float* x, float* y) {
+    // derivate of cubic b-curve is a quadratic b-curve
+    float it = 1 - t;
+    float f0 = 3 * powf(it, 2.f);
+    float f1 = 6 * t * (it);
+    float f2 = 3 * powf(t, 2.f);
+    
+    *x = f0 * (p1x - p0x) + f1 * (p2x - p1x) + f2 * (p3x - p2x);
+    *y = f0 * (p1y - p0y) + f1 * (p2y - p1y) + f2 * (p3y - p2y);
 }
 
 void glfonsCurveText(FONScontext* ctx, fsuint id) {
@@ -738,6 +749,7 @@ void glfonsCurveText(FONScontext* ctx, fsuint id) {
     for(int i = 0; i < n; i += GLYPH_VERTS) {
         float t = (float) i / n;
         float x, y;
+        float dx, dy;
         
         float p0x = 0.0;
         float p0y = 0.0;
@@ -749,6 +761,12 @@ void glfonsCurveText(FONScontext* ctx, fsuint id) {
         float p3y = 0.0;
         
         glfons__bCurveP4(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y, &x, &y);
+        glfons__bCurveP4Derivative(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y, &dx, &dy);
+        
+        float l = sqrtf((dx * dx) + (dy * dy));
+        dx /= l;
+        dy /= l;
+        float theta = (atan2f(dx, -dy) - M_PI_2); 
         
         for(int j = 0; j < GLYPH_VERTS; j++) {
             start[i * stride + index + j * stride] += x * 40.;
