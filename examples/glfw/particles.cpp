@@ -81,7 +81,6 @@ int main() {
         glViewport(0, 0, width * dpiRatio, height * dpiRatio);
         glfonsScreenSize(ftCtx, width * dpiRatio, height * dpiRatio);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         
         clock_t begin = clock();
         for (int i = 0; i < NB_TEXT; ++i) {
@@ -95,9 +94,10 @@ int main() {
         
         // render the text
         glfonsDraw(ftCtx);
+        
+        glFinish();
         clock_t end = clock();
         std::cout << "Frame time: " << float(end - begin) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
-
 
         glfwSwapBuffers(window);
         glfwPollEvents();
