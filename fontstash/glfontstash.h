@@ -378,7 +378,7 @@ void glfonsSetColor(FONScontext* ctx, unsigned int color) {
     buffer->color = color;
 }
 
-void glfonsGenText(FONScontext* ctx, int nb, fsuint* textId) {
+void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
 
@@ -532,7 +532,8 @@ void glfonsUpdateBuffer(FONScontext* ctx) {
     }
     
     size_t offset = buffer->dirtyOffset * sizeof(float);
-    glfons__updateBuffer(gl, buffer->dirtyOffset, buffer->dirtySize, reinterpret_cast<float*>(buffer->interleavedArray.data() + offset));
+    
+    gl->params.updateBuffer(gl, buffer->dirtyOffset, buffer->dirtySize, reinterpret_cast<float*>(buffer->interleavedArray.data() + offset));
 }
 
 void glfonsDraw(FONScontext* ctx) {
