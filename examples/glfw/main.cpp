@@ -14,10 +14,6 @@ float width = 800, height = 600, dpiRatio = 1;
 FONScontext* ftCtx;
 fsuint textBuffer, textIds[NB_TEXT];
 
-int nextPowerOf2(int value) {
-    return pow(2, ceil(log(value) / log(2)));
-}
-
 int main() {
     int fbWidth, fbHeight;
 
@@ -41,7 +37,7 @@ int main() {
     glfonsScreenSize(ftCtx, width * dpiRatio, height * dpiRatio);
 
     // create and bind buffer
-    glfonsBufferCreate(ftCtx, nextPowerOf2(NB_TEXT), &textBuffer);
+    glfonsBufferCreate(ftCtx, &textBuffer);
 
     // generate text ids for the currently bound text buffer
     glfonsGenText(ftCtx, NB_TEXT, textIds);

@@ -34,7 +34,3 @@
 }
 
 @end
-
-int nextPowerOf2(int value) {
-    return pow(2, ceil(log(value) / log(2)));
-}

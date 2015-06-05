@@ -146,7 +146,7 @@
     glfonsScreenSize(fs, width, height);
     
     // create and bind buffer
-    glfonsBufferCreate(fs, nextPowerOf2(NB_TEXT), &textBuffer);
+    glfonsBufferCreate(fs, &textBuffer);
     
     // generate text ids for the currently bound text buffer
     glfonsGenText(fs, NB_TEXT, textIds);

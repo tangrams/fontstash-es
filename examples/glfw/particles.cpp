@@ -11,14 +11,10 @@
 GLFWwindow* window;
 float width = 800, height = 600, dpiRatio = 1;
 
-#define NB_TEXT GL_MAX_TEXTURE_SIZE
+#define NB_TEXT 3500
 
 FONScontext* ftCtx;
 fsuint textBuffer;
-
-int nextPowerOf2(int value) {
-    return pow(2, ceil(log(value) / log(2)));
-}
 
 int main() {
     int fbWidth, fbHeight;
@@ -43,7 +39,7 @@ int main() {
     glfonsScreenSize(ftCtx, width * dpiRatio, height * dpiRatio);
 
     // create and bind buffer
-    glfonsBufferCreate(ftCtx, nextPowerOf2(NB_TEXT), &textBuffer);
+    glfonsBufferCreate(ftCtx, &textBuffer);
 
     // generate text ids for the currently bound text buffer
 
