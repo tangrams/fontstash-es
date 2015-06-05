@@ -166,7 +166,7 @@ static void glfons__renderDraw(void* userPtr, const float* verts, const float* t
     // called by fontstash, but has nothing to do
 }
 
-void glfons__initVertexLayout(GLFONScontext* gl, GLuint shaderProgram) {
+void glfons__createVertexLayout(GLFONScontext* gl) {
     GLFONSVertexLayout layout;
     
     layout.attributes.push_back({"a_position", 2, false, 0, -1});
@@ -181,10 +181,17 @@ void glfons__initVertexLayout(GLFONScontext* gl, GLuint shaderProgram) {
         attribute.offset = (GLvoid *) (layout.nbComponents * sizeof(float));
         layout.nbComponents += attribute.size;
         layout.stride += attribute.size * sizeof(float);
-        attribute.location = glGetAttribLocation(shaderProgram, attribute.name.c_str());
     }
     
     gl->layout = layout;
+}
+
+void glfons__initVertexLayout(GLFONScontext* gl, GLuint shaderProgram) {
+    glfons__createVertexLayout(gl);
+
+    for(auto& attribute : gl->layout.attributes) {
+        attribute.location = glGetAttribLocation(shaderProgram, attribute.name.c_str());
+    }
 }
 
 int glfons__layoutIndex(GLFONScontext* gl, std::string attributeName) {
@@ -631,6 +638,7 @@ FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParam
         glfons__initShaders(gl);
         glfons__createAtlas(gl, width, height);
     } else {
+        glfons__createVertexLayout(gl);
         gl->userPtr = userPtr;
     }
 
