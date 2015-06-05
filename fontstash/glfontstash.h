@@ -33,13 +33,8 @@ typedef unsigned int fsuint;
 typedef struct GLFONScontext GLFonscontext;
 typedef struct GLFONSparams GLFONSparams;
 
-enum class GLFONSError {
-    ID_OVERFLOW
-};
-
 struct GLFONSparams {
     bool useGLBackend;
-    bool (*errorCallback)(void* usrPtr, fsuint buffer, GLFONSError error);
     void (*updateBuffer)(void* usrPtr, intptr_t offset, size_t size, float* newData);
     void (*updateAtlas)(void* usrPtr, unsigned int xoff, unsigned int yoff, unsigned int width, unsigned int height, const unsigned int* pixels);
 };
@@ -52,7 +47,7 @@ void glfonsRotate(FONScontext* ctx, fsuint id, float r);
 void glfonsTranslate(FONScontext* ctx, fsuint id, float tx, float ty);
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a);
 void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId);
-void glfonsBufferCreate(FONScontext* ctx, unsigned int texTransformRes, fsuint* id);
+void glfonsBufferCreate(FONScontext* ctx, fsuint* id);
 void glfonsBufferDelete(FONScontext* ctx, fsuint id);
 void glfonsBindBuffer(FONScontext* ctx, fsuint id);
 void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned int color = 0x000000);
@@ -389,21 +384,6 @@ void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
 
-    if(buffer->textIdCount + nb > buffer->maxId) {
-        bool solved = false;
-
-        if(gl->params.errorCallback) {
-            solved = gl->params.errorCallback(gl->userPtr, buffer->id, GLFONSError::ID_OVERFLOW);
-        }
-
-        if(!solved) {
-            for(unsigned int i = 0; i < nb; ++i) {
-                textId[i] = -1;
-            }
-            return;
-        }
-    }
-
     for(unsigned int i = 0; i < nb; ++i) {
         textId[i] = buffer->textIdCount++;
     }
@@ -466,14 +446,13 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned in
     buffer->stashes.push_back(stash);
 }
 
-void glfonsBufferCreate(FONScontext* ctx, unsigned int maxSize, fsuint* id) {
+void glfonsBufferCreate(FONScontext* ctx, fsuint* id) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = new GLFONSbuffer;
 
     *id = ++gl->bufferCount;
 
     buffer->textIdCount = 0;
-    buffer->maxId = maxSize;
     buffer->id = *id;
     buffer->nVerts = 0;
     buffer->dirtyOffset = 0;
