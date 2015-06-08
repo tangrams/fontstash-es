@@ -61,7 +61,17 @@ int main() {
     for(int i = 0; i < NB_TEXT; ++i) {
         glfonsTransform(ftCtx, textIds[i], (100.0 + i * 10.0) * dpiRatio, (100.0 + i * 50.0) * dpiRatio, 0.0, 1.0);
     }
-    glfonsCurveText(ftCtx, textIds[4]);
+
+    float p0x = 0.0;
+    float p0y = 0.0;
+    float p1x = 0.0;
+    float p1y = 1.0 * 40.0;
+    float p2x = 1.0 * 40.0;
+    float p2y = 1.0 * 40.0;
+    float p3x = 1.0 * 40.0;
+    float p3y = 0.0;
+
+    glfonsCurveText(ftCtx, textIds[4], p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y);
 
     // upload rasterized data of currently bound buffer to gpu
     glfonsUpdateBuffer(ftCtx);
@@ -73,7 +83,7 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glfonsTransform(ftCtx, textIds[0], (width / 2.0) * dpiRatio, (height / 2.0) * dpiRatio, cos(t) * 0.5, cos(t) * 0.5 + 0.5);
-        //glfonsTransform(ftCtx, textIds[4], (width / 2.0) * dpiRatio, (height / 2.0 - 200.0 + cos(t) * 20.0) * dpiRatio, 0.0, 1.0);
+        glfonsTransform(ftCtx, textIds[4], (width / 2.0) * dpiRatio, (height / 2.0 - 200.0 + cos(t) * 20.0) * dpiRatio, cos(t), 1.0);
 
         glfonsSetColor(ftCtx, 0x000000);
 

@@ -66,6 +66,7 @@ void glfonsProjection(FONScontext* ctx, float* projectionMatrix);
 void glfonsUpdateBuffer(FONScontext* ctx);
 void glfonsDraw(FONScontext* ctx);
 void glfonsSetColor(FONScontext* ctx, unsigned int color);
+void glfonsCurveText(FONScontext* ctx, fsuint id, float p0y, float p1x, float p1y, float p2x, float p2y, float p3x, float p3y);
 unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
 
 #endif
@@ -751,7 +752,7 @@ void glfons__rotate2d(float* x, float* y, float theta, float ox, float oy) {
     *y += oy;
 }
 
-void glfonsCurveText(FONScontext* ctx, fsuint id) {
+void glfonsCurveText(FONScontext* ctx, fsuint id, float p0x, float p0y, float p1x, float p1y, float p2x, float p2y, float p3x, float p3y) {
     GLFONS_LOAD_STASH
     int index = glfons__layoutIndex(gl, "a_position");
     float* start = &buffer->interleavedArray[0] + stash->offset;
@@ -761,18 +762,10 @@ void glfonsCurveText(FONScontext* ctx, fsuint id) {
     
     int n = stash->nbGlyph * GLYPH_VERTS;
     for(int i = 0; i < n; i += GLYPH_VERTS) {
+        int offset = i * stride + index;
         float t = (float) i / n;
         float x, y;
         float dx, dy;
-        
-        float p0x = 0.0;
-        float p0y = 0.0;
-        float p1x = 0.0;
-        float p1y = 1.0 * 40.0;
-        float p2x = 1.0 * 40.0;
-        float p2y = 1.0 * 40.0;
-        float p3x = 1.0 * 40.0;
-        float p3y = 0.0;
         
         glfons__bCurveP4(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y, &x, &y);
         glfons__bCurveP4Derivative(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y, &dx, &dy);
@@ -781,16 +774,23 @@ void glfonsCurveText(FONScontext* ctx, fsuint id) {
         float theta = (atan2f(dx * il, -dy * il) - M_PI_2);
         
         for(int j = 0; j < GLYPH_VERTS; j++) {
-            start[i * stride + index + j * stride] += x;
-            start[i * stride + index + j * stride + 1] += y;
+            start[offset + j * stride] += x;
+            start[offset + j * stride + 1] += y;
+        }
+
+        float ox, oy;
+        if (theta < 0) {
+            ox = start[offset + index + 4 * stride];
+            oy = start[offset + index + 1 + 4 * stride];
+        } else {
+            ox = start[offset + index + 1 * stride];
+            oy = start[offset + index + 1 + 1 * stride];
         }
 
         // rotate vertices
-        float ox = start[i * stride + index];
-        float oy = start[i * stride + index + 1];
         for(int j = 0; j < GLYPH_VERTS; j++) {
-            float* x = &start[i * stride + index + j * stride];
-            float* y = &start[i * stride + index + j * stride + 1];
+            float* x = &start[offset + index + j * stride];
+            float* y = &start[offset + index + j * stride + 1];
             glfons__rotate2d(x, y, theta, ox, oy);
         }
     }
