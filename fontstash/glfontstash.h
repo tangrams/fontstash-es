@@ -737,6 +737,20 @@ void glfons__bCurveP4Derivative(float t, float p0x, float p0y, float p1x, float 
     *y = f0 * (p1y - p0y) + f1 * (p2y - p1y) + f2 * (p3y - p2y);
 }
 
+void glfons__rotate2d(float* x, float* y, float theta, float ox, float oy) {
+    float s = sin(theta);
+    float c = cos(theta);
+
+    float tx = *x - ox;
+    float ty = *y - oy;
+
+    *x = tx * c - ty * s;
+    *y = tx * s + ty * c;
+
+    *x += ox;
+    *y += oy;
+}
+
 void glfonsCurveText(FONScontext* ctx, fsuint id) {
     GLFONS_LOAD_STASH
     int index = glfons__layoutIndex(gl, "a_position");
@@ -754,23 +768,30 @@ void glfonsCurveText(FONScontext* ctx, fsuint id) {
         float p0x = 0.0;
         float p0y = 0.0;
         float p1x = 0.0;
-        float p1y = 1.0;
-        float p2x = 1.0;
-        float p2y = 1.0;
-        float p3x = 1.0;
+        float p1y = 1.0 * 40.0;
+        float p2x = 1.0 * 40.0;
+        float p2y = 1.0 * 40.0;
+        float p3x = 1.0 * 40.0;
         float p3y = 0.0;
         
         glfons__bCurveP4(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y, &x, &y);
         glfons__bCurveP4Derivative(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y, &dx, &dy);
         
-        float l = sqrtf((dx * dx) + (dy * dy));
-        dx /= l;
-        dy /= l;
-        float theta = (atan2f(dx, -dy) - M_PI_2); 
+        float il = 1.f / sqrtf((dx * dx) + (dy * dy));
+        float theta = (atan2f(dx * il, -dy * il) - M_PI_2);
         
         for(int j = 0; j < GLYPH_VERTS; j++) {
-            start[i * stride + index + j * stride] += x * 40.;
-            start[i * stride + index + j * stride + 1] += y * 40.0;
+            start[i * stride + index + j * stride] += x;
+            start[i * stride + index + j * stride + 1] += y;
+        }
+
+        // rotate vertices
+        float ox = start[i * stride + index];
+        float oy = start[i * stride + index + 1];
+        for(int j = 0; j < GLYPH_VERTS; j++) {
+            float* x = &start[i * stride + index + j * stride];
+            float* y = &start[i * stride + index + j * stride + 1];
+            glfons__rotate2d(x, y, theta, ox, oy);
         }
     }
 }
