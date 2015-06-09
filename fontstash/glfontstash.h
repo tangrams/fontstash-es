@@ -35,7 +35,7 @@ typedef struct GLFONSparams GLFONSparams;
 
 struct GLFONSparams {
     bool useGLBackend;
-    void (*updateBuffer)(void* usrPtr, intptr_t offset, size_t size, float* newData);
+    void (*updateBuffer)(void* usrPtr, intptr_t offset, size_t size, float* newData, size_t dirtySize, intptr_t dirtyOffset);
     void (*updateAtlas)(void* usrPtr, unsigned int xoff, unsigned int yoff, unsigned int width, unsigned int height, const unsigned int* pixels);
 };
 
@@ -346,7 +346,7 @@ void glfons__setDirty(GLFONSbuffer* buffer, intptr_t start, size_t size) {
     buffer->dirtySize = std::min<float>(buffer->dirtySize, buffer->interleavedArray.size() * sizeof(float));
 }
 
-void glfons__updateBuffer(void* usrPtr, intptr_t offset, size_t size, float* newData) {
+void glfons__updateBuffer(void* usrPtr, intptr_t offset, size_t size, float* newData, size_t dirtySize, intptr_t dirtyOffset) {
     GLFONScontext* gl = (GLFONScontext*) usrPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
     glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo);
@@ -519,7 +519,10 @@ void glfonsUpdateBuffer(FONScontext* ctx) {
     
     size_t offset = buffer->dirtyOffset * sizeof(float);
     
-    gl->params.updateBuffer(gl->userPtr, buffer->dirtyOffset, buffer->dirtySize, reinterpret_cast<float*>(buffer->interleavedArray.data() + offset));
+    gl->params.updateBuffer(gl->userPtr, buffer->dirtyOffset, buffer->dirtySize, reinterpret_cast<float*>(buffer->interleavedArray.data() + offset), buffer->dirtySize, buffer->dirtyOffset);
+    
+    buffer->dirtySize = 0;
+    buffer->dirtyOffset = 0;
 }
 
 void glfonsDraw(FONScontext* ctx) {
