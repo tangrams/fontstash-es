@@ -519,7 +519,7 @@ void glfonsUpdateBuffer(FONScontext* ctx) {
     
     size_t offset = buffer->dirtyOffset * sizeof(float);
     
-    gl->params.updateBuffer(gl, buffer->dirtyOffset, buffer->dirtySize, reinterpret_cast<float*>(buffer->interleavedArray.data() + offset));
+    gl->params.updateBuffer(gl->userPtr, buffer->dirtyOffset, buffer->dirtySize, reinterpret_cast<float*>(buffer->interleavedArray.data() + offset));
 }
 
 void glfonsDraw(FONScontext* ctx) {
