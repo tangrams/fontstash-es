@@ -1,0 +1,374 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		984E03591A1E7F63000B1797 /* amiri-regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 984E03581A1E7F63000B1797 /* amiri-regular.ttf */; };
+		984E035B1A1FB374000B1797 /* DejaVuSerif.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 984E035A1A1FB374000B1797 /* DejaVuSerif.ttf */; };
+		98603FF419E435AC00912F0C /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 98603FF319E435AC00912F0C /* main.m */; };
+		98603FF719E435AC00912F0C /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 98603FF619E435AC00912F0C /* AppDelegate.m */; };
+		9860400219E435AC00912F0C /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9860400119E435AC00912F0C /* Images.xcassets */; };
+		9860401C19E4360E00912F0C /* Main_iPhone.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9860401A19E4360E00912F0C /* Main_iPhone.storyboard */; };
+		9860419419E4372E00912F0C /* ViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9860419319E4372E00912F0C /* ViewController.mm */; };
+		98852A8C1A23954800690529 /* fireflysung.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 98852A8B1A23954800690529 /* fireflysung.ttf */; };
+		98D148F71B1651BB004D4727 /* libfreetype2-sim.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D148F61B1651BB004D4727 /* libfreetype2-sim.a */; };
+		98D148FA1B1651CA004D4727 /* libharfbuzz-sim.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D148F81B1651CA004D4727 /* libharfbuzz-sim.a */; };
+		98D148FB1B1651CA004D4727 /* libucdn-sim.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D148F91B1651CA004D4727 /* libucdn-sim.a */; };
+		98D79D6719E45E85000C6D80 /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D79D6619E45E85000C6D80 /* OpenGLES.framework */; };
+		98D79D6919E45E8F000C6D80 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D79D6819E45E8F000C6D80 /* CoreGraphics.framework */; };
+		98D79D6B19E45EA6000C6D80 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D79D6A19E45EA6000C6D80 /* UIKit.framework */; };
+		98D79D6D19E45EAD000C6D80 /* GLKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 98D79D6C19E45EAD000C6D80 /* GLKit.framework */; };
+		98ECEAAF1A36054500449813 /* Sanskrit2003.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 98ECEAAE1A36054500449813 /* Sanskrit2003.ttf */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		984E03581A1E7F63000B1797 /* amiri-regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "amiri-regular.ttf"; sourceTree = "<group>"; };
+		984E035A1A1FB374000B1797 /* DejaVuSerif.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = DejaVuSerif.ttf; sourceTree = "<group>"; };
+		98603FEE19E435AC00912F0C /* FontstashiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FontstashiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		98603FF219E435AC00912F0C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		98603FF319E435AC00912F0C /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		98603FF519E435AC00912F0C /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		98603FF619E435AC00912F0C /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		9860400119E435AC00912F0C /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
+		9860401A19E4360E00912F0C /* Main_iPhone.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Main_iPhone.storyboard; sourceTree = "<group>"; };
+		9860419219E4372E00912F0C /* ViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
+		9860419319E4372E00912F0C /* ViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ViewController.mm; sourceTree = "<group>"; };
+		98852A8B1A23954800690529 /* fireflysung.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = fireflysung.ttf; sourceTree = "<group>"; };
+		98D148F61B1651BB004D4727 /* libfreetype2-sim.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libfreetype2-sim.a"; path = "../../fontstash/lib/precompiled/freetype2/libfreetype2-sim.a"; sourceTree = "<group>"; };
+		98D148F81B1651CA004D4727 /* libharfbuzz-sim.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libharfbuzz-sim.a"; path = "../../fontstash/lib/precompiled/harfbuzz/libharfbuzz-sim.a"; sourceTree = "<group>"; };
+		98D148F91B1651CA004D4727 /* libucdn-sim.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libucdn-sim.a"; path = "../../fontstash/lib/precompiled/harfbuzz/libucdn-sim.a"; sourceTree = "<group>"; };
+		98D79D6619E45E85000C6D80 /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = System/Library/Frameworks/OpenGLES.framework; sourceTree = SDKROOT; };
+		98D79D6819E45E8F000C6D80 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		98D79D6A19E45EA6000C6D80 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		98D79D6C19E45EAD000C6D80 /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
+		98ECEAAE1A36054500449813 /* Sanskrit2003.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Sanskrit2003.ttf; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		98603FEB19E435AC00912F0C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				98D148FA1B1651CA004D4727 /* libharfbuzz-sim.a in Frameworks */,
+				98D148FB1B1651CA004D4727 /* libucdn-sim.a in Frameworks */,
+				98D148F71B1651BB004D4727 /* libfreetype2-sim.a in Frameworks */,
+				98D79D6D19E45EAD000C6D80 /* GLKit.framework in Frameworks */,
+				98D79D6B19E45EA6000C6D80 /* UIKit.framework in Frameworks */,
+				98D79D6919E45E8F000C6D80 /* CoreGraphics.framework in Frameworks */,
+				98D79D6719E45E85000C6D80 /* OpenGLES.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		983A811819E45F2200B7C7C3 /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+				9860400119E435AC00912F0C /* Images.xcassets */,
+				9860401A19E4360E00912F0C /* Main_iPhone.storyboard */,
+			);
+			name = Assets;
+			sourceTree = "<group>";
+		};
+		98603FE519E435AC00912F0C = {
+			isa = PBXGroup;
+			children = (
+				98603FF019E435AC00912F0C /* FontstashiOS */,
+				98603FEF19E435AC00912F0C /* Products */,
+				9860418B19E436DD00912F0C /* Resources */,
+				98D79D6E19E45EB8000C6D80 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		98603FEF19E435AC00912F0C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				98603FEE19E435AC00912F0C /* FontstashiOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		98603FF019E435AC00912F0C /* FontstashiOS */ = {
+			isa = PBXGroup;
+			children = (
+				98603FF519E435AC00912F0C /* AppDelegate.h */,
+				98603FF619E435AC00912F0C /* AppDelegate.m */,
+				9860419219E4372E00912F0C /* ViewController.h */,
+				9860419319E4372E00912F0C /* ViewController.mm */,
+				983A811819E45F2200B7C7C3 /* Assets */,
+				98603FF119E435AC00912F0C /* Supporting Files */,
+			);
+			path = FontstashiOS;
+			sourceTree = "<group>";
+		};
+		98603FF119E435AC00912F0C /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				98603FF219E435AC00912F0C /* Info.plist */,
+				98603FF319E435AC00912F0C /* main.m */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		9860418B19E436DD00912F0C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				98ECEAAE1A36054500449813 /* Sanskrit2003.ttf */,
+				984E035A1A1FB374000B1797 /* DejaVuSerif.ttf */,
+				984E03581A1E7F63000B1797 /* amiri-regular.ttf */,
+				98852A8B1A23954800690529 /* fireflysung.ttf */,
+			);
+			name = Resources;
+			path = FontstashiOS/resources;
+			sourceTree = "<group>";
+		};
+		98D79D6E19E45EB8000C6D80 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				98D148F81B1651CA004D4727 /* libharfbuzz-sim.a */,
+				98D148F91B1651CA004D4727 /* libucdn-sim.a */,
+				98D148F61B1651BB004D4727 /* libfreetype2-sim.a */,
+				98D79D6C19E45EAD000C6D80 /* GLKit.framework */,
+				98D79D6A19E45EA6000C6D80 /* UIKit.framework */,
+				98D79D6819E45E8F000C6D80 /* CoreGraphics.framework */,
+				98D79D6619E45E85000C6D80 /* OpenGLES.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		98603FED19E435AC00912F0C /* FontstashiOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9860401419E435AC00912F0C /* Build configuration list for PBXNativeTarget "FontstashiOS" */;
+			buildPhases = (
+				98603FEA19E435AC00912F0C /* Sources */,
+				98603FEB19E435AC00912F0C /* Frameworks */,
+				98603FEC19E435AC00912F0C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FontstashiOS;
+			productName = FontstashiOS;
+			productReference = 98603FEE19E435AC00912F0C /* FontstashiOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		98603FE619E435AC00912F0C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0600;
+				ORGANIZATIONNAME = "Karim Naaji";
+				TargetAttributes = {
+					98603FED19E435AC00912F0C = {
+						CreatedOnToolsVersion = 6.0.1;
+					};
+				};
+			};
+			buildConfigurationList = 98603FE919E435AC00912F0C /* Build configuration list for PBXProject "FontstashiOS" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 98603FE519E435AC00912F0C;
+			productRefGroup = 98603FEF19E435AC00912F0C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				98603FED19E435AC00912F0C /* FontstashiOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		98603FEC19E435AC00912F0C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				98ECEAAF1A36054500449813 /* Sanskrit2003.ttf in Resources */,
+				9860401C19E4360E00912F0C /* Main_iPhone.storyboard in Resources */,
+				9860400219E435AC00912F0C /* Images.xcassets in Resources */,
+				984E035B1A1FB374000B1797 /* DejaVuSerif.ttf in Resources */,
+				984E03591A1E7F63000B1797 /* amiri-regular.ttf in Resources */,
+				98852A8C1A23954800690529 /* fireflysung.ttf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		98603FEA19E435AC00912F0C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				98603FF719E435AC00912F0C /* AppDelegate.m in Sources */,
+				98603FF419E435AC00912F0C /* main.m in Sources */,
+				9860419419E4372E00912F0C /* ViewController.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		9860401219E435AC00912F0C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		9860401319E435AC00912F0C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_INPUT_FILETYPE = sourcecode.cpp.objcpp;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		9860401519E435AC00912F0C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../../fontstash/lib/include/harbuzz/**",
+					"$(PROJECT_DIR)/../../fontstash/lib/include/freetype2/**",
+					"$(PROJECT_DIR)/../../fontstash/**",
+				);
+				INFOPLIST_FILE = FontstashiOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+					"$(PROJECT_DIR)/../../fontstash/**",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		9860401619E435AC00912F0C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../../fontstash/lib/include/harbuzz/**",
+					"$(PROJECT_DIR)/../../fontstash/lib/include/freetype2/**",
+					"$(PROJECT_DIR)/../../fontstash/**",
+				);
+				INFOPLIST_FILE = FontstashiOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+					"$(PROJECT_DIR)/../../fontstash/lib/include/harbuzz/**",
+					"$(PROJECT_DIR)/../../fontstash/**",
+					"$(PROJECT_DIR)/../../fontstash/lib/include/freetype/**",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		98603FE919E435AC00912F0C /* Build configuration list for PBXProject "FontstashiOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9860401219E435AC00912F0C /* Debug */,
+				9860401319E435AC00912F0C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9860401419E435AC00912F0C /* Build configuration list for PBXNativeTarget "FontstashiOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9860401519E435AC00912F0C /* Debug */,
+				9860401619E435AC00912F0C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 98603FE619E435AC00912F0C /* Project object */;
+}
