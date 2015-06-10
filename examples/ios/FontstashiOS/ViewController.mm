@@ -102,7 +102,7 @@
     glfonsTransform(fs, textIds[0], width / 2.0, height / 2.0, cos(t) * 0.5, cos(t) * 0.5 + 0.5);
     glfonsTransform(fs, textIds[4], width / 2.0, height / 2.0 - 200.0 + cos(t) * 20.0, 0.0, 1.0);
     // push transforms to gpu
-    glfonsUpdateTransforms(fs);
+    glfonsUpdateBuffer(fs);
     glfonsBindBuffer(fs, textBuffer);
     
     glfonsSetColor(fs, glfonsRGBA(0.0, 0.0, 100.0 * (cos(t) * 0.5 + 0.5), 255.0));
@@ -146,7 +146,7 @@
     glfonsScreenSize(fs, width, height);
     
     // create and bind buffer
-    glfonsBufferCreate(fs, nextPowerOf2(NB_TEXT), &textBuffer);
+    glfonsBufferCreate(fs, &textBuffer);
     
     // generate text ids for the currently bound text buffer
     glfonsGenText(fs, NB_TEXT, textIds);
@@ -168,11 +168,8 @@
         glfonsTransform(fs, textIds[i], 100.0 + i * 10.0, 100.0 + i * 50.0, 0.0, 1.0);
     }
     
-    // push transforms of currently bound buffer buffer to gpu
-    glfonsUpdateTransforms(fs);
-    
     // upload rasterized data of currently bound buffer to gpu
-    glfonsUpload(fs);
+    glfonsUpdateBuffer(fs);
 }
 
 - (void)deleteFontContext

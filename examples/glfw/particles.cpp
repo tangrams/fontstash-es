@@ -11,14 +11,10 @@
 GLFWwindow* window;
 float width = 800, height = 600, dpiRatio = 1;
 
-#define NB_TEXT GL_MAX_TEXTURE_SIZE
+#define NB_TEXT 3500
 
 FONScontext* ftCtx;
 fsuint textBuffer;
-
-int nextPowerOf2(int value) {
-    return pow(2, ceil(log(value) / log(2)));
-}
 
 int main() {
     int fbWidth, fbHeight;
@@ -43,7 +39,7 @@ int main() {
     glfonsScreenSize(ftCtx, width * dpiRatio, height * dpiRatio);
 
     // create and bind buffer
-    glfonsBufferCreate(ftCtx, nextPowerOf2(NB_TEXT), &textBuffer);
+    glfonsBufferCreate(ftCtx, &textBuffer);
 
     // generate text ids for the currently bound text buffer
 
@@ -70,14 +66,11 @@ int main() {
         glfonsRasterize(ftCtx, texts.id[i], str.c_str());
         texts.x[i] = xDistribution(generator);
         texts.y[i] = yDistribution(generator);
-        glfonsTransform(ftCtx, texts.id[i], texts.x[i], texts.y[i], 0.0, 1.0);
+        glfonsTransform(ftCtx, texts.id[i], texts.x[i], texts.y[i], 0.0, 0.0);
     }
 
-    // push transforms of currently bound buffer buffer to gpu
-    glfonsUpdateTransforms(ftCtx);
-
     // upload rasterized data of currently bound buffer to gpu
-    glfonsUpload(ftCtx);
+    glfonsUpdateBuffer(ftCtx);
 
     while (!glfwWindowShouldClose(window)) {
         double t = glfwGetTime();
@@ -85,23 +78,22 @@ int main() {
         glfonsScreenSize(ftCtx, width * dpiRatio, height * dpiRatio);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        
         clock_t begin = clock();
-
-        // push transforms to gpu
-        glfonsUpdateTransforms(ftCtx);
-
         for (int i = 0; i < NB_TEXT; ++i) {
             glfonsTransform(ftCtx, texts.id[i], texts.x[i], texts.y[i] + cos(t + i), cos(t + i), cos(t + i) * 0.5 + 0.5);
         }
 
         // set rendering color for current buffer
         glfonsSetColor(ftCtx, 0x000000);
-
+        
+        glfonsUpdateBuffer(ftCtx);
+        
         // render the text
         glfonsDraw(ftCtx);
-
         clock_t end = clock();
         std::cout << "Frame time: " << float(end - begin) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
+
 
         glfwSwapBuffers(window);
         glfwPollEvents();
