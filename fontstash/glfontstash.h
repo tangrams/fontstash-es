@@ -24,6 +24,7 @@
 #include <climits>
 #include <string>
 #include <algorithm>
+#include <cfloat>
 
 #include "fontstash.h"
 #include "shaders.h"
@@ -339,8 +340,8 @@ void glfons__setDirty(GLFONSbuffer* buffer, intptr_t start, size_t size) {
     if(byteOffset > buffer->dirtyOffset) {
         buffer->dirtySize = byteOffset - buffer->dirtyOffset + byteSize;
     } else {
-        buffer->dirtyOffset = byteOffset;
         buffer->dirtySize = buffer->dirtyOffset - byteOffset + buffer->dirtySize;
+        buffer->dirtyOffset = byteOffset;
     }
 
     buffer->dirtySize = std::min<float>(buffer->dirtySize, buffer->interleavedArray.size() * sizeof(float));
@@ -655,6 +656,11 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
     return (r) | (g << 8) | (b << 16) | (a << 24);
 }
 
+bool glfons__compareFlt(float a, float b) {
+    float diff = a - b;
+    return diff < FLT_EPSILON && -diff < FLT_EPSILON;
+}
+
 int glfonsVerticesSize(FONScontext* ctx) {
     GLFONS_LOAD_BUFFER
     return buffer->nVerts;
@@ -671,10 +677,14 @@ void glfons__updateInterleavedArray(GLFONScontext* gl, GLFONSbuffer* buffer, GLF
     float* start = &buffer->interleavedArray[0] + stash->offset;
     int stride = gl->layout.nbComponents;
     
-    glfons__setDirty(buffer, stash->offset + index + offset, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents);
+    float v = start[index + offset];
     
-    for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
-        start[i * stride + index + offset] = value;
+    if(!glfons__compareFlt(v, value)) {
+        glfons__setDirty(buffer, stash->offset + index + offset, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents);
+        
+        for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
+            start[i * stride + index + offset] = value;
+        }
     }
 }
 
