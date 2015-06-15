@@ -36,7 +36,7 @@ typedef struct GLFONSparams GLFONSparams;
 
 struct GLFONSparams {
     bool useGLBackend;
-    void (*updateBuffer)(void* usrPtr, intptr_t offset, size_t size, float* newData);
+    void (*updateBuffer)(void* usrPtr, intptr_t offset, long size, float* newData);
     void (*updateAtlas)(void* usrPtr, unsigned int xoff, unsigned int yoff, unsigned int width, unsigned int height, const unsigned int* pixels);
 };
 
@@ -113,11 +113,11 @@ struct GLFONSbuffer {
     fsuint id;
     fsuint textIdCount;
     GLuint vbo;
-    unsigned int nVerts, maxId, color = 0xffffff;
+    unsigned int nVerts, color = 0xffffff;
     std::vector<float> interleavedArray;
     std::vector<GLFONSstash*> stashes;
     intptr_t dirtyOffset;
-    size_t dirtySize;
+    long dirtySize;
     bool vboInitialized;
     bool dirty;
 };
@@ -334,24 +334,24 @@ void glfons__draw(GLFONScontext* gl, bool bindAtlas) {
     }
 }
 
-void glfons__setDirty(GLFONSbuffer* buffer, intptr_t start, size_t size, int innerOffset) {
+void glfons__setDirty(GLFONSbuffer* buffer, intptr_t start, long size, int innerOffset) {
     intptr_t byteOffset = start * sizeof(float);
-    size_t byteSize = size * sizeof(float);
-    size_t byteInnerOffset = innerOffset * sizeof(float);
+    long byteSize = size * sizeof(float);
+    long byteInnerOffset = innerOffset * sizeof(float);
     
     if(!buffer->dirty) {
-        buffer->dirtySize = byteSize - byteOffset;
+        buffer->dirtySize = byteSize - byteInnerOffset;
         buffer->dirtyOffset = byteOffset;
         buffer->dirty = true;
     } else {
-        int dBytes = abs(byteOffset - buffer->dirtyOffset);
-        int d0 = dBytes + byteSize;
+        long dBytes = abs(byteOffset - buffer->dirtyOffset);
+        long d0 = dBytes + byteSize;
         
         if(byteOffset < buffer->dirtyOffset) {
-            int d1 = dBytes + buffer->dirtySize;
-            
+            long d1 = dBytes + buffer->dirtySize;
+
             buffer->dirtyOffset = byteOffset;
-            buffer->dirtySize = dBytes + std::max<size_t>(buffer->dirtySize, d1 - byteInnerOffset);
+            buffer->dirtySize = dBytes + std::max<long>(buffer->dirtySize, d1 - byteInnerOffset);
             buffer->dirty = true;
         } else {
             if(d0 - byteInnerOffset > buffer->dirtySize) {
@@ -362,7 +362,7 @@ void glfons__setDirty(GLFONSbuffer* buffer, intptr_t start, size_t size, int inn
     }
 }
 
-void glfons__updateBuffer(void* usrPtr, intptr_t offset, size_t size, float* newData) {
+void glfons__updateBuffer(void* usrPtr, intptr_t offset, long size, float* newData) {
     GLFONScontext* gl = (GLFONScontext*) usrPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
     
