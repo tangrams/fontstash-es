@@ -336,28 +336,28 @@ void glfons__draw(GLFONScontext* gl, bool bindAtlas) {
 
 void glfons__setDirty(GLFONSbuffer* buffer, intptr_t start, long size, int innerOffset) {
     intptr_t byteOffset = start * sizeof(float);
-    long byteSize = size * sizeof(float);
-    long byteInnerOffset = innerOffset * sizeof(float);
+    long byteSize = (size - innerOffset) * sizeof(float);
     
     if(!buffer->dirty) {
-        buffer->dirtySize = byteSize - byteInnerOffset;
+        buffer->dirtySize = byteSize;
         buffer->dirtyOffset = byteOffset;
         buffer->dirty = true;
     } else {
         long dBytes = abs(byteOffset - buffer->dirtyOffset);
-        long d0 = dBytes + byteSize;
+        long newEnd = byteOffset + byteSize;
+        long oldEnd = buffer->dirtySize + buffer->dirtyOffset;
         
         if(byteOffset < buffer->dirtyOffset) {
-            long d1 = dBytes + buffer->dirtySize;
-
             buffer->dirtyOffset = byteOffset;
-            buffer->dirtySize = dBytes + std::max<long>(buffer->dirtySize, d1 - byteInnerOffset);
-            buffer->dirty = true;
-        } else {
-            if(d0 - byteInnerOffset > buffer->dirtySize) {
-                buffer->dirtySize = d0 - byteInnerOffset;
-                buffer->dirty = true;
+            if(newEnd > oldEnd) {
+                buffer->dirtySize = byteSize;
+            } else {
+                buffer->dirtySize += dBytes;
             }
+            buffer->dirty = true;
+        } else if(newEnd > oldEnd) {
+            buffer->dirtySize = dBytes + byteSize;
+            buffer->dirty = true;
         }
     }
 }
