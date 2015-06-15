@@ -36,7 +36,7 @@ typedef struct GLFONSparams GLFONSparams;
 
 struct GLFONSparams {
     bool useGLBackend;
-    void (*updateBuffer)(void* usrPtr, intptr_t offset, size_t size, float* newData, size_t dirtySize, intptr_t dirtyOffset);
+    void (*updateBuffer)(void* usrPtr, intptr_t offset, size_t size, float* newData);
     void (*updateAtlas)(void* usrPtr, unsigned int xoff, unsigned int yoff, unsigned int width, unsigned int height, const unsigned int* pixels);
 };
 
@@ -119,6 +119,7 @@ struct GLFONSbuffer {
     intptr_t dirtyOffset;
     size_t dirtySize;
     bool vboInitialized;
+    bool dirty;
 };
 
 struct GLFONScontext {
@@ -333,29 +334,40 @@ void glfons__draw(GLFONScontext* gl, bool bindAtlas) {
     }
 }
 
-void glfons__setDirty(GLFONSbuffer* buffer, intptr_t start, size_t size) {
+void glfons__setDirty(GLFONSbuffer* buffer, intptr_t start, size_t size, int innerOffset) {
     intptr_t byteOffset = start * sizeof(float);
     size_t byteSize = size * sizeof(float);
+    size_t byteInnerOffset = innerOffset * sizeof(float);
     
-    if(byteOffset > buffer->dirtyOffset) {
-        buffer->dirtySize = byteOffset - buffer->dirtyOffset + byteSize;
-    } else {
-        buffer->dirtySize = buffer->dirtyOffset - byteOffset + buffer->dirtySize;
+    if(!buffer->dirty) {
+        buffer->dirtySize = byteSize - byteOffset;
         buffer->dirtyOffset = byteOffset;
+        buffer->dirty = true;
+    } else {
+        int dBytes = abs(byteOffset - buffer->dirtyOffset);
+        int d0 = dBytes + byteSize;
+        
+        if(byteOffset < buffer->dirtyOffset) {
+            int d1 = dBytes + buffer->dirtySize;
+            
+            buffer->dirtyOffset = byteOffset;
+            buffer->dirtySize = dBytes + std::max<size_t>(buffer->dirtySize, d1 - byteInnerOffset);
+            buffer->dirty = true;
+        } else {
+            if(d0 - byteInnerOffset > buffer->dirtySize) {
+                buffer->dirtySize = d0 - byteInnerOffset;
+                buffer->dirty = true;
+            }
+        }
     }
-
-    buffer->dirtySize = std::min<float>(buffer->dirtySize, buffer->interleavedArray.size() * sizeof(float));
 }
 
-void glfons__updateBuffer(void* usrPtr, intptr_t offset, size_t size, float* newData, size_t dirtySize, intptr_t dirtyOffset) {
+void glfons__updateBuffer(void* usrPtr, intptr_t offset, size_t size, float* newData) {
     GLFONScontext* gl = (GLFONScontext*) usrPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
+    
     glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo);
-    if(offset == 0 && size / sizeof(float) == buffer->interleavedArray.size()) {
-        GLFONS_GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * buffer->interleavedArray.size(), newData, GL_DYNAMIC_DRAW));
-    } else {
-        GLFONS_GL_CHECK(glBufferSubData(GL_ARRAY_BUFFER, offset, size, newData));
-    }
+    GLFONS_GL_CHECK(glBufferSubData(GL_ARRAY_BUFFER, offset, size, newData));
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
@@ -458,6 +470,7 @@ void glfonsBufferCreate(FONScontext* ctx, fsuint* id) {
     buffer->nVerts = 0;
     buffer->dirtyOffset = 0;
     buffer->dirtySize = 0;
+    buffer->dirty = false;
     
     if(gl->params.useGLBackend) {
         glGenBuffers(1, &buffer->vbo);
@@ -508,20 +521,27 @@ void glfonsBindBuffer(FONScontext* ctx, fsuint id) {
 void glfonsUpdateBuffer(FONScontext* ctx) {
     GLFONS_LOAD_BUFFER
     
+    float* data = reinterpret_cast<float*>(buffer->interleavedArray.data());
+    
     if(gl->params.useGLBackend) {
         if(!buffer->vboInitialized) {
             glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo);
-            GLFONS_GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * buffer->interleavedArray.size(), reinterpret_cast<float*>(buffer->interleavedArray.data()), GL_DYNAMIC_DRAW));
+            GLFONS_GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * buffer->interleavedArray.size(), data, GL_DYNAMIC_DRAW));
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             buffer->vboInitialized = true;
             return;
         }
     }
     
-    size_t offset = buffer->dirtyOffset * sizeof(float);
+    if(!buffer->dirty) {
+        return;
+    }
     
-    gl->params.updateBuffer(gl->userPtr, buffer->dirtyOffset, buffer->dirtySize, reinterpret_cast<float*>(buffer->interleavedArray.data() + offset), buffer->dirtySize, buffer->dirtyOffset);
+    data += buffer->dirtyOffset / sizeof(float);
     
+    gl->params.updateBuffer(gl->userPtr, buffer->dirtyOffset, buffer->dirtySize, data);
+    
+    buffer->dirty = false;
     buffer->dirtySize = 0;
     buffer->dirtyOffset = 0;
 }
@@ -657,8 +677,7 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
 }
 
 bool glfons__compareFlt(float a, float b) {
-    float diff = a - b;
-    return diff < FLT_EPSILON && -diff < FLT_EPSILON;
+    return fabs(b - a) < 0.00001;
 }
 
 int glfonsVerticesSize(FONScontext* ctx) {
@@ -677,14 +696,10 @@ void glfons__updateInterleavedArray(GLFONScontext* gl, GLFONSbuffer* buffer, GLF
     float* start = &buffer->interleavedArray[0] + stash->offset;
     int stride = gl->layout.nbComponents;
     
-    float v = start[index + offset];
+    glfons__setDirty(buffer, stash->offset + index + offset, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents - 1, index);
     
-    if(!glfons__compareFlt(v, value)) {
-        glfons__setDirty(buffer, stash->offset + index + offset, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents);
-        
-        for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
-            start[i * stride + index + offset] = value;
-        }
+    for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
+        start[i * stride + index + offset] = value;
     }
 }
 
@@ -705,9 +720,25 @@ void glfonsTranslate(FONScontext* ctx, fsuint id, float tx, float ty) {
 }
 
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a) {
-    glfonsSetAlpha(ctx, id, a);
-    glfonsRotate(ctx, id, r);
-    glfonsTranslate(ctx, id, tx, ty);
+    GLFONS_LOAD_STASH
+    // cache those indexes
+    static int i0 = glfons__layoutIndex(gl, "a_screenPosition");
+    static int i1 = glfons__layoutIndex(gl, "a_alpha");
+    static int i2 = glfons__layoutIndex(gl, "a_rotation");
+    
+    float* start = &buffer->interleavedArray[0] + stash->offset;
+    int stride = gl->layout.nbComponents;
+    int min = std::min(i0, std::min(i1, i2));
+    
+    // set the buffer dirty
+    glfons__setDirty(buffer, stash->offset + min, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents - 1, min);
+        
+    for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
+        start[i * stride + i0] = tx;
+        start[i * stride + i0 + 1] = ty;
+        start[i * stride + i1] = a;
+        start[i * stride + i2] = r;
+    }
 }
 
 int glfonsGetGlyphCount(FONScontext* ctx, fsuint id) {

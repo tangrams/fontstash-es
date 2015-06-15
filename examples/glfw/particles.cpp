@@ -2,7 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <cmath>
 
-//#define GLFONS_DEBUG
+#define GLFONS_DEBUG
 #define GLFONTSTASH_IMPLEMENTATION
 #include "glfontstash.h"
 #include <random>
@@ -92,6 +92,7 @@ int main() {
         // render the text
         glfonsDraw(ftCtx);
         clock_t end = clock();
+        glFinish();
         std::cout << "Frame time: " << float(end - begin) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 
 
