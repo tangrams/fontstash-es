@@ -9,9 +9,11 @@
 #ifndef SHADERS_H
 #define SHADERS_H
 
+#define USE_VARIABLE __attribute__((used))
+
 namespace glfs {
 
-static const GLchar* vertexShaderSrc = R"END(
+USE_VARIABLE static const GLchar* vertexShaderSrc = R"END(
 #ifdef GL_ES
 precision mediump float;
 #define LOWP lowp
@@ -53,7 +55,7 @@ void main() {
 
 )END";
 
-static const GLchar* sdfFragShaderSrc = R"END(
+USE_VARIABLE static const GLchar* sdfFragShaderSrc = R"END(
 #extension GL_OES_standard_derivatives : enable
     
 #ifdef GL_ES
@@ -114,7 +116,7 @@ void main(void) {
 
 )END";
 
-static const GLchar* defaultFragShaderSrc = R"END(
+USE_VARIABLE static const GLchar* defaultFragShaderSrc = R"END(
 
 #ifdef GL_ES
 precision mediump float;
@@ -139,7 +141,7 @@ void main(void) {
 }
 
 )END";
-
+    
 }
 
 #endif

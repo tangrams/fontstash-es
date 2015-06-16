@@ -192,7 +192,7 @@ void glfons__initVertexLayout(GLFONScontext* gl, GLuint shaderProgram) {
 }
 
 int glfons__layoutIndex(GLFONScontext* gl, std::string attributeName) {
-    for(int i = 0, index = 0; i < gl->layout.attributes.size(); index += gl->layout.attributes[i].size, ++i) {
+    for(unsigned int i = 0, index = 0; i < gl->layout.attributes.size(); index += gl->layout.attributes[i].size, ++i) {
         if(gl->layout.attributes[i].name == attributeName) {
             return index;
         }
