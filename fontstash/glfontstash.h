@@ -696,7 +696,7 @@ void glfons__updateInterleavedArray(GLFONScontext* gl, GLFONSbuffer* buffer, GLF
     float* start = &buffer->interleavedArray[0] + stash->offset;
     int stride = gl->layout.nbComponents;
     
-    glfons__setDirty(buffer, stash->offset + index + offset, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents - 1, index);
+    glfons__setDirty(buffer, stash->offset + index + offset, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents, index);
     
     for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
         start[i * stride + index + offset] = value;
