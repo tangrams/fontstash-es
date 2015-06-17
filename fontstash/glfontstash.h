@@ -731,7 +731,7 @@ void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, f
     int min = std::min(i0, std::min(i1, i2));
     
     // set the buffer dirty
-    glfons__setDirty(buffer, stash->offset + min, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents - 1, min);
+    glfons__setDirty(buffer, stash->offset + min, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents, min);
         
     for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
         start[i * stride + i0] = tx;
