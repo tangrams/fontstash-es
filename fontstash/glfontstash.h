@@ -89,7 +89,8 @@ unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsig
     GLFONSstash* stash = buffer->stashes[id]; \
 
 struct GLFONSstash {
-    int nbGlyph;
+    short nbGlyph;
+    short padding;
     float bbox[4];
     float length;
     size_t offset;
@@ -206,10 +207,6 @@ void glfons__OGLError(const char* stmt, const char* fname, int line) {
         printf("OpenGL error %08x, at %s:%i - for %s\n", err, fname, line, stmt);
         exit(-1);
     }
-}
-
-void glfons__freeStash(GLFONSstash* stash) {
-    delete stash;
 }
 
 GLFONSbuffer* glfons__bufferBound(GLFONScontext* gl) {
@@ -334,16 +331,16 @@ void glfons__draw(GLFONScontext* gl, bool bindAtlas) {
     }
 }
 
-void glfons__setDirty(GLFONSbuffer* buffer, intptr_t start, long size, int innerOffset) {
+void glfons__setDirty(GLFONSbuffer* buffer, intptr_t start, long size) {
     intptr_t byteOffset = start * sizeof(float);
-    long byteSize = (size - innerOffset) * sizeof(float);
-    
+    long byteSize = size * sizeof(float);
+
     if(!buffer->dirty) {
         buffer->dirtySize = byteSize;
         buffer->dirtyOffset = byteOffset;
         buffer->dirty = true;
     } else {
-        long dBytes = abs(byteOffset - buffer->dirtyOffset);
+        long dBytes = std::abs((long double)byteOffset - buffer->dirtyOffset);
         long newEnd = byteOffset + byteSize;
         long oldEnd = buffer->dirtySize + buffer->dirtyOffset;
         
@@ -449,8 +446,21 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned in
         stash->nbGlyph = res->glyphCount;
         fons__clearShaping(ctx);
     } else {
-        stash->nbGlyph = (int)strlen(s);
+        const char* str = s;
+        const char* end = s + strlen(s);
+        int i = 0;
+        unsigned int utf8state = 0;
+        unsigned int codepoint = 0;
+        // count glyphs
+        for (; str != end; ++str) {
+            if (fons__decutf8(&utf8state, &codepoint, *(const unsigned char*)str))
+                continue;
+            i++;
+        }
+        stash->nbGlyph = i;
     }
+    
+    stash->padding = stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents;
 
     // hack : reset fontstash state
     buffer->nVerts += ctx->nverts;
@@ -491,7 +501,7 @@ void glfonsBufferDelete(GLFONScontext* gl, fsuint id) {
     }
 
     for(auto& elt : buffer->stashes) {
-        glfons__freeStash(elt);
+        delete elt;
     }
     
     std::vector<float> vertices;
@@ -696,7 +706,11 @@ void glfons__updateInterleavedArray(GLFONScontext* gl, GLFONSbuffer* buffer, GLF
     float* start = &buffer->interleavedArray[0] + stash->offset;
     int stride = gl->layout.nbComponents;
     
-    glfons__setDirty(buffer, stash->offset + index + offset, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents, index);
+    if (stash->nbGlyph == 0) {
+        return;
+    }
+    
+    glfons__setDirty(buffer, stash->offset + index, stash->padding - gl->layout.nbComponents + index);
     
     for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
         start[i * stride + index + offset] = value;
@@ -721,6 +735,11 @@ void glfonsTranslate(FONScontext* ctx, fsuint id, float tx, float ty) {
 
 void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, float a) {
     GLFONS_LOAD_STASH
+    
+    if (stash->nbGlyph == 0) {
+        return;
+    }
+    
     // cache those indexes
     static int i0 = glfons__layoutIndex(gl, "a_screenPosition");
     static int i1 = glfons__layoutIndex(gl, "a_alpha");
@@ -731,8 +750,8 @@ void glfonsTransform(FONScontext* ctx, fsuint id, float tx, float ty, float r, f
     int min = std::min(i0, std::min(i1, i2));
     
     // set the buffer dirty
-    glfons__setDirty(buffer, stash->offset + min, stash->nbGlyph * GLYPH_VERTS * gl->layout.nbComponents, min);
-        
+    glfons__setDirty(buffer, stash->offset + min, stash->padding - stride + min);
+
     for(int i = 0; i < stash->nbGlyph * GLYPH_VERTS; i++) {
         start[i * stride + i0] = tx;
         start[i * stride + i0 + 1] = ty;
