@@ -40,6 +40,11 @@ struct GLFONSparams {
     void (*updateAtlas)(void* usrPtr, unsigned int xoff, unsigned int yoff, unsigned int width, unsigned int height, const unsigned int* pixels);
 };
 
+enum {
+    GLFONS_VALID,
+    GLFONS_INVALID
+};
+
 // GLFONTSTASH API
 FONScontext* glfonsCreate(int width, int height, int flags, GLFONSparams glParams, void* userPtr);
 void glfonsDelete(FONScontext* ctx);
@@ -51,7 +56,7 @@ void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId);
 void glfonsBufferCreate(FONScontext* ctx, fsuint* id);
 void glfonsBufferDelete(FONScontext* ctx, fsuint id);
 void glfonsBindBuffer(FONScontext* ctx, fsuint id);
-void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned int color = 0x000000);
+int glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned int color = 0x000000);
 bool glfonsVertices(FONScontext* ctx, float* data);
 int glfonsVerticesSize(FONScontext* ctx);
 void glfonsGetBBox(FONScontext* ctx, fsuint id, float* x0, float* y0, float* x1, float* y1);
@@ -399,12 +404,17 @@ void glfonsGenText(FONScontext* ctx, unsigned int nb, fsuint* textId) {
     }
 }
 
-void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned int color) {
+int glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned int color) {
     GLFONScontext* gl = (GLFONScontext*) ctx->params.userPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
-    GLFONSstash* stash = new GLFONSstash;
 
     int length = fonsDrawText(ctx, 0, 0, s, NULL, 0);
+
+    if (length == -1.f) {
+        return GLFONS_INVALID;
+    }
+
+    GLFONSstash* stash = new GLFONSstash;
     
     stash->offset = buffer->interleavedArray.size();
     
@@ -467,6 +477,8 @@ void glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned in
     ctx->nverts = 0;
 
     buffer->stashes.push_back(stash);
+
+    return GLFONS_VALID;
 }
 
 void glfonsBufferCreate(FONScontext* ctx, fsuint* id) {

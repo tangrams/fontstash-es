@@ -1613,6 +1613,8 @@ float fonsDrawText(FONScontext* stash,
                         fons__flush(stash, clear);
 
                     fons__vertices(stash, q, state);
+                } else {
+                    return -1;
                 }
                 prevGlyphIndex = glyph != NULL ? glyph->index : -1;
             }
@@ -1648,6 +1650,8 @@ float fonsDrawText(FONScontext* stash,
                 if (stash->nverts+6 > FONS_VERTEX_COUNT)
                     fons__flush(stash, clear);
                 fons__vertices(stash, q, state);
+            } else {
+                return -1;
             }
             prevGlyphIndex = glyph != NULL ? glyph->index : -1;
         }
