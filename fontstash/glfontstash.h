@@ -121,7 +121,7 @@ struct GLFONSbuffer {
     GLuint vbo;
     unsigned int nVerts, color = 0xffffff;
     std::vector<float> interleavedArray;
-    std::vector<GLFONSstash*> stashes;
+    std::unordered_map<fsuint, GLFONSstash*> stashes;
     intptr_t dirtyOffset;
     long dirtySize;
     bool vboInitialized;
@@ -476,7 +476,7 @@ int glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned int
     buffer->nVerts += ctx->nverts;
     ctx->nverts = 0;
 
-    buffer->stashes.push_back(stash);
+    buffer->stashes[textId] = stash;
 
     return GLFONS_VALID;
 }
@@ -512,14 +512,16 @@ void glfonsBufferDelete(GLFONScontext* gl, fsuint id) {
         glDeleteBuffers(1, &buffer->vbo);
     }
 
-    for(auto& elt : buffer->stashes) {
-        delete elt;
+    for(auto& pair : buffer->stashes) {
+        delete pair.second;
     }
     
     std::vector<float> vertices;
     std::swap(buffer->interleavedArray, vertices);
-    std::vector<GLFONSstash*> stashes;
+    std::unordered_map<fsuint, GLFONSstash*> stashes;
     std::swap(buffer->stashes, stashes);
+
+    delete buffer;
 }
 
 void glfonsBufferDelete(FONScontext* ctx, fsuint id) {
