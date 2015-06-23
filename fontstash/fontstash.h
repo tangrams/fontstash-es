@@ -1576,6 +1576,7 @@ float fonsDrawText(FONScontext* stash,
     FONSfont* font;
     float width;
     int useShaping;
+    int invalid = 0;
 
     if (stash == NULL) return x;
     if (state->font < 0 || state->font >= stash->nfonts) return x;
@@ -1614,7 +1615,7 @@ float fonsDrawText(FONScontext* stash,
 
                     fons__vertices(stash, q, state);
                 } else {
-                    return -1;
+                    invalid |= 1;
                 }
                 prevGlyphIndex = glyph != NULL ? glyph->index : -1;
             }
@@ -1651,13 +1652,19 @@ float fonsDrawText(FONScontext* stash,
                     fons__flush(stash, clear);
                 fons__vertices(stash, q, state);
             } else {
-                return -1;
+                invalid |= 1;
             }
             prevGlyphIndex = glyph != NULL ? glyph->index : -1;
         }
         fons__flush(stash, clear);
     }
-    return x;
+    
+    if (invalid) {
+        fons__flush(stash, 1);
+        return -1.f;
+    } else {
+        return x;
+    }
 }
 
 int fonsTextIterInit(FONScontext* stash, FONStextIter* iter,

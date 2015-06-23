@@ -461,6 +461,7 @@ int glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned int
         int i = 0;
         unsigned int utf8state = 0;
         unsigned int codepoint = 0;
+        
         // count glyphs
         for (; str != end; ++str) {
             if (fons__decutf8(&utf8state, &codepoint, *(const unsigned char*)str))
