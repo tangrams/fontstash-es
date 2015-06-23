@@ -344,6 +344,7 @@ void glfonsBufferDelete(GLFONScontext* gl, fsuint id) {
     }
     buffer->stashes.clear();
     buffer->interleavedArray.clear();
+    delete buffer;
 }
 
 void glfonsBufferDelete(FONScontext* ctx, fsuint id) {
