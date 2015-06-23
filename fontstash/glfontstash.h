@@ -520,6 +520,8 @@ void glfonsBufferDelete(GLFONScontext* gl, fsuint id) {
     std::swap(buffer->interleavedArray, vertices);
     std::vector<GLFONSstash*> stashes;
     std::swap(buffer->stashes, stashes);
+
+    delete buffer;
 }
 
 void glfonsBufferDelete(FONScontext* ctx, fsuint id) {
