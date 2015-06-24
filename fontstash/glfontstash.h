@@ -36,7 +36,7 @@ typedef struct GLFONSparams GLFONSparams;
 
 struct GLFONSparams {
     bool useGLBackend;
-    void (*updateBuffer)(void* usrPtr, intptr_t offset, long size, float* newData);
+    void (*updateBuffer)(void* usrPtr, GLintptr offset, GLsizei size, float* newData);
     void (*updateAtlas)(void* usrPtr, unsigned int xoff, unsigned int yoff, unsigned int width, unsigned int height, const unsigned int* pixels);
 };
 
@@ -122,8 +122,8 @@ struct GLFONSbuffer {
     unsigned int nVerts, color = 0xffffff;
     std::vector<float> interleavedArray;
     std::unordered_map<fsuint, GLFONSstash*> stashes;
-    intptr_t dirtyOffset;
-    long dirtySize;
+    GLintptr dirtyOffset;
+    GLsizei dirtySize;
     bool vboInitialized;
     bool dirty;
 };
@@ -336,9 +336,9 @@ void glfons__draw(GLFONScontext* gl, bool bindAtlas) {
     }
 }
 
-void glfons__setDirty(GLFONSbuffer* buffer, intptr_t start, long size) {
-    intptr_t byteOffset = start * sizeof(float);
-    long byteSize = size * sizeof(float);
+void glfons__setDirty(GLFONSbuffer* buffer, GLintptr start, GLsizei size) {
+    GLintptr byteOffset = start * sizeof(float);
+    GLsizei byteSize = size * sizeof(float);
 
     if(!buffer->dirty) {
         buffer->dirtySize = byteSize;
@@ -364,7 +364,7 @@ void glfons__setDirty(GLFONSbuffer* buffer, intptr_t start, long size) {
     }
 }
 
-void glfons__updateBuffer(void* usrPtr, intptr_t offset, long size, float* newData) {
+void glfons__updateBuffer(void* usrPtr, GLintptr offset, GLsizei size, float* newData) {
     GLFONScontext* gl = (GLFONScontext*) usrPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
     
@@ -718,6 +718,7 @@ bool glfonsVertices(FONScontext* ctx, float* data) {
 
 void glfons__updateInterleavedArray(GLFONScontext* gl, GLFONSbuffer* buffer, GLFONSstash* stash, const char* attribute, int offset, float value) {
     int index = glfons__layoutIndex(gl, attribute);
+    
     float* start = &buffer->interleavedArray[0] + stash->offset;
     int stride = gl->layout.nbComponents;
     
