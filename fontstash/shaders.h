@@ -1,11 +1,3 @@
-//
-//  shaders.h
-//  FontstashiOS
-//
-//  Created by Karim Naaji on 12/16/14.
-//  Copyright (c) 2014 Mapzen. All rights reserved.
-//
-
 #ifndef SHADERS_H
 #define SHADERS_H
 
@@ -14,62 +6,51 @@
 namespace glfs {
 
 USE_VARIABLE static const GLchar* vertexShaderSrc = R"END(
-#ifdef GL_ES
-precision mediump float;
-#define LOWP lowp
-#else
-#define LOWP
-#endif
+#version 150
 
-attribute vec2 a_position;
-attribute vec2 a_screenPosition;
-attribute vec2 a_uvs;
-attribute float a_alpha;
-attribute float a_rotation;
+in vec2 position;
+in vec2 screenPosition;
+in vec2 uvs;
+in float alpha;
+in float rotation;
 
-uniform mat4 u_proj;
+uniform mat4 proj;
 
-varying vec2 v_uv;
-varying float v_alpha;
+out vec2 uv;
+out float a;
 
 void main() {
-    if (a_alpha != 0.0) {
-        float st = sin(a_rotation);
-        float ct = cos(a_rotation);
+    if (alpha != 0.0) {
+        float st = sin(rotation);
+        float ct = cos(rotation);
 
-        // rotates first around +z-axis (0,0,1) and then translates by (tx,ty,0)
         vec4 p = vec4(
-            a_position.x * ct - a_position.y * st + a_screenPosition.x,
-            a_position.x * st + a_position.y * ct + a_screenPosition.y,
+            position.x * ct - position.y * st + screenPosition.x,
+            position.x * st + position.y * ct + screenPosition.y,
             0.0, 1.0
         );
 
-        gl_Position = u_proj * p;
+        gl_Position = proj * p;
     } else {
         gl_Position = vec4(0.0);
     }
-    
-    v_uv = a_uvs;
-    v_alpha = a_alpha;
+
+    uv = uvs;
+    a = alpha;
 }
 
 )END";
 
 USE_VARIABLE static const GLchar* sdfFragShaderSrc = R"END(
-#extension GL_OES_standard_derivatives : enable
-    
-#ifdef GL_ES
-precision mediump float;
-#define LOWP lowp
-#else
-#define LOWP
-#endif
+#version 150
 
-uniform sampler2D u_tex;
-uniform LOWP vec3 u_color;
+uniform sampler2D tex;
+uniform vec3 color;
 
-varying vec2 v_uv;
-varying float v_alpha;
+in vec2 uv;
+in float a;
+
+out vec4 outColor;
 
 const float gamma = 2.2;
 const float tint = 1.8;
@@ -80,68 +61,59 @@ float contour(in float d, in float w, in float off) {
 }
 
 float sample(in vec2 uv, float w, in float off) {
-    return contour(texture2D(u_tex, uv).a, w, off);
+    return contour(texture(tex, uv).r, w, off);
 }
 
 float sampleAlpha(in vec2 uv, float distance, in float off) {
     float alpha = contour(distance, distance, off);
-
     float dscale = 0.354; // 1 / sqrt(2)
     vec2 duv = dscale * (dFdx(uv) + dFdy(uv));
     vec4 box = vec4(uv - duv, uv + duv);
 
-#ifdef GL_OES_standard_derivatives
     float asum = sample(box.xy, distance, off)
                + sample(box.zw, distance, off)
                + sample(box.xw, distance, off)
                + sample(box.zy, distance, off);
 
-    alpha = (alpha + 0.5 * asum) / 2.0;
-#endif
-
-    return alpha;
+    return (alpha + 0.5 * asum) / 2.0;
 }
 
 void main(void) {
-    if (v_alpha == 0.0) {
+    if (a == 0.0) {
         discard;
     }
 
-    float distance = texture2D(u_tex, v_uv).a;
-    float alpha = sampleAlpha(v_uv, distance, sdf) * tint;
+    float distance = texture(tex, uv).r;
+    float alpha = sampleAlpha(uv, distance, sdf) * tint;
     alpha = pow(alpha, 1.0 / gamma);
 
-    gl_FragColor = vec4(u_color, v_alpha * alpha);
+    outColor = vec4(color, alpha * a);
 }
 
 )END";
 
 USE_VARIABLE static const GLchar* defaultFragShaderSrc = R"END(
+#version 150
 
-#ifdef GL_ES
-precision mediump float;
-#define LOWP lowp
-#else
-#define LOWP 
-#endif
+uniform sampler2D tex;
+uniform vec3 color;
 
-uniform sampler2D u_tex;
-uniform LOWP vec3 u_color;
+in vec2 uv;
+in float a;
 
-varying vec2 v_uv;
-varying float v_alpha;
+out vec3 outColor;
 
 void main(void) {
-    if (v_alpha == 0.0) {
+    if (a == 0.0) {
         discard;
     }
-    
-    vec4 texColor = texture2D(u_tex, v_uv);
-    gl_FragColor = vec4(u_color.rgb, texColor.a * v_alpha);
+
+    vec4 texColor = texture(tex, uv);
+    outColor = vec4(color.rgb, texColor.a * a);
 }
 
 )END";
-    
+
 }
 
 #endif
