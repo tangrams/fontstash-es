@@ -36,7 +36,7 @@ typedef struct GLFONSparams GLFONSparams;
 
 struct GLFONSparams {
     bool useGLBackend;
-    void (*updateBuffer)(void* usrPtr, GLintptr offset, GLsizei size, float* newData);
+    void (*updateBuffer)(void* usrPtr, GLintptr offset, GLsizei size, float* newData, void* owner);
     void (*updateAtlas)(void* usrPtr, unsigned int xoff, unsigned int yoff, unsigned int width, unsigned int height, const unsigned int* pixels);
 };
 
@@ -64,7 +64,7 @@ float glfonsGetLength(FONScontext* ctx, fsuint id);
 int glfonsGetGlyphCount(FONScontext* ctx, fsuint id);
 void glfonsScreenSize(FONScontext* ctx, int screenWidth, int screenHeight);
 void glfonsProjection(FONScontext* ctx, float* projectionMatrix);
-void glfonsUpdateBuffer(FONScontext* ctx);
+void glfonsUpdateBuffer(FONScontext* ctx, void* owner = nullptr);
 void glfonsDraw(FONScontext* ctx);
 void glfonsSetColor(FONScontext* ctx, unsigned int color);
 unsigned int glfonsRGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
@@ -364,7 +364,7 @@ void glfons__setDirty(GLFONSbuffer* buffer, GLintptr start, GLsizei size) {
     }
 }
 
-void glfons__updateBuffer(void* usrPtr, GLintptr offset, GLsizei size, float* newData) {
+void glfons__updateBuffer(void* usrPtr, GLintptr offset, GLsizei size, float* newData, void* owner) {
     GLFONScontext* gl = (GLFONScontext*) usrPtr;
     GLFONSbuffer* buffer = glfons__bufferBound(gl);
     
@@ -543,7 +543,7 @@ void glfonsBindBuffer(FONScontext* ctx, fsuint id) {
     gl->boundBuffer = id;
 }
 
-void glfonsUpdateBuffer(FONScontext* ctx) {
+void glfonsUpdateBuffer(FONScontext* ctx, void* owner) {
     GLFONS_LOAD_BUFFER
     
     float* data = reinterpret_cast<float*>(buffer->interleavedArray.data());
@@ -564,7 +564,7 @@ void glfonsUpdateBuffer(FONScontext* ctx) {
     
     data += buffer->dirtyOffset / sizeof(float);
     
-    gl->params.updateBuffer(gl->userPtr, buffer->dirtyOffset, buffer->dirtySize, data);
+    gl->params.updateBuffer(gl->userPtr, buffer->dirtyOffset, buffer->dirtySize, data, owner);
     
     buffer->dirty = false;
     buffer->dirtySize = 0;
