@@ -622,11 +622,10 @@ void glfonsDraw(FONScontext* ctx) {
 static void glfons__renderDelete(void* userPtr) {
     GLFONScontext* gl = (GLFONScontext*)userPtr;
 
-    for(auto elt : gl->buffers) {
-        glfonsBufferDelete(gl, elt.first);
+    while (!gl->buffers.empty()) {
+        auto it = gl->buffers.begin();
+        glfonsBufferDelete(gl, it->first);
     }
-
-    gl->buffers.clear();
 
     if(gl->params.useGLBackend) {
         if(gl->atlas != 0) {
