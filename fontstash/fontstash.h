@@ -1569,6 +1569,8 @@ float fonsDrawText(FONScontext* stash,
                    const char* str, const char* end,
                    const char clear)
 {
+    if (stash == NULL) return x;
+
     FONSstate* state = fons__getState(stash);
     unsigned int codepoint;
     unsigned int utf8state = 0;
@@ -1579,11 +1581,9 @@ float fonsDrawText(FONScontext* stash,
     short iblur = (short)state->blur;
     float scale;
     FONSfont* font;
-    float width;
     int useShaping;
     int invalid = 0;
 
-    if (stash == NULL) return x;
     if (state->font < 0 || state->font >= stash->nfonts) return x;
     font = stash->fonts[state->font];
     if (font->data == NULL) return x;
@@ -1596,11 +1596,11 @@ float fonsDrawText(FONScontext* stash,
 
     if(useShaping) {
         FONSshaping* shaping = stash->shaping;
-        unsigned int i, j;
-
-        shaping->shapingRes = (FONSshapingRes*) malloc(sizeof(FONSshapingRes));
 
         if(shaping) {
+            unsigned int i, j;
+            shaping->shapingRes = (FONSshapingRes*) malloc(sizeof(FONSshapingRes));
+
             // harfbuzz needs this to be called to be able to perform shaping
             fons__tt_setPixelSize(&font->font, (float)isize/10.0f);
 
@@ -1632,6 +1632,8 @@ float fonsDrawText(FONScontext* stash,
             }
         }
     } else {
+        float width;
+
         if (end == NULL)
             end = str + strlen(str);
 
@@ -1675,12 +1677,13 @@ float fonsDrawText(FONScontext* stash,
 int fonsTextIterInit(FONScontext* stash, FONStextIter* iter,
                      float x, float y, const char* str, const char* end)
 {
+    if (stash == NULL) return 0;
+
     FONSstate* state = fons__getState(stash);
     float width;
 
     memset(iter, 0, sizeof(*iter));
 
-    if (stash == NULL) return 0;
     if (state->font < 0 || state->font >= stash->nfonts) return 0;
     iter->font = stash->fonts[state->font];
     if (iter->font->data == NULL) return 0;
@@ -1750,6 +1753,8 @@ float fonsTextBounds(FONScontext* stash,
                      const char* str, const char* end,
                      float* bounds)
 {
+    if (stash == NULL) return 0;
+
     FONSstate* state = fons__getState(stash);
     unsigned int codepoint;
     unsigned int utf8state = 0;
@@ -1764,7 +1769,6 @@ float fonsTextBounds(FONScontext* stash,
     float startx, advance;
     float minx, miny, maxx, maxy;
 
-    if (stash == NULL) return 0;
     if (state->font < 0 || state->font >= stash->nfonts) return 0;
     font = stash->fonts[state->font];
     if (font->data == NULL) return 0;
@@ -1826,11 +1830,12 @@ float fonsTextBounds(FONScontext* stash,
 void fonsVertMetrics(FONScontext* stash,
                      float* ascender, float* descender, float* lineh)
 {
+    if (stash == NULL) return;
+
     FONSfont* font;
     FONSstate* state = fons__getState(stash);
     short isize;
 
-    if (stash == NULL) return;
     if (state->font < 0 || state->font >= stash->nfonts) return;
     font = stash->fonts[state->font];
     isize = (short)(state->size*10.0f);
@@ -1846,11 +1851,12 @@ void fonsVertMetrics(FONScontext* stash,
 
 void fonsLineBounds(FONScontext* stash, float y, float* miny, float* maxy)
 {
+    if (stash == NULL) return;
+
     FONSfont* font;
     FONSstate* state = fons__getState(stash);
     short isize;
     
-    if (stash == NULL) return;
     if (state->font < 0 || state->font >= stash->nfonts) return;
     font = stash->fonts[state->font];
     isize = (short)(state->size*10.0f);
