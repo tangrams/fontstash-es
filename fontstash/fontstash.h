@@ -63,6 +63,13 @@ enum FONSerrorCode {
     FONS_STATES_UNDERFLOW = 4,
 };
 
+struct FONSquad
+{
+    float x0,y0,s0,t0;
+    float x1,y1,s1,t1;
+};
+typedef struct FONSquad FONSquad;
+
 struct FONSparams {
     int width, height;
     unsigned char flags;
@@ -72,15 +79,9 @@ struct FONSparams {
     void (*renderUpdate)(void* uptr, int* rect, const unsigned char* data);
     void (*renderDraw)(void* uptr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts);
     void (*renderDelete)(void* uptr);
+    void (*pushQuad)(void* uptr, const FONSquad* quad);
 };
 typedef struct FONSparams FONSparams;
-
-struct FONSquad
-{
-    float x0,y0,s0,t0;
-    float x1,y1,s1,t1;
-};
-typedef struct FONSquad FONSquad;
 
 struct FONStextIter {
     float x, y, nextx, nexty, scale, spacing;
@@ -1542,6 +1543,10 @@ static float fons__getVertAlign(FONScontext* stash, FONSfont* font, int align, s
 
 static __inline void fons__vertices(FONScontext* stash, FONSquad q, FONSstate* state)
 {
+    if (stash->params.pushQuad) {
+        stash->params.pushQuad(stash->params.userPtr, &q);
+        return;
+    }
     fons__vertex(stash, q.x0, q.y0, q.s0, q.t0, state->color);
     fons__vertex(stash, q.x1, q.y1, q.s1, q.t1, state->color);
     fons__vertex(stash, q.x1, q.y0, q.s1, q.t0, state->color);
