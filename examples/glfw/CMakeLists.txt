@@ -25,6 +25,8 @@ include_directories(../../fontstash)
 
 add_executable(glfw.out main.cpp)
 add_executable(particles.out particles.cpp)
+add_executable(colors.out colors.cpp)
 
 target_link_libraries(glfw.out ${GLFW_LDFLAGS})
 target_link_libraries(particles.out ${GLFW_LDFLAGS})
+target_link_libraries(colors.out ${GLFW_LDFLAGS})
