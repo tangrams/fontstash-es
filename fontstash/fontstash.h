@@ -67,6 +67,8 @@ struct FONSquad
 {
     float x0,y0,s0,t0;
     float x1,y1,s1,t1;
+    float atlasWidth;
+    float atlasHeight;
 };
 typedef struct FONSquad FONSquad;
 
@@ -1544,6 +1546,9 @@ static float fons__getVertAlign(FONScontext* stash, FONSfont* font, int align, s
 static __inline void fons__vertices(FONScontext* stash, FONSquad q, FONSstate* state)
 {
     if (stash->params.pushQuad) {
+        FONSatlas* atlas = stash->atlas;
+        q.atlasWidth = atlas->width;
+        q.atlasHeight = atlas->height;
         stash->params.pushQuad(stash->params.userPtr, &q);
         return;
     }
