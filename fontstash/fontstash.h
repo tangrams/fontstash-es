@@ -30,6 +30,7 @@
 enum FONSflags {
     FONS_ZERO_TOPLEFT = 1,
     FONS_ZERO_BOTTOMLEFT = 2,
+    FONS_NORMALIZE_TEX_COORDS = 4,
 };
 
 enum FONSalign {
@@ -67,8 +68,6 @@ struct FONSquad
 {
     float x0,y0,s0,t0;
     float x1,y1,s1,t1;
-    float atlasWidth;
-    float atlasHeight;
 };
 typedef struct FONSquad FONSquad;
 
@@ -1418,10 +1417,17 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
         // Inset the texture region by one pixel for corret interpolation.
         xoff = (short)(glyph->xoff+1);
         yoff = (short)(glyph->yoff+1);
-        x0 = (float)(glyph->x0+1);
-        y0 = (float)(glyph->y0+1);
-        x1 = (float)(glyph->x1-1);
-        y1 = (float)(glyph->y1-1);
+        q->s0 = x0 = (float)(glyph->x0+1);
+        q->t0 = y0 = (float)(glyph->y0+1);
+        q->s1 = x1 = (float)(glyph->x1-1);
+        q->t1 = y1 = (float)(glyph->y1-1);
+
+        if (stash->params.flags & FONS_NORMALIZE_TEX_COORDS) {
+          q->s0 *= stash->itw;
+          q->t0 *= stash->ith;
+          q->s1 *= stash->itw;
+          q->t1 *= stash->ith;
+        }
 
         if (stash->params.flags & FONS_ZERO_TOPLEFT) {
             rx = (float)(int)(*x + xoff);
@@ -1432,10 +1438,6 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
             q->x1 = rx + x1 - x0;
             q->y1 = ry + y1 - y0;
 
-            q->s0 = x0 * stash->itw;
-            q->t0 = y0 * stash->ith;
-            q->s1 = x1 * stash->itw;
-            q->t1 = y1 * stash->ith;
         } else {
             rx = (float)(int)(*x + xoff);
             ry = (float)(int)(*y - yoff);
@@ -1445,10 +1447,6 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
             q->x1 = rx + x1 - x0;
             q->y1 = ry - y1 + y0;
 
-            q->s0 = x0 * stash->itw;
-            q->t0 = y0 * stash->ith;
-            q->s1 = x1 * stash->itw;
-            q->t1 = y1 * stash->ith;
         }
 
         *x += (int)(glyph->xadv / 10.0f + 0.5f);
@@ -1462,10 +1460,17 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
         yadv = (float)shaping->advance[it+1] * unitFontScale;
         xoff = (float)shaping->offset[it] / 10.0f * unitFontScale + 1;
         yoff = (float)shaping->offset[it+1] / 10.0f * unitFontScale + 1;
-        x0 = (float)(glyph->x0 + 1);
-        y0 = (float)(glyph->y0 + 1);
-        x1 = (float)(glyph->x1 - 1);
-        y1 = (float)(glyph->y1 - 1);
+        q->s0 = x0 = (float)(glyph->x0+1);
+        q->t0 = y0 = (float)(glyph->y0+1);
+        q->s1 = x1 = (float)(glyph->x1-1);
+        q->t1 = y1 = (float)(glyph->y1-1);
+
+        if (stash->params.flags & FONS_NORMALIZE_TEX_COORDS) {
+          q->s0 *= stash->itw;
+          q->t0 *= stash->ith;
+          q->s1 *= stash->itw;
+          q->t1 *= stash->ith;
+        }
 
         rx = *x + xoff;
         ry = *y + yoff;
@@ -1474,11 +1479,6 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
         q->y0 = ry + glyph->yoff;
         q->x1 = q->x0 + x1 - x0;
         q->y1 = q->y0 + y1 - y0;
-
-        q->s0 = x0 * stash->itw;
-        q->t0 = y0 * stash->ith;
-        q->s1 = x1 * stash->itw;
-        q->t1 = y1 * stash->ith;
 
         *x += (int)(xadv + 0.5f);
         *y += (int)(yadv + 0.5f);
@@ -1546,9 +1546,6 @@ static float fons__getVertAlign(FONScontext* stash, FONSfont* font, int align, s
 static __inline void fons__vertices(FONScontext* stash, FONSquad q, FONSstate* state)
 {
     if (stash->params.pushQuad) {
-        FONSatlas* atlas = stash->atlas;
-        q.atlasWidth = atlas->width;
-        q.atlasHeight = atlas->height;
         stash->params.pushQuad(stash->params.userPtr, &q);
         return;
     }
