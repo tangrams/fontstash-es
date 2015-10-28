@@ -30,6 +30,7 @@
 enum FONSflags {
     FONS_ZERO_TOPLEFT = 1,
     FONS_ZERO_BOTTOMLEFT = 2,
+    FONS_NORMALIZE_TEX_COORDS = 4,
 };
 
 enum FONSalign {
@@ -63,6 +64,13 @@ enum FONSerrorCode {
     FONS_STATES_UNDERFLOW = 4,
 };
 
+struct FONSquad
+{
+    float x0,y0,s0,t0;
+    float x1,y1,s1,t1;
+};
+typedef struct FONSquad FONSquad;
+
 struct FONSparams {
     int width, height;
     unsigned char flags;
@@ -72,15 +80,9 @@ struct FONSparams {
     void (*renderUpdate)(void* uptr, int* rect, const unsigned char* data);
     void (*renderDraw)(void* uptr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts);
     void (*renderDelete)(void* uptr);
+    void (*pushQuad)(void* uptr, const FONSquad* quad);
 };
 typedef struct FONSparams FONSparams;
-
-struct FONSquad
-{
-    float x0,y0,s0,t0;
-    float x1,y1,s1,t1;
-};
-typedef struct FONSquad FONSquad;
 
 struct FONStextIter {
     float x, y, nextx, nexty, scale, spacing;
@@ -1415,10 +1417,17 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
         // Inset the texture region by one pixel for corret interpolation.
         xoff = (short)(glyph->xoff+1);
         yoff = (short)(glyph->yoff+1);
-        x0 = (float)(glyph->x0+1);
-        y0 = (float)(glyph->y0+1);
-        x1 = (float)(glyph->x1-1);
-        y1 = (float)(glyph->y1-1);
+        q->s0 = x0 = (float)(glyph->x0+1);
+        q->t0 = y0 = (float)(glyph->y0+1);
+        q->s1 = x1 = (float)(glyph->x1-1);
+        q->t1 = y1 = (float)(glyph->y1-1);
+
+        if (stash->params.flags & FONS_NORMALIZE_TEX_COORDS) {
+          q->s0 *= stash->itw;
+          q->t0 *= stash->ith;
+          q->s1 *= stash->itw;
+          q->t1 *= stash->ith;
+        }
 
         if (stash->params.flags & FONS_ZERO_TOPLEFT) {
             rx = (float)(int)(*x + xoff);
@@ -1429,10 +1438,6 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
             q->x1 = rx + x1 - x0;
             q->y1 = ry + y1 - y0;
 
-            q->s0 = x0 * stash->itw;
-            q->t0 = y0 * stash->ith;
-            q->s1 = x1 * stash->itw;
-            q->t1 = y1 * stash->ith;
         } else {
             rx = (float)(int)(*x + xoff);
             ry = (float)(int)(*y - yoff);
@@ -1442,10 +1447,6 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
             q->x1 = rx + x1 - x0;
             q->y1 = ry - y1 + y0;
 
-            q->s0 = x0 * stash->itw;
-            q->t0 = y0 * stash->ith;
-            q->s1 = x1 * stash->itw;
-            q->t1 = y1 * stash->ith;
         }
 
         *x += (int)(glyph->xadv / 10.0f + 0.5f);
@@ -1459,10 +1460,17 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
         yadv = (float)shaping->advance[it+1] * unitFontScale;
         xoff = (float)shaping->offset[it] / 10.0f * unitFontScale + 1;
         yoff = (float)shaping->offset[it+1] / 10.0f * unitFontScale + 1;
-        x0 = (float)(glyph->x0 + 1);
-        y0 = (float)(glyph->y0 + 1);
-        x1 = (float)(glyph->x1 - 1);
-        y1 = (float)(glyph->y1 - 1);
+        q->s0 = x0 = (float)(glyph->x0+1);
+        q->t0 = y0 = (float)(glyph->y0+1);
+        q->s1 = x1 = (float)(glyph->x1-1);
+        q->t1 = y1 = (float)(glyph->y1-1);
+
+        if (stash->params.flags & FONS_NORMALIZE_TEX_COORDS) {
+          q->s0 *= stash->itw;
+          q->t0 *= stash->ith;
+          q->s1 *= stash->itw;
+          q->t1 *= stash->ith;
+        }
 
         rx = *x + xoff;
         ry = *y + yoff;
@@ -1471,11 +1479,6 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
         q->y0 = ry + glyph->yoff;
         q->x1 = q->x0 + x1 - x0;
         q->y1 = q->y0 + y1 - y0;
-
-        q->s0 = x0 * stash->itw;
-        q->t0 = y0 * stash->ith;
-        q->s1 = x1 * stash->itw;
-        q->t1 = y1 * stash->ith;
 
         *x += (int)(xadv + 0.5f);
         *y += (int)(yadv + 0.5f);
@@ -1542,6 +1545,10 @@ static float fons__getVertAlign(FONScontext* stash, FONSfont* font, int align, s
 
 static __inline void fons__vertices(FONScontext* stash, FONSquad q, FONSstate* state)
 {
+    if (stash->params.pushQuad) {
+        stash->params.pushQuad(stash->params.userPtr, &q);
+        return;
+    }
     fons__vertex(stash, q.x0, q.y0, q.s0, q.t0, state->color);
     fons__vertex(stash, q.x1, q.y1, q.s1, q.t1, state->color);
     fons__vertex(stash, q.x1, q.y0, q.s1, q.t0, state->color);
@@ -1564,6 +1571,8 @@ float fonsDrawText(FONScontext* stash,
                    const char* str, const char* end,
                    const char clear)
 {
+    if (stash == NULL) return x;
+
     FONSstate* state = fons__getState(stash);
     unsigned int codepoint;
     unsigned int utf8state = 0;
@@ -1574,11 +1583,9 @@ float fonsDrawText(FONScontext* stash,
     short iblur = (short)state->blur;
     float scale;
     FONSfont* font;
-    float width;
     int useShaping;
     int invalid = 0;
 
-    if (stash == NULL) return x;
     if (state->font < 0 || state->font >= stash->nfonts) return x;
     font = stash->fonts[state->font];
     if (font->data == NULL) return x;
@@ -1591,11 +1598,11 @@ float fonsDrawText(FONScontext* stash,
 
     if(useShaping) {
         FONSshaping* shaping = stash->shaping;
-        unsigned int i, j;
-
-        shaping->shapingRes = (FONSshapingRes*) malloc(sizeof(FONSshapingRes));
 
         if(shaping) {
+            unsigned int i, j;
+            shaping->shapingRes = (FONSshapingRes*) malloc(sizeof(FONSshapingRes));
+
             // harfbuzz needs this to be called to be able to perform shaping
             fons__tt_setPixelSize(&font->font, (float)isize/10.0f);
 
@@ -1627,6 +1634,8 @@ float fonsDrawText(FONScontext* stash,
             }
         }
     } else {
+        float width;
+
         if (end == NULL)
             end = str + strlen(str);
 
@@ -1670,12 +1679,13 @@ float fonsDrawText(FONScontext* stash,
 int fonsTextIterInit(FONScontext* stash, FONStextIter* iter,
                      float x, float y, const char* str, const char* end)
 {
+    if (stash == NULL) return 0;
+
     FONSstate* state = fons__getState(stash);
     float width;
 
     memset(iter, 0, sizeof(*iter));
 
-    if (stash == NULL) return 0;
     if (state->font < 0 || state->font >= stash->nfonts) return 0;
     iter->font = stash->fonts[state->font];
     if (iter->font->data == NULL) return 0;
@@ -1745,6 +1755,8 @@ float fonsTextBounds(FONScontext* stash,
                      const char* str, const char* end,
                      float* bounds)
 {
+    if (stash == NULL) return 0;
+
     FONSstate* state = fons__getState(stash);
     unsigned int codepoint;
     unsigned int utf8state = 0;
@@ -1759,7 +1771,6 @@ float fonsTextBounds(FONScontext* stash,
     float startx, advance;
     float minx, miny, maxx, maxy;
 
-    if (stash == NULL) return 0;
     if (state->font < 0 || state->font >= stash->nfonts) return 0;
     font = stash->fonts[state->font];
     if (font->data == NULL) return 0;
@@ -1821,11 +1832,12 @@ float fonsTextBounds(FONScontext* stash,
 void fonsVertMetrics(FONScontext* stash,
                      float* ascender, float* descender, float* lineh)
 {
+    if (stash == NULL) return;
+
     FONSfont* font;
     FONSstate* state = fons__getState(stash);
     short isize;
 
-    if (stash == NULL) return;
     if (state->font < 0 || state->font >= stash->nfonts) return;
     font = stash->fonts[state->font];
     isize = (short)(state->size*10.0f);
@@ -1841,11 +1853,12 @@ void fonsVertMetrics(FONScontext* stash,
 
 void fonsLineBounds(FONScontext* stash, float y, float* miny, float* maxy)
 {
+    if (stash == NULL) return;
+
     FONSfont* font;
     FONSstate* state = fons__getState(stash);
     short isize;
     
-    if (stash == NULL) return;
     if (state->font < 0 || state->font >= stash->nfonts) return;
     font = stash->fonts[state->font];
     isize = (short)(state->size*10.0f);
