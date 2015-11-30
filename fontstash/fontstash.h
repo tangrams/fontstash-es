@@ -1091,6 +1091,7 @@ int fonsAddFont(FONScontext* stash, const char* name, const char* path)
 {
     FILE* fp = 0;
     int dataSize = 0;
+    int nRead = 0;
     unsigned char* data = NULL;
 
     // Read in the font data.
@@ -1101,7 +1102,8 @@ int fonsAddFont(FONScontext* stash, const char* name, const char* path)
     fseek(fp,0,SEEK_SET);
     data = (unsigned char*)malloc(dataSize);
     if (data == NULL) goto error;
-    fread(data, 1, dataSize, fp);
+    nRead = (int)fread(data, 1, dataSize, fp);
+    if (nRead != dataSize) goto error;
     fclose(fp);
     fp = 0;
 
