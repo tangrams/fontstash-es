@@ -328,7 +328,7 @@ void fons__tt_getFontVMetrics(FONSttFontImpl *font, int *ascent, int *descent, i
 
 float fons__tt_getPixelHeightScale(FONSttFontImpl *font, float size)
 {
-    return stbtt_ScaleForPixelHeight(&font->font, size);
+    return stbtt_ScaleForMappingEmToPixels(&font->font, size);
 }
 
 int fons__tt_getGlyphIndex(FONSttFontImpl *font, int codepoint, int useShaping)
