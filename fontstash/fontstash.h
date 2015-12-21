@@ -22,11 +22,6 @@
 
 #define FONS_INVALID -1
 
-#ifdef FONS_USE_HARFBUZZ
-#include <hb.h>
-#include <hb-ft.h>
-#endif
-
 enum FONSflags {
     FONS_ZERO_TOPLEFT = 1,
     FONS_ZERO_BOTTOMLEFT = 2,
