@@ -1618,7 +1618,9 @@ float fonsDrawText(FONScontext* stash,
             for (i = 0, j = 0; i < shaping->shapingRes->glyphCount; i++, j+=2) {
                 shaping->it = j;
                 codepoint = shaping->shapingRes->codepoints[i];
-
+                if (codepoint == 0) {
+                    continue;
+                }
                 glyph = fons__getGlyph(stash, font, codepoint, isize, iblur, state->blurType);
 
                 if (glyph != NULL) {
