@@ -150,7 +150,7 @@ const unsigned char* fonsGetTextureData(FONScontext* stash, int* width, int* hei
 int fonsValidateTexture(FONScontext* s, int* dirty);
 
 // Font shaping
-void fonsSetShaping(FONScontext* stash, const char* script, const char* direction, const char* language);
+void fonsSetShaping(FONScontext* stash, void* script, void* direction, void* language);
 unsigned int fonsDecUTF8(unsigned int* state, unsigned int byte);
 
 #endif // FONTSTASH_H
@@ -475,9 +475,9 @@ typedef struct FONSshapingRes FONSshapingRes;
 
 struct FONSshaping {
     FONSshapingRes* shapingRes;
-    const char* script;
-    const char* direction;
-    const char* language;
+    void* script;
+    void* direction;
+    void* language;
     int it;
 };
 
@@ -543,9 +543,9 @@ void fons__hb_shape(FONScontext* stash, const char* text, FONSfont* font)
     FONShbFontShaper* shaper;
     hb_buffer_t* buffer;
     hb_font_t* ft;
-    hb_script_t script;
-    hb_language_t language;
-    hb_direction_t direction;
+    hb_script_t* script;
+    hb_language_t* language;
+    hb_direction_t* direction;
     int i,j;
 
     shaper = (FONShbFontShaper *) font->font.shaper;
@@ -554,14 +554,14 @@ void fons__hb_shape(FONScontext* stash, const char* text, FONSfont* font)
     buffer = shaper->buffer;
     ft = shaper->font;
 
-    direction = hb_direction_from_string(shaping->direction, (int)strlen(shaping->direction));
-    script = hb_script_from_string(shaping->script, (int)strlen(shaping->script));
-    language = hb_language_from_string(shaping->language, (int)strlen(shaping->language));
+    direction = (hb_direction_t*)shaping->direction;
+    script = (hb_script_t*)shaping->script;
+    language = (hb_language_t*)shaping->language;
 
     hb_buffer_reset(buffer);
-    hb_buffer_set_direction(buffer, direction);
-    hb_buffer_set_script(buffer, script);
-    hb_buffer_set_language(buffer, language);
+    hb_buffer_set_direction(buffer, *direction);
+    hb_buffer_set_script(buffer, *script);
+    hb_buffer_set_language(buffer, *language);
     hb_buffer_add_utf8(buffer, text, (int)strlen(text), 0, (int)strlen(text));
     hb_shape(ft, buffer, NULL, 0);
 
@@ -1004,6 +1004,9 @@ void fons__clearShaping(FONScontext* stash)
 {
     fons__hb_freeShapingResult(stash->shaping->shapingRes);
     stash->shaping->it = -1;
+    stash->shaping->direction = NULL;
+    stash->shaping->language = NULL;
+    stash->shaping->script = NULL;
     fons__getState(stash)->useShaping = 0;
 }
 
@@ -1562,7 +1565,7 @@ static __inline void fons__vertices(FONScontext* stash, FONSquad q, FONSstate* s
     fons__vertex(stash, q.x1, q.y1, q.s1, q.t1, state->color);
 }
 
-void fonsSetShaping(FONScontext* stash, const char* script, const char* direction, const char* language)
+void fonsSetShaping(FONScontext* stash, void* script, void* direction, void* language)
 {
     stash->shaping->script = script;
     stash->shaping->direction = direction;
