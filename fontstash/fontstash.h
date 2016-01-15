@@ -57,6 +57,7 @@ enum FONSerrorCode {
     FONS_STATES_OVERFLOW = 3,
     // Trying to pop too many states fonsPopState().
     FONS_STATES_UNDERFLOW = 4,
+    FONS_HB_SCRIPT_DETECTION_FAILED = 5,
 };
 
 struct FONSquad
@@ -65,6 +66,14 @@ struct FONSquad
     float x1,y1,s1,t1;
 };
 typedef struct FONSquad FONSquad;
+
+struct FONSUTF32string
+{
+    void* userPtr;
+    const char32_t* str;
+    size_t length;
+};
+typedef struct FONSUTF32string FONSUTF32string;
 
 struct FONSparams {
     int width, height;
@@ -76,6 +85,8 @@ struct FONSparams {
     void (*renderDraw)(void* uptr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts);
     void (*renderDelete)(void* uptr);
     void (*pushQuad)(void* uptr, const FONSquad* quad);
+    FONSUTF32string (*toUTF32Alloc)(void *uptr, const char* str);
+    void (*UTF32Free)(void* uptr, FONSUTF32string str);
 };
 typedef struct FONSparams FONSparams;
 
@@ -152,6 +163,7 @@ int fonsValidateTexture(FONScontext* s, int* dirty);
 // Font shaping
 void fonsSetShaping(FONScontext* stash, void* script, void* direction, void* language);
 unsigned int fonsDecUTF8(unsigned int* state, unsigned int byte);
+void fonsInitShapingPlan(FONScontext* stash, const char* string);
 
 #endif // FONTSTASH_H
 
@@ -474,7 +486,7 @@ struct FONSshapingRes
 typedef struct FONSshapingRes FONSshapingRes;
 
 struct FONSshaping {
-    FONSshapingRes* shapingRes;
+    FONSshapingRes* result;
     void* script;
     void* direction;
     void* language;
@@ -550,7 +562,7 @@ void fons__hb_shape(FONScontext* stash, const char* text, FONSfont* font)
 
     shaper = (FONShbFontShaper *) font->font.shaper;
     shaping = stash->shaping;
-    res = shaping->shapingRes;
+    res = shaping->result;
     buffer = shaper->buffer;
     ft = shaper->font;
 
@@ -582,14 +594,46 @@ void fons__hb_shape(FONScontext* stash, const char* text, FONSfont* font)
     }
 }
 
-void fons__hb_freeShapingResult(FONSshapingRes* res)
+void fons__hb_freeShapingResult(FONSshaping* shaping)
 {
-    if(res) {
-        free(res->advance);
-        free(res->offset);
-        free(res->codepoints);
-        free(res);
+    if(shaping) {
+        free(shaping->script);
+        free(shaping->direction);
+        free(shaping->language);
+        free(shaping->result->advance);
+        free(shaping->result->offset);
+        free(shaping->result->codepoints);
+        free(shaping->result);
     }
+}
+
+void fons__hb_initShapingPlan(FONScontext* stash, FONSUTF32string utf32string)
+{
+    hb_unicode_funcs_t* unicodeFuncs =  hb_unicode_funcs_get_default();
+    hb_script_t* script = (hb_script_t*)malloc(sizeof(hb_script_t));
+    *script = HB_SCRIPT_INVALID;
+    bool invalid = true;
+    size_t i;
+
+    for (i = 0; i < utf32string.length; ++i) {
+        hb_codepoint_t codepoint = (hb_codepoint_t)utf32string.str[i];
+        *script = hb_unicode_script(unicodeFuncs, codepoint);
+        if (*script != HB_SCRIPT_INVALID) {
+            invalid = false;
+            break;
+        }
+    }
+
+    if (invalid) {
+        stash->handleError(stash->errorUptr, FONS_HB_SCRIPT_DETECTION_FAILED, 0);
+    }
+
+    hb_direction_t* direction = (hb_direction_t*)malloc(sizeof(hb_direction_t));
+    *direction = hb_script_get_horizontal_direction(*script);
+    hb_language_t* language = (hb_language_t*)malloc(sizeof(hb_language_t));
+    *language = hb_language_get_default();
+
+    fonsSetShaping(stash, script, direction, language);
 }
 
 #else
@@ -600,9 +644,9 @@ void fons__hb_shape(FONScontext* stash, const char* text, FONSfont* font)
     FONS_NOTUSED(text);
 }
 
-void fons__hb_freeShapingResult(FONSshapingRes* res)
+void fons__hb_freeShapingResult(FONSshaping* shaping)
 {
-    FONS_NOTUSED(res);
+    FONS_NOTUSED(shaping);
 }
 
 int fons__tt_initShaper(FONSttFontImpl* font)
@@ -615,6 +659,11 @@ int fons__tt_initShaper(FONSttFontImpl* font)
 void fons__tt_freeShaper(FONSttFontImpl* font)
 {
     FONS_NOTUSED(font);
+}
+
+void fons__hb_initShapingPlan(FONScontext* stash, FONSUTF32string utf32String)
+{
+    FONS_NOTUSED(stash);
 }
 
 #endif // FONS_USE_HARFBUZZ
@@ -1002,7 +1051,7 @@ void fonsSetFont(FONScontext* stash, int font)
 
 void fons__clearShaping(FONScontext* stash)
 {
-    fons__hb_freeShapingResult(stash->shaping->shapingRes);
+    fons__hb_freeShapingResult(stash->shaping);
     stash->shaping->it = -1;
     stash->shaping->direction = NULL;
     stash->shaping->language = NULL;
@@ -1459,7 +1508,7 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
         *x += (int)(glyph->xadv / 10.0f + 0.5f);
     } else {
         // TODO : kerning
-        FONSshapingRes* shaping = stash->shaping->shapingRes;
+        FONSshapingRes* shaping = stash->shaping->result;
         int it = stash->shaping->it;
         float unitFontScale = fons__tt_getUnitScale();
 
@@ -1565,6 +1614,12 @@ static __inline void fons__vertices(FONScontext* stash, FONSquad q, FONSstate* s
     fons__vertex(stash, q.x1, q.y1, q.s1, q.t1, state->color);
 }
 
+void fonsInitShapingPlan(FONScontext* stash, const char* str) {
+    FONSUTF32string fons32String = stash->params.toUTF32Alloc(stash->params.userPtr, str);
+    fons__hb_initShapingPlan(stash, fons32String);
+    stash->params.UTF32Free(stash->params.userPtr, fons32String);
+}
+
 void fonsSetShaping(FONScontext* stash, void* script, void* direction, void* language)
 {
     stash->shaping->script = script;
@@ -1608,16 +1663,16 @@ float fonsDrawText(FONScontext* stash,
 
         if(shaping) {
             unsigned int i, j;
-            shaping->shapingRes = (FONSshapingRes*) malloc(sizeof(FONSshapingRes));
+            shaping->result = (FONSshapingRes*) malloc(sizeof(FONSshapingRes));
 
             // harfbuzz needs this to be called to be able to perform shaping
             fons__tt_setPixelSize(&font->font, (float)isize/10.0f);
 
             fons__hb_shape(stash, str, font);
 
-            for (i = 0, j = 0; i < shaping->shapingRes->glyphCount; i++, j+=2) {
+            for (i = 0, j = 0; i < shaping->result->glyphCount; i++, j+=2) {
                 shaping->it = j;
-                codepoint = shaping->shapingRes->codepoints[i];
+                codepoint = shaping->result->codepoints[i];
                 if (codepoint == 0) {
                     continue;
                 }
