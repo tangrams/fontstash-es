@@ -20,6 +20,8 @@
 #ifndef FONS_H
 #define FONS_H
 
+#include <stdbool.h>
+
 #define FONS_INVALID -1
 
 enum FONSflags {
@@ -143,7 +145,7 @@ void fonsSetFont(FONScontext* s, int font);
 // Draw text
 float fonsDrawText(FONScontext* s, float x, float y, const char* string, const char* end, const char c);
 
-int fonsTextDrawable(FONScontext* stash, const char* string, const char* end, char cacheshaping);
+bool fonsTextDrawable(FONScontext* stash, const char* string, const char* end, char cacheshaping);
 
 // Measure text
 
@@ -1627,7 +1629,7 @@ void fonsSetShaping(FONScontext* stash, void* script, void* direction, void* lan
     fons__getState(stash)->useShaping = 1;
 }
 
-int fonsTextDrawable(FONScontext* stash, const char* str, const char* end, char cacheshaping)
+bool fonsTextDrawable(FONScontext* stash, const char* str, const char* end, char cacheshaping)
 {
     if (stash == NULL) return -1;
 
@@ -1637,12 +1639,12 @@ int fonsTextDrawable(FONScontext* stash, const char* str, const char* end, char 
     int useShaping;
 
     if (state->font < 0 || state->font >= stash->nfonts) {
-        return -1;
+        return false;
     }
 
     font = stash->fonts[state->font];
     if (font->data == NULL) {
-        return -1;
+        return false;
     }
 
     useShaping = font->font.shaper != NULL && fons__getState(stash)->useShaping;
@@ -1660,7 +1662,8 @@ int fonsTextDrawable(FONScontext* stash, const char* str, const char* end, char 
                 shaping->it = j;
                 codepoint = shaping->result->codepoints[i];
                 if (codepoint == 0) {
-                    return -1;
+                    fons__clearShaping(stash);
+                    return false;
                 }
             }
 
@@ -1668,7 +1671,7 @@ int fonsTextDrawable(FONScontext* stash, const char* str, const char* end, char 
                 fons__clearShaping(stash);
             }
         } else {
-            return -1;
+            return false;
         }
     } else {
         unsigned int utf8state = 0;
@@ -1681,14 +1684,14 @@ int fonsTextDrawable(FONScontext* stash, const char* str, const char* end, char 
             }
 
             if (!fons__codepointAvailable(stash, font, codepoint)) {
-                return -1;
+                return false;
             }
         }
 
-        return -1;
+        return false;
     }
 
-    return 1;
+    return true;
 }
 
 float fonsDrawText(FONScontext* stash,
