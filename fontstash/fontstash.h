@@ -243,7 +243,7 @@ int fons__tt_getGlyphIndex(FONSttFontImpl *font, int codepoint, int useShaping)
 int fons__tt_setPixelSize(FONSttFontImpl* font, float size)
 {
     FT_Error ftError;
-    ftError = FT_Set_Pixel_Sizes(font->font, 0, (FT_UInt)(size * (float)font->font->units_per_EM / (float)(font->font->ascender - font->font->descender)));
+    ftError = FT_Set_Pixel_Sizes(font->font, 0, size);
     return ftError;
 }
 
