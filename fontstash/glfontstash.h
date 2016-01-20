@@ -452,7 +452,7 @@ int glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned int
     stash->length = length - 6;
 
     if(ctx->shaping != NULL && fons__getState(ctx)->useShaping) {
-        FONSshapingRes* res = ctx->shaping->shapingRes;
+        FONSshapingRes* res = ctx->shaping->result;
         stash->nbGlyph = res->glyphCount;
         fons__clearShaping(ctx);
     } else {

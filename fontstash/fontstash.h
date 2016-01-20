@@ -1786,9 +1786,8 @@ float fonsDrawText(FONScontext* stash,
     if (invalid) {
         fons__flush(stash, 1);
         return -1.f;
-    } else {
-        return x;
     }
+    return x;
 }
 
 int fonsTextIterInit(FONScontext* stash, FONStextIter* iter,
