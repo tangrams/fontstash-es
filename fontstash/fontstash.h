@@ -20,6 +20,7 @@
 #ifndef FONS_H
 #define FONS_H
 
+#include <cstring>
 #include <stdbool.h>
 
 #define FONS_INVALID -1
