@@ -24,6 +24,10 @@
 
 #define FONS_INVALID -1
 
+struct FONSscript;
+struct FONSlanguage;
+struct FONSdirection;
+
 enum FONSflags {
     FONS_ZERO_TOPLEFT = 1,
     FONS_ZERO_BOTTOMLEFT = 2,
@@ -69,14 +73,6 @@ struct FONSquad
 };
 typedef struct FONSquad FONSquad;
 
-struct FONSUTF32string
-{
-    void* userPtr;
-    const char32_t* str;
-    size_t length;
-};
-typedef struct FONSUTF32string FONSUTF32string;
-
 struct FONSparams {
     int width, height;
     unsigned char flags;
@@ -87,8 +83,6 @@ struct FONSparams {
     void (*renderDraw)(void* uptr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts);
     void (*renderDelete)(void* uptr);
     void (*pushQuad)(void* uptr, const FONSquad* quad);
-    FONSUTF32string (*toUTF32Alloc)(void *uptr, const char* str);
-    void (*UTF32Free)(void* uptr, FONSUTF32string str);
 };
 typedef struct FONSparams FONSparams;
 
@@ -165,14 +159,27 @@ const unsigned char* fonsGetTextureData(FONScontext* stash, int* width, int* hei
 int fonsValidateTexture(FONScontext* s, int* dirty);
 
 // Font shaping
-void fonsSetShaping(FONScontext* stash, void* script, void* direction, void* language);
+void fonsSetShaping(FONScontext* stash);
+void fonsSetShaping(FONScontext* stash, FONSscript script, FONSdirection direction, FONSlanguage language);
 unsigned int fonsDecUTF8(unsigned int* state, unsigned int byte);
-void fonsInitShapingPlan(FONScontext* stash, const char* string);
 
 #endif // FONTSTASH_H
 
-
 #ifdef FONTSTASH_IMPLEMENTATION
+
+#ifdef FONS_USE_HARFBUZZ
+
+#define FONSlanguage hb_language_t
+#define FONSdirection hb_direction_t
+#define FONSscript hb_script_t
+
+#else
+
+typedef struct FONSlanguage {} FONSlanguage;
+typedef struct FONSdirection {} FONSdirection;
+typedef struct FONSscript {} FONSscript;
+
+#endif
 
 typedef struct FONSttFontImpl FONSttFontImpl;
 
@@ -379,7 +386,7 @@ float fons__tt_getUnitScale()
     return 1.0;
 }
 
-#endif
+#endif // STBTT
 
 #ifndef FONS_SCRATCH_BUF_SIZE
 #	define FONS_SCRATCH_BUF_SIZE 160000
@@ -491,9 +498,10 @@ typedef struct FONSshapingRes FONSshapingRes;
 
 struct FONSshaping {
     FONSshapingRes* result;
-    void* script;
-    void* direction;
-    void* language;
+    FONSscript script;
+    FONSdirection direction;
+    FONSlanguage language;
+    bool customConfig;
     int it;
 };
 
@@ -559,9 +567,6 @@ void fons__hb_shape(FONScontext* stash, const char* text, FONSfont* font)
     FONShbFontShaper* shaper;
     hb_buffer_t* buffer;
     hb_font_t* ft;
-    hb_script_t* script;
-    hb_language_t* language;
-    hb_direction_t* direction;
     int i,j;
 
     shaper = (FONShbFontShaper *) font->font.shaper;
@@ -570,15 +575,17 @@ void fons__hb_shape(FONScontext* stash, const char* text, FONSfont* font)
     buffer = shaper->buffer;
     ft = shaper->font;
 
-    direction = (hb_direction_t*)shaping->direction;
-    script = (hb_script_t*)shaping->script;
-    language = (hb_language_t*)shaping->language;
-
     hb_buffer_reset(buffer);
-    hb_buffer_set_direction(buffer, *direction);
-    hb_buffer_set_script(buffer, *script);
-    hb_buffer_set_language(buffer, *language);
     hb_buffer_add_utf8(buffer, text, (int)strlen(text), 0, (int)strlen(text));
+
+    if (shaping->customConfig) {
+        hb_buffer_set_direction(buffer, shaping->direction);
+        hb_buffer_set_script(buffer, shaping->script);
+        hb_buffer_set_language(buffer, shaping->language);
+    } else {
+        hb_buffer_guess_segment_properties(buffer);
+    }
+
     hb_shape(ft, buffer, NULL, 0);
 
     hb_glyph_info_t *glyphInfo = hb_buffer_get_glyph_infos(buffer, &res->glyphCount);
@@ -601,43 +608,12 @@ void fons__hb_shape(FONScontext* stash, const char* text, FONSfont* font)
 void fons__hb_freeShapingResult(FONSshaping* shaping)
 {
     if(shaping) {
-        free(shaping->script);
-        free(shaping->direction);
-        free(shaping->language);
+        shaping->customConfig = false;
         free(shaping->result->advance);
         free(shaping->result->offset);
         free(shaping->result->codepoints);
         free(shaping->result);
     }
-}
-
-void fons__hb_initShapingPlan(FONScontext* stash, FONSUTF32string utf32string)
-{
-    hb_unicode_funcs_t* unicodeFuncs =  hb_unicode_funcs_get_default();
-    hb_script_t* script = (hb_script_t*)malloc(sizeof(hb_script_t));
-    *script = HB_SCRIPT_INVALID;
-    bool invalid = true;
-    size_t i;
-
-    for (i = 0; i < utf32string.length; ++i) {
-        hb_codepoint_t codepoint = (hb_codepoint_t)utf32string.str[i];
-        *script = hb_unicode_script(unicodeFuncs, codepoint);
-        if (*script != HB_SCRIPT_INVALID) {
-            invalid = false;
-            break;
-        }
-    }
-
-    if (invalid) {
-        stash->handleError(stash->errorUptr, FONS_HB_SCRIPT_DETECTION_FAILED, 0);
-    }
-
-    hb_direction_t* direction = (hb_direction_t*)malloc(sizeof(hb_direction_t));
-    *direction = hb_script_get_horizontal_direction(*script);
-    hb_language_t* language = (hb_language_t*)malloc(sizeof(hb_language_t));
-    *language = hb_language_get_default();
-
-    fonsSetShaping(stash, script, direction, language);
 }
 
 #else
@@ -663,11 +639,6 @@ int fons__tt_initShaper(FONSttFontImpl* font)
 void fons__tt_freeShaper(FONSttFontImpl* font)
 {
     FONS_NOTUSED(font);
-}
-
-void fons__hb_initShapingPlan(FONScontext* stash, FONSUTF32string utf32String)
-{
-    FONS_NOTUSED(stash);
 }
 
 #endif // FONS_USE_HARFBUZZ
@@ -1057,9 +1028,6 @@ void fons__clearShaping(FONScontext* stash)
 {
     fons__hb_freeShapingResult(stash->shaping);
     stash->shaping->it = -1;
-    stash->shaping->direction = NULL;
-    stash->shaping->language = NULL;
-    stash->shaping->script = NULL;
     fons__getState(stash)->useShaping = 0;
 }
 
@@ -1615,18 +1583,19 @@ static __inline void fons__vertices(FONScontext* stash, FONSquad q, FONSstate* s
     fons__vertex(stash, q.x1, q.y1, q.s1, q.t1, state->color);
 }
 
-void fonsInitShapingPlan(FONScontext* stash, const char* str) {
-    FONSUTF32string fons32String = stash->params.toUTF32Alloc(stash->params.userPtr, str);
-    fons__hb_initShapingPlan(stash, fons32String);
-    stash->params.UTF32Free(stash->params.userPtr, fons32String);
+void fonsSetShaping(FONScontext* stash)
+{
+    stash->shaping->customConfig = false;
+    fons__getState(stash)->useShaping = true;
 }
 
-void fonsSetShaping(FONScontext* stash, void* script, void* direction, void* language)
+void fonsSetShaping(FONScontext* stash, FONSscript script, FONSdirection direction, FONSlanguage language)
 {
     stash->shaping->script = script;
     stash->shaping->direction = direction;
     stash->shaping->language = language;
-    fons__getState(stash)->useShaping = 1;
+    stash->shaping->customConfig = true;
+    fons__getState(stash)->useShaping = true;
 }
 
 bool fonsTextDrawable(FONScontext* stash, const char* str, const char* end, char cacheshaping)
