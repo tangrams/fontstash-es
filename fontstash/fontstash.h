@@ -222,6 +222,19 @@ int fons__tt_loadFont(FONScontext *context, FONSttFontImpl *font, unsigned char 
     //font->font.userdata = stash;
     ftError = FT_New_Memory_Face(ftLibrary, (const FT_Byte*)data, dataSize, 0, &font->font);
 
+    bool setcharmap = false;
+    // force USC-2
+    for(int i = 0; i < font->font->num_charmaps; i++) {
+        if (((  font->font->charmaps[i]->platform_id == 0)
+            && (font->font->charmaps[i]->encoding_id == 3))
+           || ((font->font->charmaps[i]->platform_id == 3)
+            && (font->font->charmaps[i]->encoding_id == 1))) {
+                ftError = FT_Set_Charmap(font->font, font->font->charmaps[i]);
+                setcharmap = true;
+                break;
+        }
+    }
+
     fons__tt_initShaper(font);
     return ftError == 0;
 }
