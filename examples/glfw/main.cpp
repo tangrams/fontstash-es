@@ -4,7 +4,7 @@
 
 #define GLFONS_DEBUG
 #define GLFONTSTASH_IMPLEMENTATION
-#import "glfontstash.h"
+#include "glfontstash.h"
 
 GLFWwindow* window;
 float width = 800, height = 600, dpiRatio = 1;
@@ -30,8 +30,9 @@ int main() {
     // init font context
     GLFONSparams params;
     params.useGLBackend = true; // if not set to true, you must provide your own gl backend
-    ftCtx = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT, params, nullptr);
-    fonsAddFont(ftCtx, "Arial", "/Library/Fonts/Arial.ttf");
+    ftCtx = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT | FONS_NORMALIZE_TEX_COORDS, params, nullptr);
+    // fonsAddFont(ftCtx, "Arial", "/Library/Fonts/Arial.ttf");
+    fonsAddFont(ftCtx, "Arial", "amiri-regular.ttf");
 
     // set the screen size for font context transformations
     glfonsScreenSize(ftCtx, width * dpiRatio, height * dpiRatio);

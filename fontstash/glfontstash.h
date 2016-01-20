@@ -552,7 +552,9 @@ void glfonsUpdateBuffer(FONScontext* ctx, void* owner) {
     if(gl->params.useGLBackend) {
         if(!buffer->vboInitialized) {
             glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo);
-            GLFONS_GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * buffer->interleavedArray.size(), data, GL_DYNAMIC_DRAW));
+            GLFONS_GL_CHECK(glBufferData(GL_ARRAY_BUFFER,
+                                         sizeof(float) * buffer->interleavedArray.size(),
+                                         data, GL_DYNAMIC_DRAW));
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             buffer->vboInitialized = true;
             return;
