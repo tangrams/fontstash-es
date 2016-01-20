@@ -1599,6 +1599,7 @@ static float fons__getVertAlign(FONScontext* stash, FONSfont* font, int align, s
 static int fons__codepointAvailable(FONScontext* stash, FONSfont* font, unsigned int codepoint)
 {
     // TODO
+    return 0;
 }
 
 static __inline void fons__vertices(FONScontext* stash, FONSquad q, FONSstate* state)
@@ -1806,9 +1807,8 @@ float fonsDrawText(FONScontext* stash,
     if (invalid) {
         fons__flush(stash, 1);
         return -1.f;
-    } else {
-        return x;
     }
+    return x;
 }
 
 int fonsTextIterInit(FONScontext* stash, FONStextIter* iter,
