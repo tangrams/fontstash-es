@@ -248,7 +248,7 @@ void fons__tt_getFontVMetrics(FONSttFontImpl *font, int *ascent, int *descent, i
 
 float fons__tt_getPixelHeightScale(FONSttFontImpl *font, float size)
 {
-    return size / (font->font->ascender - font->font->descender);
+    return size / (float)font->font->units_per_EM;
 }
 
 int fons__tt_getGlyphIndex(FONSttFontImpl *font, int codepoint, int useShaping)
@@ -1491,18 +1491,18 @@ static void fons__getQuad(FONScontext* stash, FONSfont* font,
 
         xadv = (float)shaping->advance[it] * unitFontScale;
         yadv = (float)shaping->advance[it+1] * unitFontScale;
-        xoff = (float)shaping->offset[it] / 10.0f * unitFontScale + 1;
-        yoff = (float)shaping->offset[it+1] / 10.0f * unitFontScale + 1;
+        xoff = (float)shaping->offset[it] * unitFontScale + 1;
+        yoff = (float)shaping->offset[it+1] * unitFontScale + 1;
         q->s0 = x0 = (float)(glyph->x0+1);
         q->t0 = y0 = (float)(glyph->y0+1);
         q->s1 = x1 = (float)(glyph->x1-1);
         q->t1 = y1 = (float)(glyph->y1-1);
 
         if (stash->params.flags & FONS_NORMALIZE_TEX_COORDS) {
-          q->s0 *= stash->itw;
-          q->t0 *= stash->ith;
-          q->s1 *= stash->itw;
-          q->t1 *= stash->ith;
+            q->s0 *= stash->itw;
+            q->t0 *= stash->ith;
+            q->s1 *= stash->itw;
+            q->t1 *= stash->ith;
         }
 
         rx = *x + xoff;
@@ -1629,6 +1629,7 @@ bool fonsTextDrawable(FONScontext* stash, const char* str, const char* end, char
         return false;
     }
 
+    short isize = (short)(state->size * 10.0f);
     useShaping = font->font.shaper != NULL && fons__getState(stash)->useShaping;
 
     if(useShaping) {
@@ -1638,6 +1639,7 @@ bool fonsTextDrawable(FONScontext* stash, const char* str, const char* end, char
             unsigned int i, j;
             shaping->result = (FONSshapingRes*) malloc(sizeof(FONSshapingRes));
 
+            fons__tt_setPixelSize(&font->font, (float)isize / 10.0f);
             fons__hb_shape(stash, str, font);
 
             for (i = 0, j = 0; i < shaping->result->glyphCount; i++, j+=2) {
