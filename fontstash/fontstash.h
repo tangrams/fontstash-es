@@ -1318,6 +1318,9 @@ static FONSglyph* fons__getGlyph(FONScontext* stash, FONSfont* font, unsigned in
     scale = fons__tt_getPixelHeightScale(&font->font, size);
     g = fons__tt_getGlyphIndex(&font->font, codepoint, fons__getState(stash)->useShaping
             && font->font.shaper != NULL);
+    if (g == 0) {
+        return NULL;
+    }
     fons__tt_buildGlyphBitmap(&font->font, g, size, scale, &advance, &lsb, &x0, &y0, &x1, &y1);
     gw = x1-x0 + pad*2;
     gh = y1-y0 + pad*2;
@@ -1576,11 +1579,6 @@ static float fons__getVertAlign(FONScontext* stash, FONSfont* font, int align, s
     return 0.0;
 }
 
-static int fons__codepointAvailable(FONScontext* stash, FONSfont* font, unsigned int codepoint)
-{
-    // TODO
-}
-
 static __inline void fons__vertices(FONScontext* stash, FONSquad q, FONSstate* state)
 {
     if (stash->params.pushQuad) {
@@ -1659,20 +1657,18 @@ bool fonsTextDrawable(FONScontext* stash, const char* str, const char* end, char
         }
     } else {
         unsigned int utf8state = 0;
+
         if (end == NULL)
             end = str + strlen(str);
 
         for (; str != end; ++str) {
-            if (fons__decutf8(&utf8state, &codepoint, *(const unsigned char*)str)) {
+            if (fons__decutf8(&utf8state, &codepoint, *(const unsigned char*)str))
                 continue;
-            }
 
-            if (!fons__codepointAvailable(stash, font, codepoint)) {
+            if (codepoint == 0) {
                 return false;
             }
         }
-
-        return false;
     }
 
     return true;
