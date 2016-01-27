@@ -1657,6 +1657,7 @@ bool fonsTextDrawable(FONScontext* stash, const char* str, const char* end, char
             return false;
         }
     } else {
+        int g;
         unsigned int utf8state = 0;
 
         if (end == NULL)
@@ -1667,6 +1668,11 @@ bool fonsTextDrawable(FONScontext* stash, const char* str, const char* end, char
                 continue;
 
             if (codepoint == 0) {
+                return false;
+            }
+
+            g = fons__tt_getGlyphIndex(&font->font, codepoint, 0);
+            if (g == 0) {
                 return false;
             }
         }
