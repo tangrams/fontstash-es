@@ -452,7 +452,7 @@ int glfonsRasterize(FONScontext* ctx, fsuint textId, const char* s, unsigned int
     stash->length = length - 6;
 
     if(ctx->shaping != NULL && fons__getState(ctx)->useShaping) {
-        FONSshapingRes* res = ctx->shaping->shapingRes;
+        FONSshapingRes* res = ctx->shaping->result;
         stash->nbGlyph = res->glyphCount;
         fons__clearShaping(ctx);
     } else {
@@ -552,7 +552,9 @@ void glfonsUpdateBuffer(FONScontext* ctx, void* owner) {
     if(gl->params.useGLBackend) {
         if(!buffer->vboInitialized) {
             glBindBuffer(GL_ARRAY_BUFFER, buffer->vbo);
-            GLFONS_GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * buffer->interleavedArray.size(), data, GL_DYNAMIC_DRAW));
+            GLFONS_GL_CHECK(glBufferData(GL_ARRAY_BUFFER,
+                                         sizeof(float) * buffer->interleavedArray.size(),
+                                         data, GL_DYNAMIC_DRAW));
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             buffer->vboInitialized = true;
             return;
